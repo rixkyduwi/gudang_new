@@ -1,0 +1,461 @@
+{% extends 'include/include.html' %} 
+{% block pjax_content %}
+<div class="container-fluid pb-0 mb-0 h-100 no-scroll " >
+  <div class="row mb-2 pb-1 performa">
+    {% for title, value in [
+      ("Performa Belanja", performa_belanja ),
+      ("Performa Sales", performa_penjualan )
+    ] %}
+    <div class="col-lg-6 col-md-6 mb-1 pb-1" >
+      <div class="card ">
+        <div class="card-body performa_a pt-2 pb-2">
+          <h4 class="card-title mt-2">{{ title }}</h4>
+          <div class="">
+          <h2 class="fw-bold center countup" data-value="{{ value }}">0</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="row mb-0 pb-0 saless" >
+      
+      <!-- Column -->
+    <div class="col-lg-6 col-md-6 mb-1 pb-1" >
+              <div
+                class="card bg-light-info w-100 download " style="margin-bottom:15px" 
+              >
+                <div class="card-body pt-2 pb-2">
+                  <h3 class="text-primary mt-2">
+                    Download Latest Report {{tahun_ini}}
+                  </h3>
+                  <div class=" buttons-report mt-4">
+                  <div>
+                  <a href="/admin/latest_penerimaan" class="btn btn-info mt-1 mr-5 "
+                    >Report PENERIMAAN</a
+                  > <a href="/admin/latest_pengeluaran" class="btn btn-info mt-1 mr-5 "
+                    >Report PENGELUARAN</a
+                  > 
+                  </div>
+                  <div><a href="/admin/Report_Laporan" class="btn btn-info mt-1 "
+                    >Report LAPORAN</a
+                  >
+                  </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row mb-1 pb-1 cash-flow">
+                <div class="col-12 col-md-12 d-flex align-items-stretch" >
+                  <!-- earnings card -->
+                  <div class="card bg-primary w-100" style="margin-bottom:15px" >
+                    <div class="card-body pt-2 pb-2 ">
+                      <div class="d-flex align-items-center">
+                        <h4 class="card-title text-white mt-2">Cash Flow</h4>
+                        
+                      </div>
+                      <div class="mt-2">
+                        <h2 class="fs-8 text-white mb-0 countup" data-value="{{ revenue }}" >0</h2>
+                        <span class="text-white op-5"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+			        </div>
+  <div class="row mb-1 pb-1">
+                <div class="col-12 col-md-12 d-flex align-items-stretch " style="color:white" >
+                  <!-- earnings card -->
+                  <div class="card bg-primary w-100" >
+        <div class="card-body pt-2 pb-2">
+                      <div class="d-flex align-items-center">
+                        <div>
+                          <h4 class="card-title text-white mt-2">Sales Realtime</h4>
+                          <h6 class="text-white op-5 "></h6>
+                        </div>
+                       
+                      </div>
+                      <div class="mt-1">
+                        <table border="0" class="w-100">
+                        <thead>
+                            <tr>
+                              <th class="w-1/2 ">Nama Sales</th>
+                                <th class="w-1/3 px-4 py-2 "></th> <!-- Kolom kosong biar tengah -->
+                                <th class="w-1/3 px-4 py-2">Data Realtime</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in target_sales %}
+                            <tr>
+                                <td class="">{{ i["nama_sales"] }}</td>
+                                <td>=</td>
+                                <td class=" px-4 py-2 ">
+                                  <div class="justify-content-between d-flex w-100">
+                                    <div class="justify-content-start" style="" >Rp </div>
+                                    <div class="justify-content-end countSales" style="" data-value='{{i["data_realtime"] | int }}'>0</div>
+                                  </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+			        </div>
+
+      </div>
+			<div class="col-lg-6 col-md-6">
+              <div class="card w-100">
+                <div class="card-body">
+                  <div class="d-md-flex align-items-center">
+                    <div>
+                      <h3 class="card-title">Sales Overview</h3>
+                      <h6 class="card-subtitle">Target Vs Performa Sales</h6>
+                    </div>
+                    <div class="ms-auto">
+                      <ul class="list-style-none">
+                        <li class="list-inline-item text-primary">
+                          <i
+                            class="ri-checkbox-blank-circle-fill fs-1 me-1"
+                          ></i>
+                          Target
+                        </li>
+                        <li class="list-inline-item text-danger">
+                          <i class="ri-checkbox-blank-circle-fill fs-1 me-1"></i
+                          >Performa Sales
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div id="sales-overview" class="mt-4 mb-1 pb-1"></div>
+                  <div id="sales-overvieww" class="mt-4 mb-1 pb-1"></div>
+                </div>
+              </div>
+              
+  <div class="row ">
+                <div class="col-12 col-md-12 d-flex align-items-stretch" >
+                  <!-- earnings card -->
+                  <div class="card bg-success text-white w-100">
+        <div class="card-body pt-2 pb-2">
+                      <div class="d-md-flex align-items-center">
+                        <div>
+                      <h2 class="fs-6 text-black mb-0 mt-2">INKASO {{ hari_ini }} : </h2>
+                          <h6 class="text-black"></h6>
+                        </div>
+                      
+                      </div>
+                      <div class="mt-0">
+                      <h2 class="fs-8 text-black mb-0 countup" data-value="{{ inkaso }}" >0</h2>
+                        
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+      </div>
+      <!-- column -->
+  </div>
+<!--This page JavaScript -->
+   <script>
+$('#sales-overvieww').hide()
+$(function () {
+  ("use strict");
+    // data langsung dari server
+  const sales = {{ target_sales|tojson }};
+  const data_target   = sales.map(x => Number(x.target) || 0);
+  const data_realtime = sales.map(x => Number(x.data_realtime) || 0);
+  const data_labels   = sales.map(x => x.nama_sales);
+  const chartMax = Math.max(0, ...data_target, ...data_realtime) + 50_000_000;
+
+  var option_sales_overview = {
+   series: [
+      { name: "Target Sales",            data: data_target },
+      { name: "Performa Sales", data: data_realtime },
+    ],
+
+    chart: {
+      type: "bar",
+      height: 360,
+      offsetX: -15,
+      toolbar: {
+        show: false,
+      },
+      foreColor: "#adb0bb",
+      fontFamily: "DM sans",
+      sparkline: {
+        enabled: false,
+      },
+    },
+    grid: {
+      show: false,
+      borderColor: "transparent",
+      padding: {
+        left: 0,
+        right: 0,
+        bottom: 0,
+      },
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: "42%",
+        endingShape: "rounded",
+        borderRadius: 5,
+      },
+    },
+
+    colors: ["#1e4db7", "#fc4b6c"],
+    fill: {
+      type: "solid",
+      opacity: 1,
+    },
+    dataLabels: {
+      enabled: false,
+    },
+    markers: {
+      size: 0,
+    },
+    legend: { show: false },
+    xaxis: { type: "category", categories: data_labels },
+    yaxis: { show: true, min: 0, max: chartMax, tickAmount: 4 },
+    dataLabels: { enabled: false },
+    stroke: { show: true, width: 5, lineCap: "butt", colors: ["transparent"] },
+    tooltip: {
+      theme: "light",
+      y: { formatter: val => (val ?? 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") }
+    }
+  };
+
+  var chart_sales_overview = new ApexCharts(
+    document.querySelector("#sales-overview"),
+    option_sales_overview
+  );
+  chart_sales_overview.render();
+
+});
+
+
+/* ===== Render Apex bar dengan animasi pasti muncul ===== */
+function renderSalesOverview(root = document) {
+  const el = root.querySelector('#sales-overvieww');
+  if (!el) return;
+
+  // data langsung dari server
+  const sales = {{ target_sales|tojson }};
+  const data_target   = sales.map(x => Number(x.target) || 0);
+  const data_realtime = sales.map(x => Number(x.data_realtime) || 0);
+  const data_labels   = sales.map(x => x.nama_sales);
+  const chartMax = Math.max(0, ...data_target, ...data_realtime) + 50_000_000;
+
+  // anti dobel
+  if (el._apexChart && typeof el._apexChart.destroy === 'function') {
+    try { el._apexChart.destroy(); } catch(e){}
+    el._apexChart = null;
+  }
+
+
+  const opts = {
+    series: [
+      { name: "Target",            data: data_target },
+      { name: "Performa Real Time", data: data_realtime },
+    ],
+    
+    chart: {
+      type: "bar",
+      height: 360,
+      offsetX: -15,
+      toolbar: {
+        show: false,
+      },
+      foreColor: "#adb0bb",
+      fontFamily: "DM sans",
+      sparkline: {
+        enabled: false,
+      },
+    },
+    grid: {
+      show: false,
+      borderColor: "transparent",
+      padding: {
+        left: 0,
+        right: 0,
+        bottom: 0,
+      },
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: "42%",
+        endingShape: "rounded",
+        borderRadius: 5,
+      },
+    },
+
+    colors: ["#1e4db7", "#fc4b6c"],
+    fill: {
+      type: "solid",
+      opacity: 1,
+    },
+    dataLabels: {
+      enabled: false,
+    },
+    markers: {
+      size: 0,
+    },legend: { show: false },
+    xaxis: { type: "category", categories: data_labels },
+    yaxis: { show: true, min: 0, max: chartMax, tickAmount: 4 },
+    dataLabels: { enabled: false },
+    stroke: { show: true, width: 5, lineCap: "butt", colors: ["transparent"] },
+    tooltip: {
+      theme: "light",
+      y: { formatter: val => (val ?? 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") }
+    }
+  };
+
+  const chart = new ApexCharts(el, opts);
+  el._apexChart = chart;
+
+  // render lalu fade-in supaya gak kedip
+  chart.render()
+    .then(() => {
+      // paksa reflow kecil biar transition jalan
+      void el.offsetWidth;
+      el.classList.add('fx-show');
+    })
+    .catch(err => console.error('Render sales-overview gagal:', err));
+}
+/* ===== Lifecycle ===== */
+function initDashboard(root=document) {
+	const elements = document.querySelectorAll(".countup");
+
+    elements.forEach(el => {
+        const target = parseFloat(el.getAttribute("data-value")) || 0;
+
+        const options = {
+          duration: 2.5,
+          separator: ".",
+          decimal: ",",
+          prefix: "Rp ",
+          suffix: ",00"
+        };
+
+        const counter = new countUp.CountUp(el, target, options);
+        if (!counter.error) counter.start();
+        else console.error(counter.error);
+      });
+	  const elementssales = document.querySelectorAll(".countSales");
+
+    elementssales.forEach(el => {
+        const target = parseFloat(el.getAttribute("data-value")) || 0;
+
+        const options = {
+          duration: 2.5,
+          separator: ".",
+          decimal: ",",
+          suffix: ",00"
+        };
+
+        const counter = new countUp.CountUp(el, target, options);
+        if (!counter.error) counter.start();
+        else console.error(counter.error);
+      });
+	renderSalesOverview(root);
+}
+initDashboard(document);
+// setelah PJAX selesai
+$(document).on('pjax:end', function () {
+	$('#sales-overview').hide()
+	$('#sales-overvieww').show()
+  const root = document.querySelector('#pjax-container') || document;
+  initDashboard(document);
+});
+
+// kalau chart ada di tab / modal (awalnya hidden)
+document.addEventListener('shown.bs.tab', e => {
+  const pane = document.querySelector(e.target.getAttribute('data-bs-target'));
+  if (pane) initDashboard(pane);
+});
+document.addEventListener('shown.bs.modal', e => initDashboard(e.target));
+</script>
+<!--
+<script>
+  // -----------------------------------------------------------------------
+  // Total Sales
+  // -----------------------------------------------------------------------
+  var option_total_sales = {
+    series: [25, 25, 25, 25],
+    labels: ["2021", "2020", "2019", "2018"],
+    chart: {
+      height: 280,
+      type: "donut",
+      foreColor: "#adb0bb",
+      fontFamily: "DM sans",
+    },
+    colors: ["#1a9bfc", "#1e4db7", "#fec90f", "#ecf0f2"],
+    dataLabels: {
+      enabled: false,
+    },
+    legend: {
+      show: false,
+      // position: "bottom",
+      // fontSize: "16px",
+      // labels: {
+      //   colors: ["#777e89"],
+      // },
+      // markers: {
+      //   width: 8,
+      //   height: 8,
+      // },
+    },
+    grid: {
+      show: false,
+      borderColor: "transparent",
+      padding: {
+        top: 0,
+        right: 0,
+      },
+    },
+    stroke: {
+      colors: ["transparent"],
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "78%",
+          background: "transparent",
+          labels: {
+            show: false,
+            name: {
+              show: true,
+              fontSize: "18px",
+              color: undefined,
+              offsetY: -10,
+            },
+            value: {
+              show: false,
+              color: "#98aab4",
+            },
+            total: {
+              show: false,
+              label: "Our Visitors",
+              color: "#98aab4",
+            },
+          },
+        },
+      },
+    },
+    tooltip: {
+      theme: "dark",
+      fillSeriesColor: false,
+    },
+  };
+
+  var chart_total_sales = new ApexCharts(
+    document.querySelector("#total-sales"),
+    option_total_sales
+  );
+  $(document).ready(function () {
+	chart_total_sales.render();
+  });
+</script> -->
+{% endblock %}

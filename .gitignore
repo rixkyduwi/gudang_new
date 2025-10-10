@@ -1,0 +1,9 @@
+/env
+__pycache__
+__pycache__/
+/app/__pycache__
+.vscode
+/.vscode
+app.py
+/app.py
+./app.py

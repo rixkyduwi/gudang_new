@@ -1,0 +1,472 @@
+{% extends 'include/include.html' %}
+{% block pjax_content %}
+
+<script>
+  function formatRupiah(input) {
+    let angka = input.value.replace(/[^,\d]/g, ''); // Menghapus semua karakter selain angka dan koma
+    if (angka) {
+        let hasil = Number(angka.replace(/,/g, '')).toLocaleString('id-ID'); // Format angka sesuai Indonesia
+        input.value = hasil;
+    } else {
+        input.value = ''; // Jika input tidak valid (semua dihapus), set ke string kosong
+    }
+  }
+    
+    function formatNomorTelepon(input) {
+      let angka = input.value.replace(/[^0-9]/g, ''); // Menghapus semua karakter selain angka
+      let formatted = angka.match(/.{1,3}/g)?.join('-') || ''; // Memisahkan setiap 3 angka dengan tanda -
+      input.value = formatted;
+    }
+  function handleAjax(url, method, data, onSuccess, onError) {
+    $.ajax({
+      url: url,
+      method: method,
+      data: JSON.stringify(data),
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
+      success: onSuccess,
+      error: onError
+    });
+  }
+  function showModal(title, body, onSubmit) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-body').innerHTML = body;
+    document.getElementById('modal-submit').onclick = onSubmit;
+    $('#generic-modal').modal('show');
+  }
+
+  function edit(id, tanggalfaktur, nofaktur, suplaier, alamatsuplaier,telpon ,  barang ,  harga ,  pembayaran ,  jatohtempo , tglpembayaran ,  keterangan ,  lunastidak ) {
+    $("#modal-submit").show()
+    showModal(
+        `Edit Data `,
+        `<div class="form-group"> <label for="tanggalfaktur">Tanggal Faktur</label> <input  type="date" id="tanggalfaktur" class="form-control" value="${tanggalfaktur}"> </div>
+  <div class="form-group"> <label for="nofaktur">Nomor Faktur </label> <input  type="text" id="nofaktur" class="form-control" value="${ nofaktur}"> </div>
+  <div class="form-group"> <label for="suplaier">Nama Supplier  </label> <input disabled type="text" id="suplaier" class="form-control" value="${ suplaier}"> </div>
+  <div class="form-group"> <label for="alamatsuplaier">Alamat Supplier</label> <input disabled type="text" id="alamatsuplaier" class="form-control" value="${ alamatsuplaier}"> </div>
+  <div class="form-group"> 
+    <label for="telpon">Nomor Telephone </label> 
+    <input disabled type="text" id="telpon" class="form-control" value="${ telpon }" oninput="formatNomorTelepon(this)"> 
+  </div>
+  <div class="form-group"> <label for="barang">Nama Barang </label> <input disabled type="text" id="barang" class="form-control" value="${ barang}"> </div>
+  <div class="form-group"> <label for="harga">Harga Satuan </label> <input type="number" id="harga" class="form-control" value="${ harga}"> </div>
+  <div class="form-group">
+    <label for="pembayaran">Metode Pembayaran</label>
+    <select id="pembayaran" class="form-control form-select">
+	  <option value="" > Pilih Metode </option
+      <option value="Cash" ${pembayaran === 'cash' ? 'selected' : ''}>Cash</option>
+      <option value="Tempo" ${pembayaran === 'tempo' ? 'selected' : ''}>Tempo</option>
+    </select>
+  </div>
+  <div class="form-group"> <label for="jatohtempo">Jatuh Tempo </label> <input type="date" id="jatohtempo" class="form-control" value="${ jatohtempo}"> </div>
+  <div class="form-group"> <label for="tglpembayaran">Tanggal Pembayaran </label> <input type="date" id="tglpembayaran" class="form-control" value="${ tglpembayaran}"> </div> 
+  <div class="form-group"> <label for="keterangan">Keterangan Pembayaran </label> <input type="text" id="keterangan" class="form-control" value="${ keterangan}"> </div>  
+  <div class="form-group">
+    <label for="lunastidak">Status Kelunasan</label>
+    <select id="lunastidak" class="form-control form-select">
+      <option value="">Pilih Status</option>
+      <option value="Lunas" ${lunastidak === 'Lunas' ? 'selected' : ''}>Lunas</option>
+      <option value="Tidak Lunas" ${lunastidak === 'Tidak Lunas' ? 'selected' : ''}>Tidak Lunas</option>
+    </select>
+  </div>
+  `,
+        function() {
+           var data = {
+                id:id,
+                tanggalfaktur: $("#tanggalfaktur").val(),  
+                nofaktur   : $("#nofaktur").val(),  
+                harga   : $("#harga").val(),  
+                pembayaran   : $("#pembayaran").val(),  
+                jatohtempo  : $("#jatohtempo").val(), 
+                tglpembayaran : $("#tglpembayaran").val(),  
+                keterangan   : $("#keterangan").val(),  
+                lunastidak: $("#lunastidak").val()
+            };
+        handleAjax(
+          '/admin/administrasi/edit/id',
+          'PUT',
+          data,
+          function(response) { window.location.reload();},
+          function(xhr, status, error) { console.error("Error:", error); console.log(xhr.responseText); alert("Error :"+error) }
+        );
+      }
+    );
+	 $(".complex-colorpicker").datepicker({
+	    autoclose: true,
+	    todayHighlight: true,
+	    format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
+	    language: "id"          // opsional, kalau kamu include file locale id
+	  });
+  }
+
+  function hapus(id) {
+    if (confirm(`Are you sure you want to delete ?`)) {
+      handleAjax(
+        '/admin/administrasi/hapus/id',
+        'DELETE',
+        { id: id },
+        function() { window.location.reload(); },
+        function(xhr, status, error) { console.error("Error:", error); }
+      );
+    } else {
+      alert('Aksi penghapusan dibatalkan.');
+    }
+  }
+
+</script>
+<div class="page-titles">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-12 align-self-center">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 d-flex align-items-center">
+          <li class="breadcrumb-item">
+            <a href="index.html" class="link">
+              <i class="ri-home-3-line fs-5"></i>
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Data Administrasi</li>
+        </ol>
+      </nav>
+      <h1 class="mb-0 fw-bold">Data Administrasi</h1>
+    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+      <!-- <a href="javascript:void(0)" class="btn btn-info d-flex align-items-center ms-2" onclick="tambahBaris3()">
+        <i class="ri-add-line me-1"></i> Tambah Data
+      </a> -->
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="border-bottom title-part-padding">
+          <h4>Data Administrasi </h4>
+          <h4>Filter:</h4>
+            <div class="row col-12"> 
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="tahun_data" name="tahun">
+                <option value="" >Semua Tahun</option>
+                {% for i in tahun %}
+                <option value="{{ i.tahun }}" {% if request.args.get('tahun')|int == i.tahun|int %} selected {% endif %} >{{ i.tahun }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="bulan_data" name="bulan">
+                <option  value="" >Semua Bulan</option>
+                {% for i in [{"value":"1","nama_bulan":"Januari"},{"value":"2","nama_bulan":"Februari"},{"value":"3","nama_bulan":"Maret"},
+                {"value":"4","nama_bulan":"April"},{"value":"5","nama_bulan":"Mei"},{"value":"6","nama_bulan":"Juni"},{"value":"7","nama_bulan":"Juli"},
+                {"value":"8","nama_bulan":"Agustus"},{"value":"9","nama_bulan":"September"},{"value":"10","nama_bulan":"Oktober"},
+                {"value":"11","nama_bulan":"November"},{"value":"12","nama_bulan":"Desember"}] %}
+                <option value="{{ i.value }}" {% if request.args.get('bulan')|int == i.value|int %} selected {% endif %} >{{ i.nama_bulan }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2 " 
+              style="width: 100%; height: 36px" id="tanggal_data" name="tanggal">
+                <option value="" >Semua Tanggal</option>
+                {% for i in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16",
+                "17","18","19","20","21","22","23","24","25","26","27","28","29","30","31"] %}
+                <option value="{{ i }}"  {% if request.args.get('tanggal')|int == i|int %} selected {% endif %} >{{ i }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+			<div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2 " 
+              style="width: 100%; height: 36px" id="nama_principle" name="nama_principle">
+                <option value="" >Semua Nama Principle</option>
+                  {% for i in data_pabrik %}
+                  <option value="{{ i.nama_supplier }}" {% if request.args.get('nama_principle') == i.nama_supplier %} selected {% endif %} >{{ i.nama_supplier }}</option>
+                  {% endfor %}
+              </select>
+              </div>
+            </div>
+            
+            <div class="col-sm-3">
+            <div class="mb-3">
+              <button class="btn btn-info" onclick="run()">Submit</button>
+            </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+              <h4>Data Administrasi </h4>
+            <div id="table_" class="mt-3">
+                  <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+                      <h6 class="mb-0">Grafis Tabel</h6>
+                  </div>
+
+                  <!-- Apply max-height for Transaksi table -->
+                  <div >
+                    <table id="table__data" class="table w-100 table-bordered display text-nowrap">
+                    <thead style="background-color:#f6f8fb;">
+                      <tr>
+                        <th> No</th>
+                        <th> Tanggal Faktur</th> 
+                        <th> Nomor Faktur</th>
+                        <th class="text-ellipsis"> Principle / Supplier</th>
+                        <th> Jumlah Total</th>
+                        <th class="text-ellipsis"> Tanggal Pembayaran</th>
+                        <th> Keterangan</th>
+                        <th class="text-ellipsis"> Lunas / Tidak Lunas</th>
+                        <th class="text-ellipsis"> Aksi</th>
+                        
+                      </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in info_list %}
+                            <tr class="data-utama">
+                              <td>{{ (page - 1) * per_page + loop.index }}</td>
+                              <td>{{ i.tglfaktur}}</td>
+                              <td>{{ i.nofaktur }}</td>
+                              <td>{{ i.nama_supplier }}</td>
+                              <td>
+                                  <div class="justify-content-between d-flex w-100">
+                                            <div>Rp</div>
+                                            <div>{{ i.performa_belanja | format_rupiah }}</div>
+                                        </div>
+                              </td>
+                                <td>{{ i.tanggal_pembayaran or "-" }}
+                                </td>
+
+                                <td>{{ i.keterangan_pembayaran or "-" }}
+                                </td>
+
+                                <td>{{ i.lunas_tidak or "-" }}
+                                </td>
+                              <td >
+                                  <!-- <button data-bs-toggle="modal" data-bs-target="#modal-{{ i.id }}"
+                                  class="btn btn-success">Nota</button> -->
+                                  <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#generic-modal-edit-{{i.id}}">Edit</button>
+                                  <button onclick="hapus({{ i.id |int }})" class="btn btn-danger">Hapus</button>
+                              </td>
+                          </tr>
+							<!-- Modal Edit -->
+								<div class="modal fade"
+                        tabindex="-1"
+                        aria-labelledby="generic-modal-edit-{{i.id}}"
+                        aria-hidden="true" id="generic-modal-edit-{{i.id}}" tabindex="-1" aria-hidden="true">
+								  <div class="modal-dialog modal-xl">
+									<div class="modal-content">
+									  <div class="modal-header d-flex align-items-center">
+										<h4 class="modal-title" id="modal-title">EDIT DATA</h4>
+										<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+									  </div>
+									  <div class="modal-body" >
+                               
+									  <input type="hidden" name="id-{{i.id}}" value="{{i.id}}">
+									  <div class="form-group "> <label for="total-{{i.id}}">Total </label>
+									  <input disabled class="form-control" type="text" name="total-{{i.id}}" value="{{i.performa_belanja}}"></div>
+                    
+									  <div class="form-group"> <label for="tanggal_pembayaran-{{i.id}}">Tanggal Pembayaran </label>
+                    <div class="input-group"> <input type="text" name="tanggal_pembayaran-{{i.id}}" class="complex-colorpicker form-control" value="{{ i.tanggal_pembayaran|default('-')|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+									  <div class="form-group"> <label for="keterangan_pembayaran-{{i.id}}">keterangan Pembayaran</label>
+									  <input type="text"class="form-control" name="keterangan_pembayaran-{{i.id}}" value="{{i.keterangan_pembayaran|default('-')}}"></div>
+									  <div class="form-groiup "> <label for="lunas_tidak-{{i.id}}">Lunas / Tidak Lunas </label>
+									  <select class="form-select form-control" name="lunas_tidak-{{i.id}}">
+									  <option class="form-control" value="" >Pilih Status </option>
+									  <option class="form-control" value="Lunas" {% if i.lunas_tidak =="Lunas"%} selected  {% endif %}>Lunas</option>
+									  <option class="form-control" value="Tidak Lunas" {% if i.lunas_tidak =="Tidak Lunas"%} selected {% endif %} >Tidak Lunas</option>
+									  </select>
+									  </div>
+
+									  </div>
+									  <div class="modal-footer">
+										<div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+										 <a id="modal-submit-{{ i.id }}" class="btn btn-info d-flex align-items-center ms-2"
+										   onclick="submitEdit('{{ i.id }}')">Submit</a>
+											</div>
+										<button type="button" class="btn btn-light-danger text-danger font-weight-medium waves-effect text-start" data-bs-dismiss="modal">Close</button>
+									  </div>
+									</div>
+								  </div>
+								</div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <strong>Halaman {{ page }} dari {{ total_pages }}</strong> — Total Data: {{ total_records }}
+            </div>
+            <nav aria-label="Page navigation">
+              <ul class="pagination mb-0">
+
+                <!-- Tombol pertama -->
+                {% if page > 1 %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page=1&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">&laquo; First</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo; First</span></li>
+                {% endif %}
+
+                <!-- Tombol sebelumnya -->
+                {% if has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                <!-- Nomor halaman -->
+                {% for p in page_range %}
+                  {% if p == page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                  {% else %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ p }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">{{ p }}</a>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+
+                <!-- Tombol selanjutnya -->
+                {% if has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+
+                <!-- Tombol terakhir -->
+                {% if page < total_pages %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ total_pages }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">Last &raquo;</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">Last &raquo;</span></li>
+                {% endif %}
+
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal template -->
+<div class="modal fade" id="generic-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header d-flex align-items-center">
+        <h4 class="modal-title" id="modal-title">Title</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body">...</div>
+      <div class="modal-footer">
+        <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+          <a id="modal-submit" class="btn btn-info d-flex align-items-center ms-2">Submit</a>
+        </div>
+        <button type="button" class="btn btn-light-danger text-danger font-weight-medium waves-effect text-start" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- This Page JS -->
+<script>
+$(document).ready(function(){ 
+	$("#table__data").DataTable({
+		"paging": false,          // Menonaktifkan pagination
+		"info": false,           // Menonaktifkan info jumlah entri
+		"searching": false,       // Mengaktifkan fitur pencarian
+		"lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
+		"scrollX": true,  // Mengaktifkan scroll horizontal
+		"scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
+		"scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
+    })
+	 $(".complex-colorpicker").datepicker({
+	    autoclose: true,
+	    todayHighlight: true,
+	    format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
+	    language: "id"          // opsional, kalau kamu include file locale id
+	  });
+})
+function convertToISO(dateStr) {
+  // dari "dd/mm/yyyy" ke "yyyy-mm-dd"
+  let parts = dateStr.split("/");
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+function submitEdit(idBarangMasuk) {
+  var modal = document.querySelector(`#generic-modal-edit-${idBarangMasuk}`);
+  var inputs = modal.querySelectorAll('input, select');
+  var id_barang_masuk = document.querySelector(`[name="id-${idBarangMasuk}"]`).value;
+  var tanggal_pembayaran = convertToISO(document.querySelector(`[name="tanggal_pembayaran-${idBarangMasuk}"]`).value);
+  var keterangan_pembayaran = document.querySelector(`[name="keterangan_pembayaran-${idBarangMasuk}"]`).value;
+  var lunas_tidak = document.querySelector(`[name="lunas_tidak-${idBarangMasuk}"]`).value;
+
+  var itemMap = {};
+
+  var payload = {
+    id_barang_masuk: id_barang_masuk,
+    tanggal_pembayaran: tanggal_pembayaran,
+    keterangan_pembayaran: keterangan_pembayaran ,
+    lunas_tidak: lunas_tidak,
+  };
+
+  console.log("Payload JSON:", payload);
+
+  $.ajax({
+    url: '/admin/administrasi/edit/id',
+    method: 'PUT',
+    data: JSON.stringify(payload),
+    contentType: 'application/json',
+    headers: {
+      'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}"
+    },
+    success: function (res) {
+      console.log(res);
+      alert('Data berhasil dikirim!');
+	  location.reload(); // << di sini refresh
+    },
+    error: function (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat mengirim data.');
+    }
+  });
+}
+function run() {
+	var tahun = document.getElementById('tahun_data').value;
+	var bulan = document.getElementById('bulan_data').value;
+	var tanggal = document.getElementById('tanggal_data').value;
+	var nama_principle = document.getElementById('nama_principle').value;
+	
+	var queryParams = new URLSearchParams();
+	if (tahun !== "tahun") queryParams.append("tahun", tahun);
+	if (bulan !== "bulan") queryParams.append("bulan", bulan);
+	if (tanggal !== "tanggal") queryParams.append("tanggal", tanggal);
+	if (nama_principle !== "nama_principle") queryParams.append("nama_principle", nama_principle);
+	
+	window.location.href = `?${queryParams.toString()}`;
+	}
+	$('#tambah-modal').on('shown.bs.modal', function () {
+	$('#nmbarang').select2({
+		dropdownParent: $('#tambah-modal') // Pastikan dropdown muncul di dalam modal
+	});
+	$('#supplier').select2({
+		dropdownParent: $('#tambah-modal') // Pastikan dropdown muncul di dalam modal
+	});
+});
+</script>
+{% endblock %}

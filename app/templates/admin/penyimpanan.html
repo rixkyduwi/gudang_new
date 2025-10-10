@@ -1,0 +1,300 @@
+{% extends 'include/include.html' %}
+{% block pjax_content %}
+<script>
+  function formatRupiah(input) {
+    let angka = input.value.replace(/[^,\d]/g, ''); // Menghapus semua karakter selain angka dan koma
+    if (angka) {
+        let hasil = Number(angka.replace(/,/g, '')).toLocaleString('id-ID'); // Format angka sesuai Indonesia
+        input.value = hasil;
+    } else {
+        input.value = ''; // Jika input tidak valid (semua dihapus), set ke string kosong
+    }
+  }
+function handleAjax(url, method, data, onSuccess, onError) {
+  $.ajax({
+    url: url,
+    method: method,                 // atau 'type' kalau jQuery lama
+    data: JSON.stringify(data),
+    contentType: 'application/json',
+    dataType: 'json',               // minta JSON; kalau gagal, error cb tetap kepanggil
+    headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
+    success: onSuccess,
+    error: function(xhr, status, err) {
+      // Normalisasi pesan error
+      const payload = xhr.responseJSON || { error: xhr.responseText || err || 'Unknown error' };
+      onError(payload, status, err);
+    }
+  });
+}
+
+function showModal(title, body, onSubmit) {
+  $('#modal-title').text(title);
+  $('#modal-body').html(body);
+  $('#modal-submit')
+    .off('click')              // cegah dobel handler
+    .on('click', onSubmit);
+  $('#generic-modal').modal('show');
+}
+
+function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok_limit, status) {
+  $("#modal-submit").show();
+  showModal(
+    `Edit Stok — ${nama_barang} (${kode_barang})`,
+    `
+      <div class="form-group">
+        <label for="sisa_penyimpanan_edit">Stok Baru</label>
+        <input type="number" id="sisa_penyimpanan_edit" class="form-control" min="0" step="1"
+               placeholder="0" value="${Number(sisa_penyimpanan) || 0}">
+        <small class="text-muted">Satuan: ${unit}. Batas aman: ${Number(stok_limit) || 0}</small>
+      </div>
+      <div class="form-group">
+        <label for="note_edit">Catatan</label>
+        <textarea id="note_edit" class="form-control" placeholder="Misal: Stock opname / koreksi input"></textarea>
+      </div>
+    `,
+    function () {
+      const btn = $('#modal-submit');
+      const newQty = Number($('#sisa_penyimpanan_edit').val());
+      const note   = $('#note_edit').val() || 'Manual adjustment';
+      if (Number.isNaN(newQty) || newQty < 0) {
+        alert('Jumlah stok tidak valid'); return;
+      }
+      btn.prop('disabled', true).text('Menyimpan...');
+
+      const payload = { product_id: product_id, new_qty: newQty, note: note };
+
+      handleAjax(
+        '/admin/penyimpanan', 'PUT', payload,
+        function (response) {
+          // sukses
+          handleResponse(response, "Edit", "/admin/penyimpanan");
+          btn.prop('disabled', false).text('Simpan');
+          $('#generic-modal').modal('hide');
+        },
+        function (errPayload) {
+          // gagal (format sudah dinormalisasi di handleAjax)
+          handleResponse(errPayload, "Edit", "/admin/penyimpanan");
+          btn.prop('disabled', false).text('Simpan');
+        }
+      );
+    }
+  );
+}
+
+</script>
+<div class="page-titles">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-12 align-self-center">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 d-flex align-items-center">
+          <li class="breadcrumb-item">
+            <a href="index.html" class="link">
+              <i class="ri-home-3-line fs-5"></i>
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Data Penyimpanan</li>
+        </ol>
+      </nav>
+      <h1 class="mb-0 fw-bold">Data Penyimpanan</h1>
+    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+      <!-- <a href="javascript:void(0)" class="btn btn-info d-flex align-items-center ms-2" onclick="tambahBaris3()">
+        <i class="ri-add-line me-1"></i> Tambah Data
+      </a> -->
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="border-bottom title-part-padding">
+          <h4>Filter:</h4>
+            <div class="row col-12"> 
+			       <div class="col-sm-4">
+              <div class="form-group mb-3">
+               <select class="select2 form-select"style="width: 100%; height: 36px" id="nama_barang" >
+                  <option value=""> Semua Nama Barang </option>
+                  {% for i in nama_barang %}
+                  <option value="{{i.id}}" {% if request.args.get('id_barang')|int == i.id|int %} selected {% endif %} > {{i.nama_barang}} | {{i.kode_barang}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+             </div>
+			            
+             <div class="col-sm-3">
+              <div class="form group mb-3">
+               <button class="btn btn-info" onclick="run()">Submit</button>
+              </div>
+             </div>
+          </div>
+        </div>
+        <div class="card-body">
+              <h4>Data Penyimpanan </h4>
+            <div id="table_" class="mt-3">
+                  <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+                      <h6 class="mb-0">Grafis Tabel</h6>
+                  </div>
+
+                  <!-- Apply max-height for Transaksi table -->
+                  <div >
+                    <table id="table__data" class="table w-100 table-bordered display text-nowrap">
+                    <thead style="background-color:#f6f8fb;">
+                      <tr>
+                        <th> No</th>
+                        <th> Kode Barang</th> 
+                        <th> Nama Barang</th> 
+                        <th> Quantity</th>
+                        <th> Sisa Penyimpanan</th>
+                        <th> Stok Limit</th>
+                        <th> Status</th> 
+                        <th> Aksi </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in info_list %}
+                            <tr class="data-utama">
+                                <td>{{ (page - 1) * per_page + loop.index }}</td>
+                                <td>{{ i.kode_barang }}</td>
+                                <td>{{ i.nama_barang }}</td>
+                                <td>{{ i.unit }}</td>
+                                <td>{{ i.sisa_gudang }}</td>
+                                <td>{{ i.stok_limit }}</td>
+                                <td>{{ i.status }}</td>
+                                <td>
+                                <!-- <button data-bs-toggle="modal" data-bs-target="#modal-{{ i.product_id }}" class="btn btn-success">Nota</button> -->
+                                  <button onclick="edit({{ i.product_id }}, '{{i.kode_barang}}', '{{i.nama_barang}}', '{{i.unit}}', {{i.sisa_gudang}}, {{i.stok_limit}}, '{{i.status}}' )" class="btn btn-warning">Edit</button>
+                                  <button class="btn btn-danger" onclick="resetStok({{ i.product_id }}, '{{ i.nama_barang|e }}')">Reset Stok = 0</button>
+								</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <strong>Halaman {{ page }} dari {{ total_pages }}</strong> — Total Data: {{ total_records }}
+            </div>
+            <nav aria-label="Page navigation">
+              <ul class="pagination mb-0">
+
+                <!-- Tombol pertama -->
+                {% if page > 1 %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page=1&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">&laquo; First</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo; First</span></li>
+                {% endif %}
+
+                <!-- Tombol sebelumnya -->
+                {% if has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                <!-- Nomor halaman -->
+                {% for p in page_range %}
+                  {% if p == page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                  {% else %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ p }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">{{ p }}</a>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+
+                <!-- Tombol selanjutnya -->
+                {% if has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+
+                <!-- Tombol terakhir -->
+                {% if page < total_pages %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ total_pages }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">Last &raquo;</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">Last &raquo;</span></li>
+                {% endif %}
+
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal template -->
+<div class="modal fade" id="generic-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header d-flex align-items-center">
+        <h4 class="modal-title" id="modal-title">Title</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body">...</div>
+      <div class="modal-footer">
+        <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+          <a id="modal-submit" class="btn btn-info d-flex align-items-center ms-2">Submit</a>
+        </div>
+        <button type="button" class="btn btn-light-danger text-danger font-weight-medium waves-effect text-start" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- This Page JS -->
+	<script>
+		$(document).ready(function(){ 
+			$("#table__data").DataTable({
+				"paging": false,          // Menonaktifkan pagination
+				"info": false,           // Menonaktifkan info jumlah entri
+				"searching": false,       // Mengaktifkan fitur pencarian
+				"lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
+				"scrollX": true,  // Mengaktifkan scroll horizontal
+				"scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
+				"scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
+			})
+		})
+		function run() {
+		const nama_barang = document.getElementById('nama_barang').value;
+		const queryParams = new URLSearchParams();
+		if (nama_barang !== "nama_barang") queryParams.append("id_barang", nama_barang);
+		window.location.href = `?${queryParams.toString()}`;
+		}
+async function resetStok(productId, nama) {
+  if (!confirm(`Reset stok "${nama}" menjadi 0?`)) return;
+  try {
+    const res = await fetch('/admin/penyimpanan', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ product_id: productId, new_qty: 0, note: 'Reset to zero' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal reset stok');
+    alert('Stok berhasil di-reset');
+    // reload / refresh table
+    location.reload();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+	</script>
+{% endblock %}

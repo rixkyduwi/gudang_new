@@ -1,0 +1,460 @@
+{% if session['jwt_token'] %}
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistem Gudang</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/image/Logo.png" />
+    <link rel="stylesheet" type="text/css" href="/static/assets/extra-libs/css-chart/css-chart.css" />
+    <link rel="stylesheet" type="text/css" href="/static/assets/libs/select2/dist/css/select2.min.css" />
+    <link href="/static/dist/css/style.min.css" rel="stylesheet" />
+    <link href="/static/assets/extra-libs/datatables.net-bs4/css/dataTables.bootstrap4.css" rel="stylesheet">
+    <style>
+      .ql-align-right { text-align: right; }
+      .ql-align-left { text-align: left; }
+      .ql-align-center { text-align: center; }
+      .ql-align-justify { text-align: justify; }
+      .rata-kiri-mobile { text-align: right !important; }
+      @media (max-width: 640px) { .rata-kiri-mobile { text-align: left !important; } .btn-info { margin-top: 5px; margin-bottom: 5px; } }
+      .table-responsive { overflow-x: scroll; cursor: grab; }
+      .table-responsive:active { cursor: grabbing; }
+      .table-responsive::-webkit-scrollbar { height: 15px; }
+      .table-responsive::-webkit-scrollbar-thumb { background-color: #888; border-radius: 10px; }
+      .table-responsive::-webkit-scrollbar-track { background-color: #f1f1f1; }
+      .table-responsive { scrollbar-color: #888 #f1f1f1; scrollbar-width: thick; }
+      .table {margin-bottom: 0px;} 
+      .shrink-logo {max-width: 70px !important;}
+      /* Default size for larger screens */
+      .responsive-svg {
+        width: auto ; /* Keep the image responsive */
+        height: 50px;    /* Maintain aspect ratio */
+		  }
+	  .main-loader {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: white;
+		z-index: 9999;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	  }
+
+	  .main-loader::after {
+		content: "";
+		width: 50px;
+		height: 50px;
+		border: 5px solid #ccc;
+		border-top-color: #333;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	  }
+
+	  @keyframes spin {
+		to {
+		  transform: rotate(360deg);
+		}
+	  }
+	  .clickable-row { cursor: pointer; transition: background-color 0.3s ease; }
+	  .hidden-row { display: none; }
+	  .clickable-row:hover { text-decoration: underline; background-color: #b0b0b0; }
+	  .data-utama { background-color: #e6f7ff; /* Biru muda lembut */ color: #000; /* Warna teks hitam */ }
+	  .sub-detail { background-color: #d9f7be; /* Hijau muda lembut */ color: #000; /* Warna teks hitam */ }
+	  .sub-rab { background-color: #fffbe6; /* Kuning pastel lembut */ color: #000; /* Warna teks hitam */ }
+	  .head-sub-rab { background-color: #bae7ff; /* Biru sedikit lebih gelap dari data utama */ color: #000; /* Warna teks hitam */ }
+	  .jumlah{ background-color: #e7e9f0; /* Biru sedikit lebih gelap dari data utama */ color: #000; /* Warna teks hitam */ }
+	  .scroll-table {
+	  max-height: 900px;
+	  }
+	  .table-responsive {
+		overflow-x: auto; /* Menambahkan scroll horizontal jika diperlukan */
+	  }
+	  
+	  #sales-overview {
+		max-width: 100%; /* Membatasi lebar maksimum sesuai dengan ukuran container */
+		height: 300px; /* Sesuaikan tinggi grafik sesuai kebutuhan */
+	  }
+	  .card.bg-primary ::selection {
+		background: rgba(255, 255, 255, 0.4); 
+		color: #000;
+	  }
+	  @media (min-width: 768px) {   
+		.saless{
+		  max-height: 700px !important;
+		}
+		.performa{
+		  height: 100px;
+		}
+		.performa_a{
+		}
+		.cash-flow{
+		  height: 130px;
+		}
+		.download{
+		  height: 130px;
+		}
+		.buttons-report{
+			  justify-content: space-between !important;
+			  display: flex !important;
+		}
+	  }
+	   @media (max-width: 1541px) {  
+		.download{
+		  height: auto !important;
+		} 
+	   }
+	   @media (max-width: 900px) {   
+	  .buttons-report{
+			  justify-content: none !important;
+			  display: block !important;
+		}
+	   } 
+	  .dataTables_wrapper .dataTables_filter { float: left; text-align: left; margin-right: 10px; } 
+
+	  /* sembunyikan dulu, lalu fade-in */
+	  .fx-fade { opacity: 0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; }
+	  .fx-show { opacity: 1 !important; transform: none !important; }
+
+	  /* hindari "kedip": kita render chart offscreen lalu tampilkan bareng */
+	  #sales-overview { min-height: 260px; }
+	  .text-wrap{
+	  white-space:normal;
+	  word-wrap:break-word;
+	  overflow-wrap:break-word;
+	  }
+	  .text-ellipsis{
+	  white-space:nowrap;
+	  overflow:hidden;
+	  text-overflow:elipsis;
+	  }
+	</style>
+ 
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <!-- jQuery -->
+    <script src="/static/assets/libs/jquery/dist/jquery.min.js" ></script>
+    
+    <!-- jQuery UI -->
+    <script src="/static/assets/extra-libs/taskboard/js/jquery-ui.min.js" ></script>
+    
+    <!-- SEO Meta Tags -->
+  	<meta name="description" content="PT. Bregas Saporete Medikalindo adalah perusahaan yang bergerak di bidang distribusi alat kesehatan dan medis. Berlokasi di Tegal, Jawa Tengah, perusahaan ini menyediakan berbagai produk medis berkualitas tinggi untuk memenuhi kebutuhan fasilitas kesehatan di Indonesia.">
+  	<meta property="og:title" content="PT. Bregas Saporete Medikalindo">
+  	<meta property="og:description" content="PT. Bregas Saporete Medikalindo adalah perusahaan yang bergerak di bidang distribusi alat kesehatan dan medis. Berlokasi di Tegal, Jawa Tengah, perusahaan ini menyediakan berbagai produk medis berkualitas tinggi untuk memenuhi kebutuhan fasilitas kesehatan di Indonesia.">
+  	<meta property="og:image" content="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhLdVYF6ZCvuavJJ8IcrujLNynWSbw5BZG8eTX7e3Dv8RSIlvvgEdy0m10m4sOsuUbhRMTHsmylbZ9EpN_AHdoMlOJoouH8I96vZtGgxwxJ1UKb13XdV5RdTNctnfDRXP2I9tfwHVXrTbU5/s1600/LOGO+PT1.png">
+  	<meta property="og:url" content="https://bregassaporetemedikalindo.blogspot.com/">
+  
+  	<!-- JSON-LD Schema.org -->
+  	<script type="application/ld+json">
+  	{
+  	  "@context": "https://schema.org",
+  	  "@type": "Organization",
+  	  "name": "PT. Bregas Saporete Medikalindo",
+  	  "url": "https://bregassaporetemedikalindo.blogspot.com/",
+  	  "logo": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhLdVYF6ZCvuavJJ8IcrujLNynWSbw5BZG8eTX7e3Dv8RSIlvvgEdy0m10m4sOsuUbhRMTHsmylbZ9EpN_AHdoMlOJoouH8I96vZtGgxwxJ1UKb13XdV5RdTNctnfDRXP2I9tfwHVXrTbU5/s1600/LOGO+PT1.png",
+  	  "contactPoint": {
+  		"@type": "ContactPoint",
+  		"telephone": "+6281318654328",
+  		"contactType": "customer service",
+  		"areaServed": "ID",
+  		"availableLanguage": "id"
+  	  },
+  	  "sameAs": [
+  		"https://www.facebook.com/bregas.saporete.medikalindo",
+  		"https://www.instagram.com/bregas.saporete.medikalindo"
+  	  ]
+  	}
+  	</script> 
+  
+    <!-- App Scripts -->
+    <script src="/static/dist/js/app.min.js" ></script>
+    <script src="/static/dist/js/app.init.stylish.js" ></script>
+    <script src="/static/dist/js/app-style-switcher.js" ></script>
+  
+    <!-- Table -->
+    <script src="/static/assets/extra-libs/datatables.net/js/jquery.dataTables.min.js"></script>
+    <!-- PJAX -->
+    <script src="/static/js/jquery.pjax.min.js"></script>
+	<!-- complex datepicker with color -->
+	<link rel="stylesheet" type="text/css" href="/static/assets/libs/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css"/>
+	<script src="/static/assets/libs/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+	
+	<!-- ApexChart -->
+	 <link
+      rel="stylesheet"
+      href="/static/assets/libs/apexcharts/dist/apexcharts.css"
+    />
+    <script src="/static/assets/libs/apexcharts/dist/apexcharts.min.js"></script>
+	<!--Wave Effects -->
+    <script src="/static/dist/js/waves.js"></script>
+    <!--Custom JavaScript -->
+    <script src="/static/dist/js/feather.min.js"></script>
+    <script src="/static/dist/js/custom.min.js"></script>
+	<!-- CountUP -->
+	<script src="/static/js/countUp.umd.js"></script>
+
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <div id="main-wrapper">
+      <header class="topbar">
+        <nav class="navbar top-navbar navbar-expand-md navbar-dark">
+          <div class="navbar-header">
+            <!-- This is for the sidebar toggle which is visible on mobile only -->
+            <a
+              class="nav-toggler waves-effect waves-light d-block d-md-none"
+              href="javascript:void(0)"
+              ><i class="ri-close-line ri-menu-2-line fs-6"></i
+            ></a>
+            
+            <!--You can put here icon as well // <i class="wi wi-sunset"></i> //-->
+            <!-- Dark Logo icon -->
+            <!-- Light Logo icon -->
+            <div class="">
+            <center>
+            <img
+              src="/static/image/LOGOPT1.webp"
+              alt="homepage"
+              style="width:100px"
+              class="responsive-svg responsive-logo"
+            />
+            </center>
+            </div>
+            <a
+              class="topbartoggler d-block d-md-none  waves-effect waves-light"
+              href="javascript:void(0)"
+              style="padding-left:100px"
+              data-bs-toggle="collapse"
+              data-bs-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent"
+              aria-expanded="false"
+              aria-label="Toggle navigation"
+              ><i class="ri-more-line fs-6"></i
+            ></a>
+         
+          </div>
+          <!-- ============================================================== -->
+          <!-- End Logo -->
+          <!-- ============================================================== -->
+          <div class="navbar-collapse collapse" id="navbarSupportedContent">
+            <!-- ============================================================== -->
+            <!-- toggle and nav items -->
+            <!-- ============================================================== -->
+            <ul class="navbar-nav me-auto">
+              <!-- This is  -->
+              <li class="nav-item">
+                <a
+                  class="nav-link sidebartoggler d-none d-md-block"
+                  href="javascript:void(0)"
+                  ><i data-feather="menu"></i
+                ></a>
+              </li>
+              <!-- search -->
+            </ul>
+            <ul class="navbar-nav">
+              <li class="nav-item dropdown profile-dropdown">
+                <a
+                  class="nav-link dropdown-toggle d-flex align-items-center"
+                  href="#"
+                  data-bs-toggle="dropdown"
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                >
+                  <!--<img
+                    src="/static/image/default_admin.jpg"
+                    alt="user"
+                    width="30"
+                    class="profile-pic rounded-circle"
+                  />-->
+                  <div class="d-none d-md-flex">
+                    <span class="ms-2">Hi, <span class="text-dark fw-bold">{{ session['username'] }}</span></span >
+                    <span>
+                      <i data-feather="chevron-down" class="feather-sm"></i>
+                    </span>
+                  </div>
+                </a>
+                <div
+                  class="dropdown-menu dropdown-menu-end mailbox dropdown-menu-animate-up"
+                  style="width: 50%"
+                >
+                  <ul class="list-style-none">
+                    <li class="p-30 pt-0">
+                      <div class="mt-4">
+                        <a
+                          class="btn btn-info text-white"
+                          href="/keluar"
+                        >
+                          Logout
+                        </a>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </header>
+      {% include "include/sidebar2.html" %}
+	  
+		<div id="loading" style="display:none">Loading...</div>
+      <div class="page-wrapper" id="pjax-container">
+        {% block pjax_content %}{% endblock %}  
+      </div>
+      <footer class="footer text-center" id='copyright'>
+      </footer>
+    </div>
+    <script>
+    // Tunggu sampai semua konten selesai dimuat
+  </script>
+    <script src="/static/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- apps -->
+    <script>
+    function handleResponse(data, crud, url) {
+    console.log("Response:", data);
+
+    try {
+        // Kalau response berupa string, coba parse ke JSON
+        if (typeof data === "string") {
+            try {
+                data = JSON.parse(data);
+            } catch (e) {
+                console.warn("Response bukan JSON, lanjut pakai string");
+            }
+        }
+
+        // Cek isi pesan sukses/gagal
+        if (data && data.msg && data.msg.toUpperCase() === "SUKSES") {
+            alert(`✅ Sukses ${crud} data`);
+        } else if (data && data.error) {
+            alert(`❌ Gagal ${crud} data: ${data.error}`);
+        } else {
+            alert(`⚠️ Gagal ${crud} data (respon tidak dikenal)`);
+        }
+
+    } catch (err) {
+        console.error("Error saat handleResponse:", err);
+        alert("⚠️ Terjadi kesalahan: " + (err.message || err));
+    } finally {
+        // Selalu redirect ke URL, tapi beri sedikit delay biar alert sempat tampil
+        setTimeout(() => {
+            window.location.href = url;
+        }, 500);
+    }
+}
+
+</script>
+    <!-- slimscrollbar scrollbar JavaScript -->
+    <script src="/static/assets/libs/perfect-scrollbar/dist/perfect-scrollbar.jquery.min.js"></script>
+    <script src="/static/assets/extra-libs/sparkline/sparkline.js"></script>
+    
+    <!-- page agenda js-->
+    <script src="/static/assets/libs/moment/min/moment.min.js"></script>
+	<!-- Select2 -->
+    <script src="/static/assets/libs/select2/dist/js/select2.full.min.js"></script>
+    <script src="/static/assets/libs/select2/dist/js/select2.min.js"></script>
+    {% block js %}{% endblock js %}
+	<script>
+	
+function activateSidebar(status) {
+    var urlPath = window.location.pathname;
+    console.log(urlPath);
+	var element = $("ul#sidebarnav a").filter(function () {
+            var linkPath = this.pathname;
+				console.log(linkPath);
+            return urlPath.startsWith(linkPath);
+        });
+	
+    element.parentsUntil(".sidebar-nav").each(function () {
+        if ($(this).is("li") && $(this).children("a").length !== 0) {
+            $(this).children("a").addClass("active");
+            if ($(this).parent("ul#sidebarnav").length === 0)
+                $(this).addClass("active");
+            else
+                $(this).addClass("selected");
+        } else if (!$(this).is("ul") && $(this).children("a").length === 0) {
+            $(this).addClass("selected");
+        } else if ($(this).is("ul")) {
+            $(this).addClass("in");
+        }
+    });
+
+    element.addClass("active");
+
+    $("#sidebarnav a").off("click").on("click", function () {
+        if (!$(this).hasClass("active")) {
+            $("ul", $(this).parents("ul:first")).removeClass("in");
+            $("a", $(this).parents("ul:first")).removeClass("active");
+            $(this).next("ul").addClass("in");
+            $(this).addClass("active");
+        } else {
+            $(this).removeClass("active");
+            $(this).parents("ul:first").removeClass("active");
+            $(this).next("ul").removeClass("in");
+        }
+    });
+
+    $("#sidebarnav >li >a.has-arrow").off("click").on("click", function (t) {
+        t.preventDefault();
+    });
+	if (status == "load-ready"){
+	 if ($(window).width() > 768 || window.Touch) {
+        $(".scroll-sidebar").animate({
+            scrollTop: $("#sidebarnav .sidebar-item.selected").offset().top - 80
+        }, 500);
+    }
+	}
+
+}
+    <!--Menu sidebar -->
+// Panggil pertama kali saat halaman load
+$(document).ready(function () {
+    activateSidebar("load-ready");
+	$(".select2").select2();
+});
+</script>
+    <script>
+	
+    var tahunSaatIni=(new Date).getFullYear();document.getElementById("copyright").innerHTML=tahunSaatIni+" © All Rights Reserved";
+	
+	$.pjax.defaults.timeout = false;
+	$(document).pjax('a[data-pjax]','#pjax-container',{timeout:false})
+	$(document).on('pjax:send', function () {
+	  //$('#pjax-container').hide();
+	  //$('#loading').show();
+	  $('.sidebar-item.selected').removeClass('selected')
+	  $('.sidebar-link.active').removeClass('active')
+	});
+	$(document).on('pjax:complete', function () {
+	  //$('#loading').hide();
+	  //$('#pjax-container').show();
+	  // Date Picker
+	  $(".complex-colorpicker").datepicker({
+	    autoclose: true,
+	    todayHighlight: true,
+	    format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
+	    language: "id"          // opsional, kalau kamu include file locale id
+	  });
+	  activateSidebar("");
+	  $(".select2").select2();
+	});	  
+	</script>
+    
+  </body>
+</html>
+{% else %}
+<!-- Jika jwt_token tidak ada -->
+<script>
+    window.location.href = "/";
+</script>
+{% endif %}

@@ -1,0 +1,338 @@
+{% extends 'include/include.html' %}
+{% block pjax_content %}
+<script>
+function bersihkanFormatAngka(input) {
+  input = input.replace(/\./g, ''); // hapus semua titik
+  return input
+}
+
+function formatAngkaInput(el) {
+  let angka = el.value.replace(/\./g, "");
+  el.value = formatAngka(angka);
+}
+
+function formatAngka(angka) {
+  let number_string = angka.replace(/[^,\d]/g, "").toString();
+  let split = number_string.split(",");
+  let sisa = split[0].length % 3;
+  let hasil = split[0].substr(0, sisa);
+  let ribuan = split[0].substr(sisa).match(/\d{3}/g);
+
+  if (ribuan) {
+    let separator = sisa ? "." : "";
+    hasil += separator + ribuan.join(".");
+  }
+
+  return hasil;
+}
+
+  function handleAjax(url, method, data, onSuccess, onError) {
+    $.ajax({
+      url: url,
+      method: method,
+      data: JSON.stringify(data),
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
+      success: onSuccess,
+      error: onError
+    });
+  }
+  function showModal(title, body, onSubmit) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-body').innerHTML = body;
+    document.getElementById('modal-submit').onclick = onSubmit;
+    $('#generic-modal').modal('show');
+  }
+
+  function tambahBaris3() {
+    $("#modal-submit").show()
+       showModal(
+        'Tambah Target Sales',
+        `<div class="form-group"> <label for="id_sales_baris">Nama sales </label>   
+			<select class="select2 form-select"style="width: 100%; height: 36px" id="id_sales_baris">
+			    <option value=""  > Semua Nama Sales </option>
+			     {% for i in nama_sales%}
+			     <option value="{{i.id}}" > {{i.nama_sales}} </option>
+			     {% endfor %}
+			</select> </div>
+         <div class="form-group"> <label for="target_baris">Target</label> <input type="text" id="target_baris" class=" form-control" oninput="formatAngkaInput(this)"> </div>
+         <div class="form-group"> <label for="tahun_baris">Tahun </label> <input type="number" id="tahun_baris" class="form-control" min=0 max=4 Placeholder="0"> </div>
+         <div class="form-group"> <label for="bulan_baris">Bulan</label> <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="bulan_baris">
+                <option value="" >Semua Bulan</option>
+                {% for i in [{"value":"1","nama_bulan":"Januari"},{"value":"2","nama_bulan":"Februari"},{"value":"3","nama_bulan":"Maret"},
+                {"value":"4","nama_bulan":"April"},{"value":"5","nama_bulan":"Mei"},{"value":"6","nama_bulan":"Juni"},{"value":"7","nama_bulan":"Juli"},
+                {"value":"8","nama_bulan":"Agustus"},{"value":"9","nama_bulan":"September"},{"value":"10","nama_bulan":"Oktober"},
+                {"value":"11","nama_bulan":"November"},{"value":"12","nama_bulan":"Desember"}] %}
+                <option value="{{ i.value }}">{{ i.nama_bulan }}</option>
+                {% endfor %}
+              </select> 
+			  </div>`,
+       function() {
+          // Siapkan data untuk dikirim berdasarkan kategori
+            const data = {
+                id_sales: $("#id_sales_baris").val(),
+                target: bersihkanFormatAngka($("#target_baris").val()),
+                tahun: $('#tahun_baris').val(),
+                bulan: $('#bulan_baris').val()
+            };
+
+        handleAjax(
+          '/admin/target_sales/tambah',
+          'POST',
+          data,
+          function(response) {  window.location.reload()},
+          function(xhr, status, error) { console.error("Error:", error); }
+        );
+       }
+    );
+  }
+  function edit(id, id_sales, target, tahun, bulan) {
+      $("#modal-submit").show();
+      console.log(id_sales)
+      console.log(bulan)
+      showModal(
+          'Edit Target Sales',
+          `
+          <div class="form-group">
+              <label for="id_sales_edit">Nama Sales</label>
+              <select class="select2 form-select" style="width: 100%; height: 36px" id="id_sales_edit">
+                  <option value="">Semua Nama Sales</option>
+                  {% for i in nama_sales %}
+                      <option value="{{ i.id }}" ${id_sales === {{i.id}} ? '' : ''}>
+                          {{ i.nama_sales }}
+                      </option>
+                  {% endfor %}
+              </select>
+          </div>
+
+          <div class="form-group">
+              <label for="target_edit">Target</label>
+              <input type="text" id="target_edit" class="form-control " value="${target}" oninput="formatAngkaInput(this)">
+          </div>
+
+          <div class="form-group">
+              <label for="tahun_edit">Tahun</label>
+              <input type="number" id="tahun_edit" class="form-control" value="${tahun}" min="2020" max="2100">
+          </div>
+
+          <div class="form-group">
+              <label for="bulan_edit">Bulan</label>
+              <select class="form-select select2" style="width: 100%; height: 36px" id="bulan_edit">
+                <option value="">Semua Bulan</option>
+                {% for i in [{"value":"1","nama_bulan":"Januari"},{"value":"2","nama_bulan":"Februari"},
+                       {"value":"3","nama_bulan":"Maret"},{"value":"4","nama_bulan":"April"},
+                       {"value":"5","nama_bulan":"Mei"},{"value":"6","nama_bulan":"Juni"},
+                       {"value":"7","nama_bulan":"Juli"},{"value":"8","nama_bulan":"Agustus"},
+                       {"value":"9","nama_bulan":"September"},{"value":"10","nama_bulan":"Oktober"},
+                       {"value":"11","nama_bulan":"November"},{"value":"12","nama_bulan":"Desember"}] %}
+                  <option value="{{ i.value }}" ${bulan === "{{i.nama_bulan}}" ? '' : ''}>{{ i.nama_bulan }}</option>
+                {% endfor %}
+              </select>
+          </div>
+          `,
+          function () {
+              const data = {
+                  id: id,
+                  id_sales: $("#id_sales_edit").val(),
+                  target: bersihkanFormatAngka($("#target_edit").val()),
+                  tahun: $('#tahun_edit').val(),
+                  bulan: $('#bulan_edit').val()
+              };
+              handleAjax(
+                  '/admin/target_sales/edit/id',
+                  'PUT',
+                  data,
+                  function(response) { window.location.reload(); },
+                  function(xhr, status, error) { console.error("Error:", error); console.log(xhr.responseText); alert("Error :" + error); }
+              );
+          }
+      );
+  }
+
+  function hapus(id) {
+    if (confirm(`Are you sure you want to delete ?`)) {
+      handleAjax(
+        '/admin/target_sales/hapus/id',
+        'DELETE',
+        { id: id },
+        function() { window.location.reload(); },
+        function(xhr, status, error) { console.error("Error:", error); }
+      );
+    } else {
+      alert('Aksi penghapusan dibatalkan.');
+    }
+  }
+
+</script>
+<div class="page-titles">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-12 align-self-center">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 d-flex align-items-center">
+          <li class="breadcrumb-item">
+            <a href="index.html" class="link">
+              <i class="ri-home-3-line fs-5"></i>
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Barang</li>
+        </ol>
+      </nav>
+      <h1 class="mb-0 fw-bold">Target Sales</h1>
+    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+      <a href="javascript:void(0)" class="btn btn-info d-flex align-items-center ms-2" onclick="tambahBaris3()">
+        <i class="ri-add-line me-1"></i> Tambah Data
+      </a> 
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="border-bottom title-part-padding">
+			<h4>Filter:</h4>
+            <div class="row col-12"> 
+			 <div class="col-sm-3">
+              <div class="form-group mb-3">
+               <select class="select2 form-select"style="width: 100%; height: 36px" id="nama_sales" >
+			    <option value=""> Semua Nama Sales </option>
+			     {% for i in nama_sales %}
+			     <option value="{{i.id}}" {% if request.args.get('nama_sales')|int == i.id|int %} selected {% endif %} > {{i.nama_sales}} </option>
+			     {% endfor %}
+			   </select>
+              </div>
+             </div>
+			 <div class="col-sm-3">
+			 
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="tahun_data" name="tahun">
+                <option value="" >Semua Tahun</option>
+                {% for i in tahun %}
+                <option value="{{ i.tahun }}" {% if request.args.get('tahun')|int == i.tahun|int %} selected {% endif %} >{{ i.tahun }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="bulan_data" name="bulan">
+                <option value="" >Semua Bulan</option>
+                {% for i in [{"value":"1","nama_bulan":"Januari"},{"value":"2","nama_bulan":"Februari"},{"value":"3","nama_bulan":"Maret"},
+                {"value":"4","nama_bulan":"April"},{"value":"5","nama_bulan":"Mei"},{"value":"6","nama_bulan":"Juni"},{"value":"7","nama_bulan":"Juli"},
+                {"value":"8","nama_bulan":"Agustus"},{"value":"9","nama_bulan":"September"},{"value":"10","nama_bulan":"Oktober"},
+                {"value":"11","nama_bulan":"November"},{"value":"12","nama_bulan":"Desember"}] %}
+                <option value="{{ i.value }}" {% if request.args.get('bulan')|int == i.value|int %} selected {% endif %} >{{ i.nama_bulan }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+			            
+             <div class="col-sm-3">
+              <div class="form group mb-3">
+               <button class="btn btn-info" onclick="run()">Submit</button>
+              </div>
+             </div>
+             </div>
+        </div>
+        <div class="card-body">
+            <div id="table_" class="mt-3">
+              <h4>Data Target Sales</h4>
+                  <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+                      <h6 class="mb-0">Tabel Target Sales</h6>
+                  </div>
+
+                  <!-- Apply max-height for Transaksi table -->
+                  <div class=" scroll-table">
+                    <table id="table__data" class="table w-100 table-bordered display text-nowrap">
+                    <thead style="background-color:#f6f8fb;">
+                      <tr>
+                        <th> No</th>
+                        <th> Nama Sales</th> 
+                        <th> Target</th> 
+                        <th> Bulan</th> 
+                        <th> Tahun</th> 
+                        <th> aksi </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in info_list %}
+                            <tr class="data-utama">
+                                <td>{{ loop.index }}</td>
+                                <td>{{ i.nama_sales }}</td>
+                                <td>{{ i.target|format_rupiah }}</td>
+                                <td>{{ i.bulan }}</td>
+                                <td>{{ i.tahun }}</td>
+                                <td>
+                                <!-- <button data-bs-toggle="modal" data-bs-target="#modal-{{ i.id }}" class="btn btn-success">Nota</button> -->
+                                  <button onclick="edit({{ i.id }},{{ i.id_sales }},'{{ i.target|format_rupiah }}','{{ i.tahun }}','{{ i.bulan }}' )" class="btn btn-warning">Edit</button>
+                                  <button onclick="hapus({{ i.id }})" class="btn btn-danger">Delete</button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <script>$("#table__data").DataTable({
+                      "paging": false,          // Menonaktifkan pagination
+                "info": false,           // Menonaktifkan info jumlah entri
+                "searching": true,       // Mengaktifkan fitur pencarian
+                "lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
+                "language": {
+                    "search": "",          // Kosongkan label pencarian
+                    "searchPlaceholder": "Cari..." // Placeholder untuk input pencarian
+                },
+                   "dom": '<"search-container"f>rt', // Menempatkan pencarian di dalam div khusus
+                    "scrollX": true,  // Mengaktifkan scroll horizontal
+                    "scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
+                    "scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
+                     "order": [[1, "asc"]] // Mengurutkan kolom ke-2 (indeks 1) secara descending (9-0)
+                })</script>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal template -->
+<div class="modal fade" id="generic-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header d-flex align-items-center">
+        <h4 class="modal-title" id="modal-title">Title</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body">...</div>
+      <div class="modal-footer">
+        <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+          <a id="modal-submit" class="btn btn-info d-flex align-items-center ms-2">Submit</a>
+        </div>
+        <button type="button" class="btn btn-light-danger text-danger font-weight-medium waves-effect text-start" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Format otomatis saat user input
+
+function run() {
+        const tahun = document.getElementById('tahun_data').value;
+        const bulan = document.getElementById('bulan_data').value;
+        const nama_sales = document.getElementById('nama_sales').value;
+
+        const queryParams = new URLSearchParams();
+        if (tahun !== "tahun") queryParams.append("tahun", tahun);
+        if (bulan !== "bulan") queryParams.append("bulan", bulan);
+        if (nama_sales !== "nama_sales") queryParams.append("nama_sales", nama_sales);
+    window.location.href = `?${queryParams.toString()}`;
+    }
+</script>
+<script>
+	
+</script>
+{% endblock %}

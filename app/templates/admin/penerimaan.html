@@ -1,0 +1,411 @@
+{% extends 'include/include.html' %}
+{% block pjax_content %}
+<script>
+function formatToMMDDYYY(datestr){
+              console.log(datestr)
+              const [year, month, day] = datestr.split('-').map(Number);
+              const date = new Date(year, month - 1, day); // bulan mulai dari 0
+              let mm = String(date.getMonth()+1).padStart(2,'0');
+              let dd = String(date.getDate()).padStart(2,'0');
+              let yyyy = date.getFullYear();
+              return `${mm}/${dd}/${yyyy}`;
+            }
+  function formatRupiah(input) {
+    let angka = input.value.replace(/[^,\d]/g, ''); // Menghapus semua karakter selain angka dan koma
+    if (angka) {
+        let hasil = Number(angka.replace(/,/g, '')).toLocaleString('id-ID'); // Format angka sesuai Indonesia
+        input.value = hasil;
+    } else {
+        input.value = ''; // Jika input tidak valid (semua dihapus), set ke string kosong
+    }
+  }
+    
+  function handleAjax(url, method, data, onSuccess, onError) {
+    $.ajax({
+      url: url,
+      method: method,
+      data: JSON.stringify(data),
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
+      success: onSuccess,
+      error: onError
+    });
+  }
+  function showModal(title, body, onSubmit) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-body').innerHTML = body;
+    document.getElementById('modal-submit').onclick = onSubmit;
+    $('#generic-modal').modal('show');
+  }
+
+  function hapus_tahun(event){
+    $("#modal-submit").show()
+    showModal("Hapus Tahun",
+            `<span class="mb-2">Keterangan: Pilih data tahun berapa yang mau dihapus</span>
+              <select class="form-select" id="tahun_hps" name="educationDate">
+                <option value="" >Semua Tahun</option>
+                {% for i in tahun %}
+                <option value="{{i.tahun}}">{{i.tahun}}</option>
+                {% endfor %}
+              </select>`,
+          function() {
+          var tahun = $("#tahun_hps").val();
+          $("#delete").html("Loading ...");
+          $.ajax({
+            url: "/admin/penerimaan/hapus/tahun",
+            method: 'DELETE',
+            headers: {'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}"},
+            data: { tahun: tahun },
+            dataType: 'json',
+            success: function(data) {
+              handleResponse(data, "hapus", "/admin/dana");
+            }
+          });
+          if (event) event.preventDefault();
+    })
+  }
+
+  function edit(id, pabrik, nama_barang, satuan, jumlah, harga_pabrik, tanggal) {
+    $("#modal-submit").show()
+    showModal(
+        `Edit Data `,
+        `<div class="form-group"> <label for="pabrik">pabrik </label> <input type="text" id="pabrik_edit" class="form-control" value="${ pabrik }"> </div>
+         <div class="form-group"> <label for="nama_barang">nama barang</label> <input type="text" id="nama_barang_edit" class="form-control"value="${ nama_barang }"> </div>
+         <div class="form-group"> <label for="satuan">satuan</label> <input type="text" id="satuan_edit" class="form-control"value="${ satuan }"> </div>
+         <div class="form-group"> <label for="jumlah">jumlah</label> <input type="number" id="jumlah_edit" class="form-control" min="0"placeholder="0" value="${ jumlah }" > </div>
+         <div class="form-group"> <label for="harga_pabrik">harga pabrik </label> Rp <input type="text" oninput="formatRupiah(this)" placeholder="0" value="${ harga_pabrik }" id="harga_pabrik_edit" class="form-control"> </div>
+         <div class="form-group"> <label for="tanggal">Tanggal</label> <input type="date" id="tanggal_edit" class="form-control"value="${ tanggal }"> </div>`,
+        function() {
+           const data = {
+                id:id,
+                pabrik: $("#pabrik_edit").val(),
+                nama_barang: $("#nama_barang_edit").val(),
+                satuan: $("#satuan_edit").val(),
+                jumlah: $('#jumlah_edit').val(),
+                harga_pabrik: $('#harga_pabrik_edit').val(),
+                tanggal: $('#tanggal_edit').val()
+            };
+        handleAjax(
+          '/admin/penerimaan/edit/id',
+          'PUT',
+          data,
+          function(response) { window.location.reload();},
+          function(xhr, status, error) { console.error("Error:", error); console.log(xhr.responseText); alert("Error :"+error) }
+        );
+      }
+    );
+  }
+
+  function hapus(id) {
+    if (confirm(`Are you sure you want to delete ?`)) {
+      handleAjax(
+        '/admin/penerimaan/hapus/id',
+        'DELETE',
+        { id: id },
+        function() { window.location.reload(); },
+        function(xhr, status, error) { console.error("Error:", error); }
+      );
+    } else {
+      alert('Aksi penghapusan dibatalkan.');
+    }
+  }
+
+</script>
+<div class="page-titles">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-12 align-self-center">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 d-flex align-items-center">
+          <li class="breadcrumb-item">
+            <a href="index.html" class="link">
+              <i class="ri-home-3-line fs-5"></i>
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Data Penerimaan Barang</li>
+        </ol>
+      </nav>
+      <h1 class="mb-0 fw-bold">Data Penerimaan Barang</h1>
+    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+      <a href="/admin/penerimaan-tambah" class="btn btn-info d-flex align-items-center ms-2" data-pjax>
+        <!-- data-bs-toggle="modal"
+         data-bs-target="#tambah-modal "> -->
+        <i class="ri-add-line me-1"></i> Tambah Data
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="border-bottom title-part-padding">
+          <h4>Filter:</h4>
+            <div class="row col-12"> 
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="tahun_data" name="tahun">
+                <option value="" >Semua Tahun</option>
+                {% for i in tahun %}
+                <option value="{{ i.tahun }}" {% if request.args.get('tahun')|int == i.tahun|int %} selected {% endif %} >{{ i.tahun }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="bulan_data" name="bulan">
+                <option  value="" >Semua Bulan</option>
+                {% for i in [{"value":"1","nama_bulan":"Januari"},{"value":"2","nama_bulan":"Februari"},{"value":"3","nama_bulan":"Maret"},
+                {"value":"4","nama_bulan":"April"},{"value":"5","nama_bulan":"Mei"},{"value":"6","nama_bulan":"Juni"},{"value":"7","nama_bulan":"Juli"},
+                {"value":"8","nama_bulan":"Agustus"},{"value":"9","nama_bulan":"September"},{"value":"10","nama_bulan":"Oktober"},
+                {"value":"11","nama_bulan":"November"},{"value":"12","nama_bulan":"Desember"}] %}
+                <option value="{{ i.value }}" {% if request.args.get('bulan')|int == i.value|int %} selected {% endif %} >{{ i.nama_bulan }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2 " 
+              style="width: 100%; height: 36px" id="tanggal_data" name="tanggal">
+                <option value="" >Semua Tanggal</option>
+                {% for i in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16",
+                "17","18","19","20","21","22","23","24","25","26","27","28","29","30","31"] %}
+                <option value="{{ i }}" {% if request.args.get('tanggal')|int == i|int %} selected {% endif %} >{{ i }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+             <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2 " 
+              style="width: 100%; height: 36px" id="nama_principle" name="nama_principle">
+                <option value="" >Semua Nama Principle</option>
+                  {% for i in data_pabrik %}
+                  <option value="{{ i.nama_supplier }}" {% if request.args.get('nama_supplier') == i.nama_supplier %} selected {% endif %} >{{ i.nama_supplier }}</option>
+                  {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+            <div class="mb-3">
+              <button class="btn btn-info" onclick="run()">Submit</button>
+            </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+              <h4>Data Penerimaan Barang Tahun</h4>
+				<div id="" class="mt-3">
+				  <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+					  <h6 class="mb-0">Grafis Tabel</h6>
+				  </div>
+
+				  <!-- Apply max-height for Transaksi table -->
+				  <div >
+					<table id="table__data" class="table w-100 table-bordered display text-nowrap">
+					<thead style="background-color:#f6f8fb;">
+                      <tr>
+                        <th> No</th>
+                        <th> Tanggal Faktur</th> 
+                        <th> Nomor Faktur</th> 
+                        <th> Principle / Supplier</th>
+                        <th> Nama Barang</th>
+                        <th> Kode Barang</th> 
+                        <th> Quantity</th> 
+                        <th> Jumlah Penerimaan</th>
+                        <th> Harga Satuan</th>
+                        <th> Harga Total</th>
+                        <th> Performa Belanja</th>
+                        <th> Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in info_list %}
+                            <tr class="data-utama" >
+                            
+                                <td>{{ (page - 1) * per_page + loop.index }}</td>
+                                <td>{{ i.tglfaktur }} </td>
+                                <td>{{ i.nofaktur }} </td>
+                                <td>{{ i.nama_supplier }} </td>
+								<td>
+								{% for j in i.detail %}
+                                
+                                <div style="">{{ j.nama_barang }} </div>
+								
+                                {% endfor %}
+								</td>
+								<td>
+								{% for j in i.detail %}
+                                
+                                <div style="">{{ j.kode_barang }} </div>
+								
+                                {% endfor %}
+								</td>
+                                <td>
+								{% for j in i.detail %}
+                                
+                                <div style="">{{ j.qty }} </div>
+								
+                                {% endfor %}
+								</td>
+                                <td>
+								{% for j in i.detail %}
+                                
+                                <div style="text-align:center">{{ j.jml_menerima }} </div>
+								
+                                {% endfor %}
+								</td>
+								
+                                <td>
+								{% for j in i.detail %}
+                                		
+								<div class="justify-content-between d-flex w-100">
+									<div class="justify-content-start" style="" >Rp </div>
+									<div class="justify-content-end" style="">{{ j.harga_satuan | format_rupiah  }}</div>
+								</div>
+								
+                                {% endfor %}
+								</td>
+								
+                                <td>
+								{% for j in i.detail %}
+                                
+								<div class="justify-content-between d-flex w-100">
+									<div class="justify-content-start" style="" >Rp </div>
+									<div class="justify-content-end" style="">{{ j.harga_total | format_rupiah  }}</div>
+								</div>
+								
+                                {% endfor %}
+                                </td>
+								
+                                <td>								
+								<div class="justify-content-between d-flex w-100">
+									<div class="justify-content-start" style="" >Rp </div>
+									<div class="justify-content-end" style="">{{ i.performa_belanja | format_rupiah  }}</div>
+								</div>
+								</td>
+								 
+                                <td>
+                                <a href="/admin/penerimaan/edit/{{i.id}}" class="btn btn-warning" data-pjax >Edit</a>
+                                  <button onclick="hapus({{ i.id |int }})" class="btn btn-danger">Hapus</button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <strong>Halaman {{ page }} dari {{ total_pages }}</strong> — Total Data: {{ total_records }}
+            </div>
+            <nav aria-label="Page navigation">
+              <ul class="pagination mb-0">
+
+                <!-- Tombol pertama -->
+                {% if page > 1 %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page=1&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">&laquo; First</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo; First</span></li>
+                {% endif %}
+
+                <!-- Tombol sebelumnya -->
+                {% if has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                <!-- Nomor halaman -->
+                {% for p in page_range %}
+                  {% if p == page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                  {% else %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ p }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">{{ p }}</a>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+
+                <!-- Tombol selanjutnya -->
+                {% if has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+
+                <!-- Tombol terakhir -->
+                {% if page < total_pages %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ total_pages }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">Last &raquo;</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">Last &raquo;</span></li>
+                {% endif %}
+
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- This Page JS -->
+	<script>
+		$(document).ready(function(){ 
+			$("#table__data").DataTable({
+                "paging": false,          // Menonaktifkan pagination
+                "info": false,           // Menonaktifkan info jumlah entri
+                "searching": false,       // Mengaktifkan fitur pencarian
+                "lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
+                "scrollX": true,  // Mengaktifkan scroll horizontal
+                "scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
+                "scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
+            })
+		})
+        function run() {
+        const tahun = document.getElementById('tahun_data').value;
+        const bulan = document.getElementById('bulan_data').value;
+        const tanggal = document.getElementById('tanggal_data').value;
+        const nama_principle = document.getElementById('nama_principle').value;
+
+        const queryParams = new URLSearchParams();
+        if (tahun !== "tahun") queryParams.append("tahun", tahun);
+        if (bulan !== "bulan") queryParams.append("bulan", bulan);
+        if (tanggal !== "tanggal") queryParams.append("tanggal", tanggal);
+        if (nama_principle !== "nama_principle") queryParams.append("nama_principle", nama_principle);
+
+        window.location.href = `?${queryParams.toString()}`;
+        }
+        $('#tambah-modal').on('shown.bs.modal', function () {
+          $('#nmbarang').select2({
+            dropdownParent: $('#tambah-modal') // Pastikan dropdown muncul di dalam modal
+          });
+          $('#supplier').select2({
+            dropdownParent: $('#tambah-modal') // Pastikan dropdown muncul di dalam modal
+          });
+        });
+		</script>
+		<script>
+		
+	
+      </script>
+
+{% endblock %}

@@ -1,0 +1,454 @@
+{% extends 'include/include.html' %}
+{% block pjax_content %}
+<div class="page-titles">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-12 align-self-center">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 d-flex align-items-center">
+          <li class="breadcrumb-item">
+            <a href="index.html" class="link">
+              <i class="ri-home-3-line fs-5"></i>
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Tambah Data Pengeluaran Barang</li>
+        </ol>
+      </nav>
+      <h1 class="mb-0 fw-bold">Tambah Data Pengeluaran Barang</h1>
+    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+      
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="mt-3">
+            <h4>Tambah Data</h4>
+            <div class="form-group">
+              <label for="tglfaktur">Tanggal Faktur</label>
+              <input disabled type="date" id="tglfaktur" value="{{tanggal}}" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="jthtempo">Jatuh Tempo</label>
+              <input disabled type="date" id="jthtempo" value="{{jth_tempo}}" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="nofaktur">Nomor Faktur</label>
+              <input disabled type="number" id="nofaktur" value="{{nofaktur}}" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="namasales">Nama Sales</label>
+              <select class="select2 form-control" style="width: 100%; height: 36px" id="namasales">
+              
+                <option value="">Pilih Sales</option>
+                {% for i in nama_sales %}
+                <option value="{{ i.nama_sales }}">{{ i.nama_sales }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="pembayaran">Cash / Tempo</label>
+              <select id="pembayaran" class="pembayaran form-select">
+                <option value="">Pilih Pembayaran</option>
+                <option value="Cash">Cash</option>
+                <option value="Tempo">Tempo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="namaoutlet">Nama Outlet</label>
+              <select class="form-control select2" style="width: 100%; height: 36px" id="namaoutlet">
+                <option value="">Pilih Outlet</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="alamatpabrik">Alamat Outlet</label>
+              <input disabled type="text" id="alamatoutlet" class="form-control">
+            </div>
+            <div class="email-repeater mb-3">
+              <div data-repeater-list="repeater-group">
+                <div data-repeater-item class="row mb-3 bg-light border-top mt-4">
+                  <div class="form-group">
+                    <label for="nmbarang">Nama Barang</label>
+                    <select class="form-control select2 nmbarang" id="nmbarang" style="width: 100%; height: 36px">
+                      <option value="">Pilih Barang</option>
+                      {% for i in data_barang %}
+                      <option value="{{i.nama_barang}}">{{i.nama_barang}} | Stok: {{i.sisa_gudang}} | Limit: {{i.stoklimit}}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <input disabled type="hidden" id="idsales" class="idsales form-control">
+                  <input disabled type="hidden" id="idbarang" class="idbarang form-control">
+                  <div class="form-group">
+                    <label for="qty">Quantity</label>
+                    <input disabled type="text" id="qty" class="qty form-control">
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="jmlpermintaan" class="col-sm-2 col-form-label">Jumlah Permintaan</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="number" placeholder="0" min="0" id="jmlpermintaan" class="jmlpermintaan form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="hargasatuan" class="col-sm-2 col-form-label">Harga Satuan</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input type="text" placeholder="0" id="hargasatuan" class="hargasatuan form-control">
+                        <div class="input-group-append">
+                          <span class="input-group-text">,00</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="diskon" class="col-sm-2 col-form-label">Diskon</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="number" placeholder="0" id="diskon" oninput="formatDiskon(this)" min="0" max="100" class="diskon form-control">
+                        <div class="input-group-append">
+                          <span class="input-group-text">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="hargatotal" class="col-sm-2 col-form-label">Harga Total</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input disabled type="number" placeholder="0" id="hargatotal" class="hargatotal form-control">
+                        <div class="input-group-append">
+                          <span class="input-group-text">,00</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="cn" class="col-sm-2 col-form-label">Cn</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="number" placeholder="0" id="cn" class="cn form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="hpp" class="col-sm-2 col-form-label">HPP</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input type="number" placeholder="0" id="hpp" class="hpp form-control">
+                        <div class="input-group-append">
+                          <span class="input-group-text">,00</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="totalhpp" class="col-sm-2 col-form-label">Total HPP</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input disabled type="number" placeholder="0" id="totalhpp" class="totalhpp form-control">
+                        <div class="input-group-append">
+                          <span class="input-group-text">,00</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="profit" class="col-sm-2 col-form-label">Profit</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input disabled type="number" placeholder="0" id="profit" class="profit form-control">
+                        <div class="input-group-append">
+                          <span class="input-group-text">,00</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="tanggal_pembayaran" class="col-sm-2 col-form-label">Tanggal Pembayaran</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="date" id="tanggal_pembayaran" class="tanggal_pembayaran form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="metode_pembayaran" class="col-sm-2 col-form-label">Metode Pembayaran</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="text" placeholder="Transfer" id="metode_pembayaran" class="metode_pembayaran form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group"> <label for="lunas_or_no">Lunas / Tidak Lunas</label> 
+                    <select id="lunas_or_no" class="form-control form-select"> 
+                        <option value="Lunas">Lunas</option>
+                        <option value="Tidak Lunas">Tidak Lunas </option>
+                    </select>
+                  </div>
+                  <button data-repeater-delete="" class="mt-3 btn btn-danger waves-effect waves-light" type="button" style="margin-left:14px; margin-right:14px; width: 96.5%">
+                    <div class="d-flex align-items-center">
+                      <i data-feather="x-circle" class="feather-sm ms-2 pr-2 fill-white"></i> Hapus Barang
+                    </div>
+                  </button>
+                </div>
+              </div>
+              <button type="button" data-repeater-create="" id="tambah-barang" class="btn btn-info w-100 waves-effect waves-light">
+                <div class="d-flex align-items-center">
+                  <i data-feather="plus-circle" class="feather-sm ms-2 pr-2 fill-white"></i>
+                  Tambah Barang
+                </div>
+              </button>
+            </div>
+            <div class="text-end mt-3">
+              <button id="modal-submit-tambah" class="btn btn-info ms-2">Submit</button>
+              <a href="/admin/pengeluaran" class="btn btn-secondary">Back</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block js %}
+<!-- This Page JS -->
+<script src="/static/assets/libs/select2/dist/js/select2.full.min.js"></script>
+<script src="/static/assets/libs/select2/dist/js/select2.min.js"></script>
+<script src="/static/dist/js/pages/forms/select2/select2.init.js"></script>
+<script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
+<script src="/static/assets/extra-libs/jquery.repeater/repeater-init.js"></script>
+<script src="/static/assets/extra-libs/jquery.repeater/dff.js"></script>
+<script>
+  function formatDiskon(input) {
+    let angka = input.value.replace(/[^,\d]/g, ''); // Menghapus semua karakter selain angka dan koma
+    if (angka) {
+      if (angka <= 100 && angka >= 0) {
+        input.value = angka;
+      } else {
+        input.value = '';
+      }
+    } else {
+      input.value = ''; // Jika input tidak valid (semua dihapus), set ke string kosong
+    }
+  }
+  $("#namasales").change(function() {
+    if (!'{{ data_sales | tojson | safe }}') {
+      console.warn("Data sales is undefined or null.");
+      return;
+    }
+    console.log("Event change select namasales dimulai");
+    try {
+      var data_sales1 = JSON.stringify({{ data_sales | tojson | safe }});
+      var data_sales = JSON.parse(data_sales1);
+      var nama_sales = $("#namasales").val();
+      console.log("Nama sales yang dipilih:", nama_sales);
+      console.log("Data sales:", data_sales);
+      var found = false; // Untuk melacak apakah sales ditemukan
+      var $namaoutlet = $("#namaoutlet"); // Select dropdown dengan class namaoutlet
+      $namaoutlet.empty(); // Kosongkan opsi sebelumnya
+      $namaoutlet.append('<option value="">Pilih Outlet</option>'); // Tambahkan opsi default
+      for (var key in data_sales) {
+        var nama = data_sales[key].nama_sales;
+        if (nama == nama_sales) {
+            $("#idsales").val(data_sales[key].id);
+          console.log("Sales ditemukan:", nama);
+          var outlet = data_sales[key].nama_outlet; // Ambil daftar outlet dari data sales
+          // Tambahkan opsi baru berdasarkan daftar outlet
+          console.log("Menambahkan outlet:", outlet);
+          $namaoutlet.append('<option value="' + outlet + '">' + outlet + '</option>');
+          found = true;
+        }
+      }
+      if (!found) {
+        console.warn("Sales tidak ditemukan. Mengosongkan opsi outlet.");
+        $namaoutlet.empty().append('<option value="">Pilih Outlet</option>'); // Reset dropdown
+      }
+    } catch (error) {
+      console.error("Error saat memproses perubahan nama sales:", error);
+    }
+  });
+  $("#namaoutlet").change(function() {
+    console.log("Event change pada #namaoutlet dipicu");
+    try {
+      if (!'{{ data_outlet | tojson | safe }}') {
+        console.warn("Data outlet is undefined or null.");
+        return;
+      }
+      var data_pabrik = JSON.parse('{{ data_outlet | tojson | safe }}');
+      var nama_pabrik = $('#namaoutlet').val();
+      var found = false; // Untuk melacak apakah pabrik ditemukan
+      for (var key in data_pabrik) {
+        var nama = data_pabrik[key].nama_outlet;
+        if (nama == nama_pabrik) {
+          $('#alamatoutlet').val(data_pabrik[key].alamat);
+          found = true;
+          break; // Keluar dari loop jika pabrik ditemukan
+        }
+      }
+      if (!found) {
+        console.warn("pabrik tidak ditemukan. Mengosongkan alamat dan tlp pabrik.");
+        $('#alamatpabrik').val("");
+        $('#tlppabrik').val("");
+      }
+    } catch (error) {
+      console.error("Error saat memproses perubahan nama pabrik:", error);
+    }
+  });
+  setInterval(function() {
+    $(".jmlpermintaan, .hargasatuan, .diskon").trigger("input");
+    $(".hpp").trigger("input");
+  }, 3000);
+  $(document).on("change", ".nmbarang", function() {
+    if (!'{{ data_barang | tojson | safe }}') {
+      console.warn("Data barang is undefined or null.");
+      return;
+    }
+    var data_barang1 = JSON.stringify({{ data_barang | tojson | safe }});
+    var data_barang = JSON.parse(data_barang1);
+    var $row = $(this).closest("[data-repeater-item]"); // Get the current row
+    var nama_barang = $(this).val();
+    var found = false; // Untuk melacak apakah barang ditemukan
+    for (var key in data_barang) {
+      var nama = data_barang[key].nama_barang;
+      if (nama == nama_barang) {
+        $row.find('.idbarang').val(data_barang[key].id);
+        $row.find('.qty').val(data_barang[key].qty);
+        $row.find('.alamatbarang').val(data_barang[key].alamat_barang || ""); // Update alamatbarang
+        found = true;
+        break; // Keluar dari loop jika barang ditemukan
+      }
+    }
+    if (!found) {
+      console.warn("Barang tidak ditemukan. Mengosongkan id barang, qty, dan alamat barang.");
+      $row.find('.idbarang').val("");
+      $row.find('.qty').val("");
+      $row.find('.alamatbarang').val(""); // Clear alamatbarang
+    }
+  });
+  $(document).on("input", ".jmlpermintaan, .hargasatuan, .diskon", function() {
+    try {
+      var $row = $(this).closest("[data-repeater-item]"); // Get the current row
+      var jumlah = $row.find('.jmlpermintaan').val();
+      var harga_satuan = $row.find('.hargasatuan').val();
+      if (!jumlah || !harga_satuan) {
+        console.warn("Jumlah atau harga satuan kosong. Tidak dapat menghitung harga total.");
+        $row.find(".hargatotal").val("");
+      }
+      var jml = parseFloat(jumlah) * parseFloat(harga_satuan);
+      var diskon = $row.find('.diskon').val();
+      console.log("Diskon:", diskon);
+      if (diskon) {
+        jml = jml - (jml * (parseFloat(diskon) / 100));
+        console.log("Harga setelah diskon:", jml);
+      }
+      console.log("Harga total:", jml);
+      $row.find(".hargatotal").val(jml.toFixed(2));
+    } catch (error) {
+      console.error("Error saat menghitung harga total:", error);
+    }
+  });
+  $(document).on("input", ".hpp", function() {
+    try {
+      var $row = $(this).closest("[data-repeater-item]"); // Get the current row
+      var jumlah = $row.find('.jmlpermintaan').val();
+      var harga_total = $row.find('.hargatotal').val();
+      var hpp = $row.find('.hpp').val();
+      var total_hpp = parseFloat(jumlah) * parseFloat(hpp);
+      var profit = (parseFloat(harga_total)) - total_hpp;
+      $row.find(".totalhpp").val(total_hpp.toFixed(2));
+      $row.find(".profit").val(profit.toFixed(2));
+    } catch (error) {
+      console.error("Error saat menghitung total HPP dan profit:", error);
+    }
+  });
+  $("#modal-submit-tambah").click(function() {
+    // Siapkan data utama
+    var data = {
+      tglfaktur: $("#tglfaktur").val(),
+      jthtempo: $("#jthtempo").val(),
+      nofaktur: $("#nofaktur").val(),
+      nama_sales: $("#namasales").val(),
+      nama_outlet: $("#namaoutlet").val(),
+      pembayaran: $("#pembayaran").val(),
+      items: [] // Array untuk menyimpan data dari repeater
+    };
+    // Iterasi melalui elemen repeater untuk mengumpulkan data
+    $("[data-repeater-item]").each(function() {
+      var item = {
+        nama_barang: $(this).find("#nmbarang").val() || "",
+        id_barang: $(this).find("#idbarang").val() || "",
+        jmlpermintaan: $(this).find("#jmlpermintaan").val() || "",
+        harga_satuan: $(this).find("#hargasatuan").val() || "",
+        diskon: $(this).find("#diskon").val() || "",
+        harga_total: $(this).find("#hargatotal").val() || "",
+        cn: $(this).find("#cn").val() || "",
+        hpp: $(this).find("#hpp").val() || "",
+        totalhpp: $(this).find("#totalhpp").val() || "",
+        tanggal_pembayaran: $(this).find("#tanggal_pembayaran").val() || "",
+        metode_pembayaran: $(this).find("#metode_pembayaran").val() || "",
+        lunas_or_no: $(this).find("#lunas_or_no").val() || "",
+        profit: $(this).find("#profit").val() || ""
+      };
+      data.items.push(item); // Tambahkan item ke array
+    });
+    // Kirim data melalui AJAX
+    $.ajax({
+      url: '/admin/pengeluaran/tambah/id',
+      method: 'POST',
+      data: JSON.stringify(data),
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
+      success: function(response) {
+        alert("Tambah Data Pengeluaran Sukses");
+        location.href = "/admin/pengeluaran";
+      },
+      error: function(xhr, status, error) {
+        console.error("Error:", error);
+        if (xhr.responseJSON && xhr.responseJSON.error) {
+          let errorMessages = xhr.responseJSON.error;
+          alert("Validation Errors:\n" + errorMessages);
+        } else {
+          alert("An unexpected error occurred: " + error);
+        }
+      }
+    });
+  });
+  $("#tambah-barang").on("click", function() {
+    console.log("halol");
+    setTimeout(function() {
+      $(".nmbarang").change();
+      $(".nmbarang").select2();
+      $('span[data-select2-id="5"]').hide();
+      var observer = new MutationObserver(function(mutationsList, observer) {
+        var element = document.querySelector('span[data-select2-id="5"]');
+        if (element) {
+          element.style.display = 'none';
+          observer.disconnect(); // Hentikan observer setelah elemen ditemukan
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }, 1000);
+  });
+</script>
+{% endblock %}

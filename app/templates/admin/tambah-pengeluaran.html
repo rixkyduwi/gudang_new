@@ -1,0 +1,590 @@
+{% extends 'include/include.html' %}
+{% block pjax_content %}
+<div class="page-titles">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-12 align-self-center">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 d-flex align-items-center">
+          <li class="breadcrumb-item">
+            <a href="index.html" class="link">
+              <i class="ri-home-3-line fs-5"></i>
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Tambah Data Pengeluaran Barang</li>
+        </ol>
+      </nav>
+      <h1 class="mb-0 fw-bold">Tambah Data Pengeluaran Barang</h1>
+    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+      
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="mt-3">
+            <h4>Tambah Data</h4>
+            <div class="form-group">
+              <label for="tglfaktur">Tanggal Faktur </label>
+              <div class="input-group"> <input type="text" id="tglfaktur"  class="complex-colorpicker tglfaktur form-control" value="{{ tanggal|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+            </div>
+            <div class="form-group">
+              <label for="jthtempo">Jatuh Tempo</label>
+              <div class="input-group"> <input type="text" id="jthtempo" disabled  class="complex-colorpicker jthtempo form-control" value="{{ jth_tempo|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+            </div>
+            <div class="form-group">
+              <label for="nofaktur">Nomor Faktur</label>
+              <input disabled type="number" id="nofaktur" value="{{nofaktur}}" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="namasales">Nama Sales</label>
+              <select class="select2 form-control" style="width: 100%; height: 36px" id="namasales">
+              
+                <option value="">Pilih Sales</option>
+                {% for i in nama_sales %}
+                <option value="{{ i.nama_sales }}">{{ i.nama_sales }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="pembayaran">Cash / Tempo</label>
+              <select id="pembayaran" class="pembayaran form-select">
+                <option value="">Pilih Pembayaran</option>
+                <option value="Cash">Cash</option>
+                <option value="Tempo">Tempo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="namaoutlet">Nama Outlet</label>
+              <select class="form-control select2" style="width: 100%; height: 36px" id="namaoutlet">
+                <option value="">Pilih Outlet</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="alamatpabrik">Alamat Outlet</label>
+              <input disabled type="text" id="alamatoutlet" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="pajak">Pajak</label>
+              <select id="pajak" class="pajak form-select">
+                <option value="">Pilih pajak</option>
+                <option value="Iya">Iya</option>
+                <option value="Tidak">Tidak</option>
+              </select>
+            </div>
+            <div class="email-repeater mb-3">
+              <div data-repeater-list="repeater-group">
+                <div data-repeater-item class="row mb-3 bg-light border-top mt-4">
+                  <div class="form-group">
+                    <label for="nmbarang">Nama Barang</label>
+                    <select class="form-control select2 nmbarang" id="nmbarang" style="width: 100%; height: 36px">
+                      <option value="">Pilih Barang</option>
+                      {% for i in data_barang %}
+                      <option value="{{i.nama_barang}}">{{i.nama_barang}} | Stok: {{i.sisa_gudang}} | Limit: {{i.stoklimit}}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <input disabled type="hidden" id="idsales" class="idsales form-control">
+                  <input disabled type="hidden" id="idbarang" class="idbarang form-control">
+                  <div class="form-group">
+                    <label for="qty">Quantity</label>
+                    <input disabled type="text" id="qty" class="qty form-control">
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="jmlpermintaan" class="col-sm-2 col-form-label">Jumlah Permintaan</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="number"  placeholder="0" min="0" id="jmlpermintaan" class="jmlpermintaan form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="hargasatuan" class="col-sm-2 col-form-label">Harga Satuan</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input type="text" oninput="formatAngkaInput(this)" placeholder="0" id="hargasatuan" class="hargasatuan form-control">
+                        <div class="input-group-append">
+                         <input type="text" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" class="hargasatuan-koma form-control" >
+                            </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="diskon" class="col-sm-2 col-form-label">Diskon</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="number" oninput="formatDiskon(this)" placeholder="0" id="diskon"  min="0" max="100" class="diskon form-control">
+                        <div class="input-group-append">
+                          <span class="input-group-text">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="hargatotal" class="col-sm-2 col-form-label">Harga Total</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input disabled type="text" placeholder="0" id="hargatotal" class="hargatotal form-control">
+                        <div class="input-group-append">
+                          <input type="text" disabled maxlength="3" placeholder=",00" class="hargatotal-koma form-control" >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="cn" class="col-sm-2 col-form-label">Cn</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="number" placeholder="0" id="cn" class="cn form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="hpp" class="col-sm-2 col-form-label">HPP</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input type="text" oninput="formatAngkaInput(this)" placeholder="0" id="hpp" class="hpp form-control">
+                        <div class="input-group-append">
+                          <input type="text" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" class="hpp-koma form-control" >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  
+                  <div class="form-group row mt-2">
+                    <label for="totalhpp" class="col-sm-2 col-form-label">Total HPP</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input disabled type="text" placeholder="0" id="totalhpp" class="totalhpp form-control">
+                        <div class="input-group-append">
+                           <input type="text" disabled maxlength="3" placeholder=",00" class="totalhpp-koma form-control" >
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="profit" class="col-sm-2 col-form-label">Profit</label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">Rp</span>
+                        </div>
+                        <input disabled type="text" placeholder="0" id="profit" class="profit form-control">
+                        <div class="input-group-append">
+                           <input type="text" disabled maxlength="3" placeholder=",00" class="profit-koma form-control" >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="batch" class="col-sm-2 col-form-label">Batch </label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="text" id="batch" class="batch form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group row mt-2">
+                    <label for="ed" class="col-sm-2 col-form-label">Expired Date (ED) </label>
+                    <div class="col-sm-10">
+                      <div class="input-group">
+                        <input type="text" id="ed" class="ed form-control">
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                  <button data-repeater-delete="" class="mt-3 btn btn-danger waves-effect waves-light w-100" type="button" >
+                    <div class="d-flex align-items-center">
+                      <i data-feather="x-circle" class="feather-sm ms-2 pr-2 fill-white"></i> Hapus Barang
+                    </div>
+                  </button>
+                  </div>
+                </div>
+              </div>
+              <button type="button" data-repeater-create="" id="tambah-barang" class="btn btn-info w-100 waves-effect waves-light">
+                <div class="d-flex align-items-center">
+                  <i data-feather="plus-circle" class="feather-sm ms-2 pr-2 fill-white"></i>
+                  Tambah Barang
+                </div>
+              </button>
+            </div>
+            <div class="text-end mt-3">
+              <button id="modal-submit-tambah" class="btn btn-info ms-2">Submit</button>
+              <a href="/admin/pengeluaran" class="btn btn-secondary">Back</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- This Page JS -->
+<script src="/static/assets/libs/select2/dist/js/select2.full.min.js"></script>
+<script src="/static/assets/libs/select2/dist/js/select2.min.js"></script>
+<script src="/static/dist/js/pages/forms/select2/select2.init.js"></script>
+<script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
+<script src="/static/assets/extra-libs/jquery.repeater/repeater-init.js"></script>
+<script src="/static/assets/extra-libs/jquery.repeater/dff.js"></script>
+<script src="/static/assets/libs/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+<script>
+// Date Picker
+$(".complex-colorpicker").datepicker({
+  autoclose: true,
+  todayHighlight: true,
+  format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
+  language: "id"          // opsional, kalau kamu include file locale id
+  });
+  function convertToISO(dateStr) {
+  // dari "dd/mm/yyyy" ke "yyyy-mm-dd"
+  let parts = dateStr.split("/");
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+</script>
+<script>
+  function formatKoma(val) {
+  val = val.replace(/[^\d,]/g, '');
+
+  if (val.length > 0 && val[0] !== ',') {
+    val = ',' + val.replace(',', '');
+  }
+
+  val = val.slice(0, 3);
+  if (!/^,\d{0,2}$/.test(val)) {
+    val = val.slice(0, -1);
+  }
+
+  return val;
+}
+function formatRupiahKoma(angka) {
+  angka = parseFloat(angka).toFixed(2); // pastikan 2 digit desimal
+  let [depan, belakang] = angka.split(".");
+
+  depan = depan.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // format ribuan
+  return `${depan},${belakang}`;
+}
+
+function splitKomaValue(val) {
+  let [int, dec] = val.toFixed(2).split(".");
+  let formattedInt = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return { int: formattedInt, koma: `,${dec}` };
+}
+function bersihkanFormatAngka(input) {
+  return input.replace(/\./g, '');
+}
+
+
+function formatAngkaInput(el) {
+  let angka = el.value.replace(/\./g, "");
+  el.value = formatAngka(angka);
+}
+
+function formatAngka(angka) {
+	angka = angka.toString()
+  let number_string = angka.replace(/[^,\d]/g, "").toString();
+  let split = number_string.split(",");
+  let sisa = split[0].length % 3;
+  let hasil = split[0].substr(0, sisa);
+  let ribuan = split[0].substr(sisa).match(/\d{3}/g);
+
+  if (ribuan) {
+    let separator = sisa ? "." : "";
+    hasil += separator + ribuan.join(".");
+  }
+
+  return hasil;
+}
+  function formatDiskon(input) {
+    let angka = input.value.replace(/[^,\d]/g, ''); // Menghapus semua karakter selain angka dan koma
+    if (angka) {
+      if (angka <= 100 && angka >= 0) {
+        input.value = angka;
+      } else {
+        input.value = '';
+      }
+    } else {
+      input.value = ''; // Jika input tidak valid (semua dihapus), set ke string kosong
+    }
+  }
+  $("#tglfaktur").change(function () {
+    let tanggal = $(this).val(); // contoh: 04/09/2025
+    if (tanggal) {
+      let encoded = encodeURIComponent(tanggal);
+      $.getJSON(`/api/ceknofaktur/${encoded}`, function (data) {
+        $("#jthtempo").val(data.jatuh_tempo);
+        $("#nofaktur").val(data.nofaktur);
+      }).fail(function (xhr) {
+        console.error("Gagal ambil data:", xhr.responseText);
+      });
+    }
+  });
+
+  $("#namasales").change(function() {
+    if (!'{{ data_sales | tojson | safe }}') {
+      console.warn("Data sales is undefined or null.");
+      return;
+    }
+    console.log("Event change select namasales dimulai");
+    try {
+      var data_sales1 = JSON.stringify({{ data_sales | tojson | safe }});
+      var data_sales = JSON.parse(data_sales1);
+      var nama_sales = $("#namasales").val();
+      console.log("Nama sales yang dipilih:", nama_sales);
+      console.log("Data sales:", data_sales);
+      var found = false; // Untuk melacak apakah sales ditemukan
+      var $namaoutlet = $("#namaoutlet"); // Select dropdown dengan class namaoutlet
+      $namaoutlet.empty(); // Kosongkan opsi sebelumnya
+      $namaoutlet.append('<option value="" selected >Pilih Outlet</option>'); // Tambahkan opsi default
+      for (var key in data_sales) {
+        var nama = data_sales[key].nama_sales;
+        if (nama == nama_sales) {
+            $("#idsales").val(data_sales[key].id);
+          console.log("Sales ditemukan:", nama);
+          var outlet = data_sales[key].nama_outlet; // Ambil daftar outlet dari data sales
+          // Tambahkan opsi baru berdasarkan daftar outlet
+          console.log("Menambahkan outlet:", outlet);
+          $namaoutlet.append('<option value="' + outlet + '">' + outlet + '</option>');
+          found = true;
+        }
+      }
+      if (!found) {
+        console.warn("Sales tidak ditemukan. Mengosongkan opsi outlet.");
+        $namaoutlet.empty().append('<option value="">Pilih Outlet</option>'); // Reset dropdown
+      }
+    } catch (error) {
+      console.error("Error saat memproses perubahan nama sales:", error);
+    }
+  });
+  $("#namaoutlet").change(function() {
+    console.log("Event change pada #namaoutlet dipicu");
+    try {
+      if (!'{{ data_outlet | tojson | safe }}') {
+        console.warn("Data outlet is undefined or null.");
+        return;
+      }
+      var userInput = '{{ data_outlet | tojson | safe }}'; 
+      const rawInput = userInput.replace(/[\u0000-\u001F]+/g, ''); // hapus control char
+
+      var data_pabrik = JSON.parse(rawInput);// pastikan ini string JSON valid
+      var nama_pabrik = $('#namaoutlet').val();
+      var found = false; // Untuk melacak apakah pabrik ditemukan
+      for (var key in data_pabrik) {
+        var nama = data_pabrik[key].nama_outlet;
+        if (nama == nama_pabrik) {
+          $('#alamatoutlet').val(data_pabrik[key].alamat_outlet);
+          found = true;
+          break; // Keluar dari loop jika pabrik ditemukan
+        }
+      }
+      if (!found) {
+        console.warn("pabrik tidak ditemukan. Mengosongkan alamat dan tlp pabrik.");
+        $('#alamatpabrik').val("");
+        $('#tlppabrik').val("");
+      }
+    } catch (error) {
+      console.error("Error saat memproses perubahan nama pabrik:", error);
+    }
+  });
+  setInterval(function() {
+    $(".jmlpermintaan, .hargasatuan, .diskon").trigger("input");
+    $(".hpp").trigger("input");
+  }, 3000);
+  $(document).on("change", ".nmbarang", function() {
+    if (!'{{ data_barang | tojson | safe }}') {
+      console.warn("Data barang is undefined or null.");
+      return;
+    }
+    var data_barang1 = JSON.stringify({{ data_barang | tojson | safe }});
+    var data_barang = JSON.parse(data_barang1);
+    var $row = $(this).closest("[data-repeater-item]"); // Get the current row
+    var nama_barang = $(this).val();
+    var found = false; // Untuk melacak apakah barang ditemukan
+    for (var key in data_barang) {
+      var nama = data_barang[key].nama_barang;
+      if (nama == nama_barang) {
+        $row.find('.idbarang').val(data_barang[key].id);
+        $row.find('.qty').val(data_barang[key].qty);
+        found = true;
+        break; // Keluar dari loop jika barang ditemukan
+      }
+    }
+    if (!found) {
+      console.warn("Barang tidak ditemukan. Mengosongkan id barang, qty, dan alamat barang.");
+      $row.find('.idbarang').val("");
+      $row.find('.qty').val("");
+    }
+  });
+$(document).on("input", ".jmlpermintaan, .hargasatuan, .hargasatuan-koma, .diskon, .hpp, .hpp-koma", function() {
+  try {
+    var $row = $(this).closest("[data-repeater-item]");
+
+    var jumlah = parseFloat($row.find('.jmlpermintaan').val().replace(',', '.')) || 0;
+    var harga_satuan_int = bersihkanFormatAngka($row.find('.hargasatuan').val()) || '0';
+    var harga_satuan_koma = ($row.find('.hargasatuan-koma').val().replace(',', '') || '00');
+    var harga_satuan = parseFloat(`${harga_satuan_int}.${harga_satuan_koma}`) || 0;
+
+    var hpp_int = bersihkanFormatAngka($row.find('.hpp').val()) || '0';
+    var hpp_koma = ($row.find('.hpp-koma').val().replace(',', '') || '00');
+    var hpp = parseFloat(`${hpp_int}.${hpp_koma}`) || 0;
+
+    var diskon = parseFloat($row.find('.diskon').val()) || 0;
+
+    var harga_total = jumlah * harga_satuan;
+    if (diskon) harga_total -= harga_total * (diskon / 100);
+
+    var total_hpp = jumlah * hpp;
+    var profit = harga_total - total_hpp;
+
+    let totalObj = splitKomaValue(harga_total);
+    let hppObj = splitKomaValue(total_hpp);
+    let profitObj = splitKomaValue(profit);
+
+    $row.find(".hargatotal").val(totalObj.int);
+    $row.find(".hargatotal-koma").val(totalObj.koma);
+
+    $row.find(".totalhpp").val(hppObj.int);
+    $row.find(".totalhpp-koma").val(hppObj.koma);
+
+    $row.find(".profit").val(profitObj.int);
+    $row.find(".profit-koma").val(profitObj.koma);
+
+  } catch (error) {
+    console.error("Error saat menghitung total dan profit:", error);
+  }
+});
+
+  
+  $("#modal-submit-tambah").click(function () {
+  let batalSubmit = false; // Flag untuk batalkan submit jika cancel ditekan
+
+  const data = {
+    tglfaktur: convertToISO($("#tglfaktur").val()),
+    jthtempo: convertToISO($("#jthtempo").val()),
+    nofaktur: $("#nofaktur").val(),
+    nama_sales: $("#namasales").val(),
+    nama_outlet: $("#namaoutlet").val(),
+    pembayaran: $("#pembayaran").val(),
+    pajak: $("#pajak").val(),
+    items: []
+  };
+
+  const data_barang1 = JSON.stringify({{ data_barang | tojson | safe }});
+  const data_barang = JSON.parse(data_barang1);
+
+  $("[data-repeater-item]").each(function () {
+    if (batalSubmit) return; // Lewati proses jika sebelumnya dibatalkan
+
+    const nama_barang = $(this).find("#nmbarang").val() || "";
+    const jmlpermintaan = $(this).find("#jmlpermintaan").val();
+    let found = false;
+
+    for (let key in data_barang) {
+      const nama = data_barang[key].nama_barang;
+      if (nama === nama_barang) {
+        const sisa_gudang = data_barang[key].sisa_gudang;
+        const stoklimit = data_barang[key].stoklimit;
+        const sisa_sekarang = sisa_gudang - jmlpermintaan;
+
+        if (sisa_sekarang <= stoklimit) {
+          const konfirmasi = confirm("Apakah Anda Yakin? Jika Iya, Tolong Isi Stoknya Kembali Secepatnya!");
+          if (!konfirmasi) {
+            batalSubmit = true;
+            return false; // keluar dari `.each()` loop
+          }
+        }
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      console.warn("Barang tidak ditemukan.");
+    }
+
+    // Tambah item jika tidak batal
+   
+    if (!batalSubmit) {
+      const item = {
+        nama_barang: $(this).find("#nmbarang").val() || "",
+        id_barang: $(this).find("#idbarang").val() || "",
+        jmlpermintaan: $(this).find("#jmlpermintaan").val() || "",
+        harga_satuan: bersihkanFormatAngka($(this).find(".hargasatuan").val()) + '.' + ($(this).find(".hargasatuan-koma").val().replace(',', '') || '00'),
+        diskon: $(this).find("#diskon").val() || "",
+        harga_total: bersihkanFormatAngka($(this).find(".hargatotal").val()) + '.' + ($(this).find(".hargatotal-koma").val().replace(',', '') || '00'),
+        cn: $(this).find("#cn").val() || "",
+        hpp: bersihkanFormatAngka($(this).find(".hpp").val()) + '.' + ($(this).find(".hpp-koma").val().replace(',', '') || '00'),
+        totalhpp: bersihkanFormatAngka($(this).find(".totalhpp").val()) + '.' + ($(this).find(".totalhpp-koma").val().replace(',', '') || '00'),
+        batch: $(this).find("#batch").val() || "",
+        ed: $(this).find("#ed").val() || "",
+        profit:bersihkanFormatAngka($(this).find(".profit").val()) + '.' + ($(this).find(".profit-koma").val().replace(',', '') || '00'),
+      };
+      data.items.push(item);
+    }
+  });
+
+  if (batalSubmit) {
+    console.log("Pengiriman dibatalkan oleh pengguna.");
+    return; // Jangan kirim AJAX
+  }
+
+  // Kirim data jika tidak dibatalkan
+  $.ajax({
+    url: '/admin/pengeluaran/tambah/id',
+    method: 'POST',
+    data: JSON.stringify(data),
+    contentType: 'application/json',
+    headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
+    success: function (response) {
+      alert("Tambah Data Pengeluaran Sukses");
+      location.href = "/admin/pengeluaran";
+    },
+    error: function (xhr, status, error) {
+      console.error("Error:", error);
+      if (xhr.responseJSON && xhr.responseJSON.error) {
+        let errorMessages = xhr.responseJSON.error;
+        alert("Validation Errors:\n" + errorMessages);
+      } else {
+        alert("An unexpected error occurred: " + error);
+      }
+    }
+  });
+});
+  $("#tambah-barang").on("click", function() {
+    console.log("halol");
+    setTimeout(function() {
+      $(".nmbarang").change();
+      $(".nmbarang").select2();
+      $('span[data-select2-id="5"]').hide();
+      const observer = new MutationObserver(function(mutationsList, observer) {
+        const element = document.querySelector('span[data-select2-id="5"]');
+        if (element) {
+          element.style.display = 'none';
+          observer.disconnect(); // Hentikan observer setelah elemen ditemukan
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }, 1000);
+});
+
+		</script>
+		<script>
+		
+</script>
+{% endblock %}
