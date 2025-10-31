@@ -548,7 +548,7 @@ $(document).on("input", ".jmlpermintaan, .hargasatuan, .hargasatuan-koma, .disko
 
   // Kirim data jika tidak dibatalkan
   $.ajax({
-    url: '/admin/pengeluaran/edit/{{ barang_keluar.0 }}',
+    url: '/admin/pengeluaran/{{ barang_keluar.0 }}',
     method: 'PUT',
     data: JSON.stringify(data),
     contentType: 'application/json',

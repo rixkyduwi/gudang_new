@@ -6,7 +6,7 @@
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0 d-flex align-items-center">
           <li class="breadcrumb-item">
-            <a href="index.html" class="link">
+            <a href="/admin/dashboard" class="link">
               <i class="ri-home-3-line fs-5"></i>
             </a>
           </li>
@@ -15,9 +15,7 @@
       </nav>
       <h1 class="mb-0 fw-bold">Tambah Data Pengeluaran Barang</h1>
     </div>
-    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
-      
-    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end"></div>
   </div>
 </div>
 
@@ -26,209 +24,209 @@
     <div class="col-12">
       <div class="card">
         <div class="card-body">
+
           <div class="mt-3">
             <h4>Tambah Data</h4>
+
+            <!-- Tanggal -->
             <div class="form-group">
-              <label for="tglfaktur">Tanggal Faktur </label>
-              <div class="input-group"> <input type="text" id="tglfaktur"  class="complex-colorpicker tglfaktur form-control" value="{{ tanggal|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+              <label for="tglfaktur">Tanggal Faktur</label>
+              <div class="input-group">
+                <input type="text" id="tglfaktur" class="complex-colorpicker tglfaktur form-control"
+                       value="{{ tanggal|format_date }}" placeholder="dd/mm/yyyy">
+                <span class="input-group-text">
+                  <i data-feather="calendar" class="feather-sm"></i>
+                </span>
+              </div>
             </div>
+
+            <!-- Jatuh Tempo (auto by /api/ceknofaktur) -->
             <div class="form-group">
               <label for="jthtempo">Jatuh Tempo</label>
-              <div class="input-group"> <input type="text" id="jthtempo" disabled  class="complex-colorpicker jthtempo form-control" value="{{ jth_tempo|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+              <div class="input-group">
+                <input type="text" id="jthtempo" class="form-control" value="{{ jth_tempo|format_date }}" placeholder="dd/mm/yyyy" disabled>
+                <span class="input-group-text">
+                  <i data-feather="calendar" class="feather-sm"></i>
+                </span>
+              </div>
             </div>
+
+            <!-- Nomor Faktur (auto) -->
             <div class="form-group">
               <label for="nofaktur">Nomor Faktur</label>
-              <input disabled type="number" id="nofaktur" value="{{nofaktur}}" class="form-control">
+              <input type="text" id="nofaktur" value="{{ nofaktur }}" class="form-control" disabled>
             </div>
+
+            <!-- Salesperson -->
             <div class="form-group">
-              <label for="namasales">Nama Sales</label>
-              <select class="select2 form-control" style="width: 100%; height: 36px" id="namasales">
-              
+              <label for="namasales">Salesperson</label>
+              <select id="namasales" class="select2 form-control" style="width:100%">
                 <option value="">Pilih Sales</option>
-                {% for i in nama_sales %}
-                <option value="{{ i.nama_sales }}">{{ i.nama_sales }}</option>
+                {# asumsi nama_sales = [{id, nama_sales}] atau minimal {nama_sales} #}
+                {% for s in nama_sales %}
+                  <option value="{{ s.id or s.nama_sales }}"
+                          data-name="{{ s.nama_sales }}">{{ s.nama_sales }}</option>
                 {% endfor %}
               </select>
+              <input type="hidden" id="idsales">  <!-- simpan id sales terpilih -->
             </div>
+
+            <!-- Metode Pembayaran header (cashtempo) -->
             <div class="form-group">
-              <label for="pembayaran">Cash / Tempo</label>
-              <select id="pembayaran" class="pembayaran form-select">
-                <option value="">Pilih Pembayaran</option>
+              <label for="pembayaran">Metode Pembayaran</label>
+              <select id="pembayaran" class="form-select">
+                <option value="">Pilih</option>
                 <option value="Cash">Cash</option>
                 <option value="Tempo">Tempo</option>
               </select>
             </div>
+
+            <!-- Outlet (terfilter oleh salesperson) -->
             <div class="form-group">
-              <label for="namaoutlet">Nama Outlet</label>
-              <select class="form-control select2" style="width: 100%; height: 36px" id="namaoutlet">
+              <label for="namaoutlet">Outlet</label>
+              <select id="namaoutlet" class="form-control select2" style="width:100%">
                 <option value="">Pilih Outlet</option>
               </select>
+              <small class="text-muted">Cari nama/alamat outlet.</small>
+              <input type="hidden" id="idoutlet">
             </div>
+
+            <!-- Alamat outlet (readonly) -->
             <div class="form-group">
-              <label for="alamatpabrik">Alamat Outlet</label>
-              <input disabled type="text" id="alamatoutlet" class="form-control">
+              <label for="alamatoutlet">Alamat Outlet</label>
+              <input type="text" id="alamatoutlet" class="form-control" disabled>
             </div>
+
+            <!-- Pajak -->
             <div class="form-group">
               <label for="pajak">Pajak</label>
-              <select id="pajak" class="pajak form-select">
+              <select id="pajak" class="form-select">
                 <option value="">Pilih pajak</option>
                 <option value="Iya">Iya</option>
                 <option value="Tidak">Tidak</option>
               </select>
             </div>
+
+            <!-- REPEATER ITEM -->
             <div class="email-repeater mb-3">
-              <div data-repeater-list="repeater-group">
-                <div data-repeater-item class="row mb-3 bg-light border-top mt-4">
+              <div data-repeater-list="items">
+                <div data-repeater-item class="row mb-3 bg-light border-top mt-4 p-3 rounded-3">
+
+                  <!-- Barang (value = id_barang, tampil stock & limit) -->
                   <div class="form-group">
-                    <label for="nmbarang">Nama Barang</label>
-                    <select class="form-control select2 nmbarang" id="nmbarang" style="width: 100%; height: 36px">
+                    <label>Nama Barang</label>
+                    <select class="form-control select2 sel-barang" style="width:100%">
                       <option value="">Pilih Barang</option>
-                      {% for i in data_barang %}
-                      <option value="{{i.nama_barang}}">{{i.nama_barang}} | Stok: {{i.sisa_gudang}} | Limit: {{i.stoklimit}}</option>
+                      {% for b in data_barang %}
+                        <option
+                          value="{{ b.id }}"
+                          data-kode="{{ b.kode_barang }}"
+                          data-qty="{{ b.qty }}"
+                          data-stok="{{ b.sisa_gudang }}"
+                          data-limit="{{ b.stoklimit }}"
+                        >
+                          {{ b.nama_barang }}
+                        </option>
                       {% endfor %}
                     </select>
+                    <small class="text-muted d-block">
+                      <span class="hint-stok">Stok: -</span> •
+                      <span class="hint-limit">Limit: -</span>
+                    </small>
                   </div>
-                  <input disabled type="hidden" id="idsales" class="idsales form-control">
-                  <input disabled type="hidden" id="idbarang" class="idbarang form-control">
+
+                  <input type="hidden" class="idbarang">
+                  <input type="text" class="qty form-control d-none" disabled>
+
                   <div class="form-group">
-                    <label for="qty">Quantity</label>
-                    <input disabled type="text" id="qty" class="qty form-control">
+                    <label>Jumlah Permintaan</label>
+                    <input type="number" min="0" class="jmlpermintaan form-control" placeholder="0">
                   </div>
-                  <div class="form-group row mt-2">
-                    <label for="jmlpermintaan" class="col-sm-2 col-form-label">Jumlah Permintaan</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <input type="number"  placeholder="0" min="0" id="jmlpermintaan" class="jmlpermintaan form-control">
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group row mt-2">
-                    <label for="hargasatuan" class="col-sm-2 col-form-label">Harga Satuan</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">Rp</span>
-                        </div>
-                        <input type="text" oninput="formatAngkaInput(this)" placeholder="0" id="hargasatuan" class="hargasatuan form-control">
-                        <div class="input-group-append">
-                         <input type="text" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" class="hargasatuan-koma form-control" >
-                            </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group row mt-2">
-                    <label for="diskon" class="col-sm-2 col-form-label">Diskon</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <input type="number" oninput="formatDiskon(this)" placeholder="0" id="diskon"  min="0" max="100" class="diskon form-control">
-                        <div class="input-group-append">
-                          <span class="input-group-text">%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group row mt-2">
-                    <label for="hargatotal" class="col-sm-2 col-form-label">Harga Total</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">Rp</span>
-                        </div>
-                        <input disabled type="text" placeholder="0" id="hargatotal" class="hargatotal form-control">
-                        <div class="input-group-append">
-                          <input type="text" disabled maxlength="3" placeholder=",00" class="hargatotal-koma form-control" >
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group row mt-2">
-                    <label for="cn" class="col-sm-2 col-form-label">Cn</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <input type="number" placeholder="0" id="cn" class="cn form-control">
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group row mt-2">
-                    <label for="hpp" class="col-sm-2 col-form-label">HPP</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">Rp</span>
-                        </div>
-                        <input type="text" oninput="formatAngkaInput(this)" placeholder="0" id="hpp" class="hpp form-control">
-                        <div class="input-group-append">
-                          <input type="text" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" class="hpp-koma form-control" >
-                        </div>
-                      </div>
+
+                  <div class="form-group">
+                    <label>Harga Satuan</label>
+                    <div class="input-group">
+                      <span class="input-group-text">Rp</span>
+                      <input type="text" class="hargasatuan form-control" placeholder="0" oninput="formatAngkaInput(this)">
+                      <input type="text" class="hargasatuan-koma form-control" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)">
                     </div>
                   </div>
 
-                  
-                  <div class="form-group row mt-2">
-                    <label for="totalhpp" class="col-sm-2 col-form-label">Total HPP</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">Rp</span>
-                        </div>
-                        <input disabled type="text" placeholder="0" id="totalhpp" class="totalhpp form-control">
-                        <div class="input-group-append">
-                           <input type="text" disabled maxlength="3" placeholder=",00" class="totalhpp-koma form-control" >
-                         </div>
-                      </div>
+                  <div class="form-group">
+                    <label>Diskon (%)</label>
+                    <div class="input-group">
+                      <input type="number" class="diskon form-control" min="0" max="100" placeholder="0" oninput="formatDiskon(this)">
+                      <span class="input-group-text">%</span>
                     </div>
                   </div>
-                  <div class="form-group row mt-2">
-                    <label for="profit" class="col-sm-2 col-form-label">Profit</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <div class="input-group-prepend">
-                          <span class="input-group-text">Rp</span>
-                        </div>
-                        <input disabled type="text" placeholder="0" id="profit" class="profit form-control">
-                        <div class="input-group-append">
-                           <input type="text" disabled maxlength="3" placeholder=",00" class="profit-koma form-control" >
-                        </div>
-                      </div>
+
+                  <div class="form-group">
+                    <label>Harga Total</label>
+                    <div class="input-group">
+                      <span class="input-group-text">Rp</span>
+                      <input type="text" class="hargatotal form-control" placeholder="0" disabled>
+                      <input type="text" class="hargatotal-koma form-control" maxlength="3" placeholder=",00" disabled>
                     </div>
                   </div>
-                  <div class="form-group row mt-2">
-                    <label for="batch" class="col-sm-2 col-form-label">Batch </label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <input type="text" id="batch" class="batch form-control">
-                      </div>
+
+                  <div class="form-group">
+                    <label>CN</label>
+                    <input type="number" class="cn form-control" placeholder="0">
+                  </div>
+
+                  <div class="form-group">
+                    <label>HPP</label>
+                    <div class="input-group">
+                      <span class="input-group-text">Rp</span>
+                      <input type="text" class="hpp form-control" placeholder="0" oninput="formatAngkaInput(this)">
+                      <input type="text" class="hpp-koma form-control" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)">
                     </div>
                   </div>
-                  <div class="form-group row mt-2">
-                    <label for="ed" class="col-sm-2 col-form-label">Expired Date (ED) </label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <input type="text" id="ed" class="ed form-control">
-                      </div>
+
+                  <div class="form-group">
+                    <label>Total HPP</label>
+                    <div class="input-group">
+                      <span class="input-group-text">Rp</span>
+                      <input type="text" class="totalhpp form-control" placeholder="0" disabled>
+                      <input type="text" class="totalhpp-koma form-control" maxlength="3" placeholder=",00" disabled>
                     </div>
                   </div>
-                  <div>
-                  <button data-repeater-delete="" class="mt-3 btn btn-danger waves-effect waves-light w-100" type="button" >
-                    <div class="d-flex align-items-center">
-                      <i data-feather="x-circle" class="feather-sm ms-2 pr-2 fill-white"></i> Hapus Barang
+
+                  <div class="form-group">
+                    <label>Profit</label>
+                    <div class="input-group">
+                      <span class="input-group-text">Rp</span>
+                      <input type="text" class="profit form-control" placeholder="0" disabled>
+                      <input type="text" class="profit-koma form-control" maxlength="3" placeholder=",00" disabled>
                     </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Batch</label>
+                    <input type="text" class="batch form-control">
+                  </div>
+
+                  <div class="form-group">
+                    <label>Expired Date (ED)</label>
+                    <input type="text" class="ed form-control" placeholder="YYYY-MM-DD">
+                  </div>
+
+                  <button data-repeater-delete class="mt-2 btn btn-danger w-100" type="button">
+                    <i data-feather="x-circle" class="feather-sm me-1"></i> Hapus Barang
                   </button>
-                  </div>
                 </div>
               </div>
-              <button type="button" data-repeater-create="" id="tambah-barang" class="btn btn-info w-100 waves-effect waves-light">
-                <div class="d-flex align-items-center">
-                  <i data-feather="plus-circle" class="feather-sm ms-2 pr-2 fill-white"></i>
-                  Tambah Barang
-                </div>
+
+              <button type="button" data-repeater-create id="tambah-barang" class="btn btn-info w-100">
+                <i data-feather="plus-circle" class="feather-sm me-1"></i> Tambah Barang
               </button>
             </div>
+
             <div class="text-end mt-3">
               <button id="modal-submit-tambah" class="btn btn-info ms-2">Submit</button>
               <a href="/admin/pengeluaran" class="btn btn-secondary">Back</a>
             </div>
+
           </div>
         </div>
       </div>
@@ -236,355 +234,314 @@
   </div>
 </div>
 
-<!-- This Page JS -->
-<script src="/static/assets/libs/select2/dist/js/select2.full.min.js"></script>
-<script src="/static/assets/libs/select2/dist/js/select2.min.js"></script>
-<script src="/static/dist/js/pages/forms/select2/select2.init.js"></script>
-<script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
-<script src="/static/assets/extra-libs/jquery.repeater/repeater-init.js"></script>
-<script src="/static/assets/extra-libs/jquery.repeater/dff.js"></script>
-<script src="/static/assets/libs/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+<!-- JS -->
 <script>
-// Date Picker
-$(".complex-colorpicker").datepicker({
-  autoclose: true,
-  todayHighlight: true,
-  format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
-  language: "id"          // opsional, kalau kamu include file locale id
-  });
-  function convertToISO(dateStr) {
-  // dari "dd/mm/yyyy" ke "yyyy-mm-dd"
-  let parts = dateStr.split("/");
-  return `${parts[2]}-${parts[1]}-${parts[0]}`;
-}
-</script>
-<script>
-  function formatKoma(val) {
-  val = val.replace(/[^\d,]/g, '');
-
-  if (val.length > 0 && val[0] !== ',') {
-    val = ',' + val.replace(',', '');
-  }
-
-  val = val.slice(0, 3);
-  if (!/^,\d{0,2}$/.test(val)) {
-    val = val.slice(0, -1);
-  }
-
-  return val;
-}
-function formatRupiahKoma(angka) {
-  angka = parseFloat(angka).toFixed(2); // pastikan 2 digit desimal
-  let [depan, belakang] = angka.split(".");
-
-  depan = depan.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // format ribuan
-  return `${depan},${belakang}`;
-}
-
-function splitKomaValue(val) {
-  let [int, dec] = val.toFixed(2).split(".");
-  let formattedInt = int.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return { int: formattedInt, koma: `,${dec}` };
-}
-function bersihkanFormatAngka(input) {
-  return input.replace(/\./g, '');
-}
-
-
-function formatAngkaInput(el) {
-  let angka = el.value.replace(/\./g, "");
-  el.value = formatAngka(angka);
-}
-
-function formatAngka(angka) {
-	angka = angka.toString()
-  let number_string = angka.replace(/[^,\d]/g, "").toString();
-  let split = number_string.split(",");
-  let sisa = split[0].length % 3;
-  let hasil = split[0].substr(0, sisa);
-  let ribuan = split[0].substr(sisa).match(/\d{3}/g);
-
-  if (ribuan) {
-    let separator = sisa ? "." : "";
-    hasil += separator + ribuan.join(".");
-  }
-
-  return hasil;
-}
-  function formatDiskon(input) {
-    let angka = input.value.replace(/[^,\d]/g, ''); // Menghapus semua karakter selain angka dan koma
-    if (angka) {
-      if (angka <= 100 && angka >= 0) {
-        input.value = angka;
-      } else {
-        input.value = '';
-      }
-    } else {
-      input.value = ''; // Jika input tidak valid (semua dihapus), set ke string kosong
-    }
-  }
-  $("#tglfaktur").change(function () {
-    let tanggal = $(this).val(); // contoh: 04/09/2025
-    if (tanggal) {
-      let encoded = encodeURIComponent(tanggal);
-      $.getJSON(`/api/ceknofaktur/${encoded}`, function (data) {
-        $("#jthtempo").val(data.jatuh_tempo);
-        $("#nofaktur").val(data.nofaktur);
-      }).fail(function (xhr) {
-        console.error("Gagal ambil data:", xhr.responseText);
-      });
-    }
-  });
-
-  $("#namasales").change(function() {
-    if (!'{{ data_sales | tojson | safe }}') {
-      console.warn("Data sales is undefined or null.");
-      return;
-    }
-    console.log("Event change select namasales dimulai");
-    try {
-      var data_sales1 = JSON.stringify({{ data_sales | tojson | safe }});
-      var data_sales = JSON.parse(data_sales1);
-      var nama_sales = $("#namasales").val();
-      console.log("Nama sales yang dipilih:", nama_sales);
-      console.log("Data sales:", data_sales);
-      var found = false; // Untuk melacak apakah sales ditemukan
-      var $namaoutlet = $("#namaoutlet"); // Select dropdown dengan class namaoutlet
-      $namaoutlet.empty(); // Kosongkan opsi sebelumnya
-      $namaoutlet.append('<option value="" selected >Pilih Outlet</option>'); // Tambahkan opsi default
-      for (var key in data_sales) {
-        var nama = data_sales[key].nama_sales;
-        if (nama == nama_sales) {
-            $("#idsales").val(data_sales[key].id);
-          console.log("Sales ditemukan:", nama);
-          var outlet = data_sales[key].nama_outlet; // Ambil daftar outlet dari data sales
-          // Tambahkan opsi baru berdasarkan daftar outlet
-          console.log("Menambahkan outlet:", outlet);
-          $namaoutlet.append('<option value="' + outlet + '">' + outlet + '</option>');
-          found = true;
-        }
-      }
-      if (!found) {
-        console.warn("Sales tidak ditemukan. Mengosongkan opsi outlet.");
-        $namaoutlet.empty().append('<option value="">Pilih Outlet</option>'); // Reset dropdown
-      }
-    } catch (error) {
-      console.error("Error saat memproses perubahan nama sales:", error);
-    }
-  });
-  $("#namaoutlet").change(function() {
-    console.log("Event change pada #namaoutlet dipicu");
-    try {
-      if (!'{{ data_outlet | tojson | safe }}') {
-        console.warn("Data outlet is undefined or null.");
-        return;
-      }
-      var userInput = '{{ data_outlet | tojson | safe }}'; 
-      const rawInput = userInput.replace(/[\u0000-\u001F]+/g, ''); // hapus control char
-
-      var data_pabrik = JSON.parse(rawInput);// pastikan ini string JSON valid
-      var nama_pabrik = $('#namaoutlet').val();
-      var found = false; // Untuk melacak apakah pabrik ditemukan
-      for (var key in data_pabrik) {
-        var nama = data_pabrik[key].nama_outlet;
-        if (nama == nama_pabrik) {
-          $('#alamatoutlet').val(data_pabrik[key].alamat_outlet);
-          found = true;
-          break; // Keluar dari loop jika pabrik ditemukan
-        }
-      }
-      if (!found) {
-        console.warn("pabrik tidak ditemukan. Mengosongkan alamat dan tlp pabrik.");
-        $('#alamatpabrik').val("");
-        $('#tlppabrik').val("");
-      }
-    } catch (error) {
-      console.error("Error saat memproses perubahan nama pabrik:", error);
-    }
-  });
-  setInterval(function() {
-    $(".jmlpermintaan, .hargasatuan, .diskon").trigger("input");
-    $(".hpp").trigger("input");
-  }, 3000);
-  $(document).on("change", ".nmbarang", function() {
-    if (!'{{ data_barang | tojson | safe }}') {
-      console.warn("Data barang is undefined or null.");
-      return;
-    }
-    var data_barang1 = JSON.stringify({{ data_barang | tojson | safe }});
-    var data_barang = JSON.parse(data_barang1);
-    var $row = $(this).closest("[data-repeater-item]"); // Get the current row
-    var nama_barang = $(this).val();
-    var found = false; // Untuk melacak apakah barang ditemukan
-    for (var key in data_barang) {
-      var nama = data_barang[key].nama_barang;
-      if (nama == nama_barang) {
-        $row.find('.idbarang').val(data_barang[key].id);
-        $row.find('.qty').val(data_barang[key].qty);
-        found = true;
-        break; // Keluar dari loop jika barang ditemukan
-      }
-    }
-    if (!found) {
-      console.warn("Barang tidak ditemukan. Mengosongkan id barang, qty, dan alamat barang.");
-      $row.find('.idbarang').val("");
-      $row.find('.qty').val("");
-    }
-  });
-$(document).on("input", ".jmlpermintaan, .hargasatuan, .hargasatuan-koma, .diskon, .hpp, .hpp-koma", function() {
-  try {
-    var $row = $(this).closest("[data-repeater-item]");
-
-    var jumlah = parseFloat($row.find('.jmlpermintaan').val().replace(',', '.')) || 0;
-    var harga_satuan_int = bersihkanFormatAngka($row.find('.hargasatuan').val()) || '0';
-    var harga_satuan_koma = ($row.find('.hargasatuan-koma').val().replace(',', '') || '00');
-    var harga_satuan = parseFloat(`${harga_satuan_int}.${harga_satuan_koma}`) || 0;
-
-    var hpp_int = bersihkanFormatAngka($row.find('.hpp').val()) || '0';
-    var hpp_koma = ($row.find('.hpp-koma').val().replace(',', '') || '00');
-    var hpp = parseFloat(`${hpp_int}.${hpp_koma}`) || 0;
-
-    var diskon = parseFloat($row.find('.diskon').val()) || 0;
-
-    var harga_total = jumlah * harga_satuan;
-    if (diskon) harga_total -= harga_total * (diskon / 100);
-
-    var total_hpp = jumlah * hpp;
-    var profit = harga_total - total_hpp;
-
-    let totalObj = splitKomaValue(harga_total);
-    let hppObj = splitKomaValue(total_hpp);
-    let profitObj = splitKomaValue(profit);
-
-    $row.find(".hargatotal").val(totalObj.int);
-    $row.find(".hargatotal-koma").val(totalObj.koma);
-
-    $row.find(".totalhpp").val(hppObj.int);
-    $row.find(".totalhpp-koma").val(hppObj.koma);
-
-    $row.find(".profit").val(profitObj.int);
-    $row.find(".profit-koma").val(profitObj.koma);
-
-  } catch (error) {
-    console.error("Error saat menghitung total dan profit:", error);
-  }
-});
-
-  
-  $("#modal-submit-tambah").click(function () {
-  let batalSubmit = false; // Flag untuk batalkan submit jika cancel ditekan
-
-  const data = {
-    tglfaktur: convertToISO($("#tglfaktur").val()),
-    jthtempo: convertToISO($("#jthtempo").val()),
-    nofaktur: $("#nofaktur").val(),
-    nama_sales: $("#namasales").val(),
-    nama_outlet: $("#namaoutlet").val(),
-    pembayaran: $("#pembayaran").val(),
-    pajak: $("#pajak").val(),
-    items: []
-  };
-
-  const data_barang1 = JSON.stringify({{ data_barang | tojson | safe }});
-  const data_barang = JSON.parse(data_barang1);
-
-  $("[data-repeater-item]").each(function () {
-    if (batalSubmit) return; // Lewati proses jika sebelumnya dibatalkan
-
-    const nama_barang = $(this).find("#nmbarang").val() || "";
-    const jmlpermintaan = $(this).find("#jmlpermintaan").val();
-    let found = false;
-
-    for (let key in data_barang) {
-      const nama = data_barang[key].nama_barang;
-      if (nama === nama_barang) {
-        const sisa_gudang = data_barang[key].sisa_gudang;
-        const stoklimit = data_barang[key].stoklimit;
-        const sisa_sekarang = sisa_gudang - jmlpermintaan;
-
-        if (sisa_sekarang <= stoklimit) {
-          const konfirmasi = confirm("Apakah Anda Yakin? Jika Iya, Tolong Isi Stoknya Kembali Secepatnya!");
-          if (!konfirmasi) {
-            batalSubmit = true;
-            return false; // keluar dari `.each()` loop
-          }
-        }
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
-      console.warn("Barang tidak ditemukan.");
-    }
-
-    // Tambah item jika tidak batal
-   
-    if (!batalSubmit) {
-      const item = {
-        nama_barang: $(this).find("#nmbarang").val() || "",
-        id_barang: $(this).find("#idbarang").val() || "",
-        jmlpermintaan: $(this).find("#jmlpermintaan").val() || "",
-        harga_satuan: bersihkanFormatAngka($(this).find(".hargasatuan").val()) + '.' + ($(this).find(".hargasatuan-koma").val().replace(',', '') || '00'),
-        diskon: $(this).find("#diskon").val() || "",
-        harga_total: bersihkanFormatAngka($(this).find(".hargatotal").val()) + '.' + ($(this).find(".hargatotal-koma").val().replace(',', '') || '00'),
-        cn: $(this).find("#cn").val() || "",
-        hpp: bersihkanFormatAngka($(this).find(".hpp").val()) + '.' + ($(this).find(".hpp-koma").val().replace(',', '') || '00'),
-        totalhpp: bersihkanFormatAngka($(this).find(".totalhpp").val()) + '.' + ($(this).find(".totalhpp-koma").val().replace(',', '') || '00'),
-        batch: $(this).find("#batch").val() || "",
-        ed: $(this).find("#ed").val() || "",
-        profit:bersihkanFormatAngka($(this).find(".profit").val()) + '.' + ($(this).find(".profit-koma").val().replace(',', '') || '00'),
-      };
-      data.items.push(item);
-    }
-  });
-
-  if (batalSubmit) {
-    console.log("Pengiriman dibatalkan oleh pengguna.");
-    return; // Jangan kirim AJAX
-  }
-
-  // Kirim data jika tidak dibatalkan
-  $.ajax({
-    url: '/admin/pengeluaran/tambah/id',
-    method: 'POST',
-    data: JSON.stringify(data),
-    contentType: 'application/json',
-    headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
-    success: function (response) {
-      alert("Tambah Data Pengeluaran Sukses");
-      location.href = "/admin/pengeluaran";
+  // Repeater
+  $(".email-repeater").repeater({
+    show: function () {
+      $(this).slideDown();
+      initSelect2Barang($(this).find('.sel-barang'));
     },
-    error: function (xhr, status, error) {
-      console.error("Error:", error);
-      if (xhr.responseJSON && xhr.responseJSON.error) {
-        let errorMessages = xhr.responseJSON.error;
-        alert("Validation Errors:\n" + errorMessages);
-      } else {
-        alert("An unexpected error occurred: " + error);
+    hide: function (remove) {
+      if (confirm("Hapus item ini?")) $(this).slideUp(remove);
+    },
+  });
+
+  // Datepicker dd/mm/yyyy
+  $(".complex-colorpicker").datepicker({
+    autoclose: true,
+    todayHighlight: true,
+    format: "dd/mm/yyyy",
+    language: "id"
+  });
+
+  function convertToISO(ddmmyyyy){
+    const [d,m,y] = ddmmyyyy.split('/');
+    return `${y}-${m}-${d}`;
+  }
+
+  // Recalc jatuh tempo + no faktur saat tanggal diubah
+  $("#tglfaktur").on("change", function(){
+    const tgl = $(this).val();
+    if(!tgl) return;
+    const encoded = encodeURIComponent(tgl);
+    $.getJSON(`/api/ceknofaktur/${encoded}`, function(resp){
+      $("#jthtempo").val(resp.jatuh_tempo);
+      $("#nofaktur").val(resp.nofaktur);
+    });
+  });
+
+  // ===== Select2 helpers =====
+  function select2OutletTemplate(opt){
+    if(!opt.id) return opt.text;
+    const el = opt.element;
+    const addr = el?.dataset?.address || '';
+    const $tpl = $(`
+      <div>
+        <div>${opt.text}</div>
+        <div class="text-muted small">${addr || '(alamat tidak tersedia)'}</div>
+      </div>
+    `);
+    return $tpl;
+  }
+
+  function select2BarangTemplate(opt){
+    if(!opt.id) return opt.text;
+    const el = opt.element;
+    const stok = el?.dataset?.stok || '-';
+    const limit = el?.dataset?.limit || '-';
+    const kode = el?.dataset?.kode || '';
+    const $tpl = $(`
+      <div>
+        <div>${opt.text} <span class="text-muted">(${kode})</span></div>
+        <div class="text-muted small">Stok: ${stok} • Limit: ${limit}</div>
+      </div>
+    `);
+    return $tpl;
+  }
+
+  function initSelect2Barang($el){
+    $el.select2({
+      width: '100%',
+      placeholder: 'Pilih barang…',
+      templateResult: select2BarangTemplate,
+      templateSelection: select2BarangTemplate,
+      matcher: function(params, data){
+        if ($.trim(params.term) === '') return data;
+        const term = params.term.toLowerCase();
+        const text = (data.text || '').toLowerCase();
+        const kode = (data.element?.dataset?.kode || '').toLowerCase();
+        const stok = (data.element?.dataset?.stok || '').toLowerCase();
+        return (text.includes(term) || kode.includes(term) || stok.includes(term)) ? data : null;
       }
+    });
+  }
+
+  // Inisialisasi Select2 global
+  $('#namasales').select2({ width: '100%', placeholder: 'Pilih sales…' });
+  $('#namaoutlet').select2({
+    width:'100%',
+    placeholder:'Pilih outlet…',
+    templateResult: select2OutletTemplate,
+    templateSelection: select2OutletTemplate,
+    matcher: function(params, data){
+      if ($.trim(params.term) === '') return data;
+      const term = params.term.toLowerCase();
+      const text = (data.text || '').toLowerCase();
+      const addr = (data.element?.dataset?.address || '').toLowerCase();
+      return (text.includes(term) || addr.includes(term)) ? data : null;
     }
   });
-});
-  $("#tambah-barang").on("click", function() {
-    console.log("halol");
-    setTimeout(function() {
-      $(".nmbarang").change();
-      $(".nmbarang").select2();
-      $('span[data-select2-id="5"]').hide();
-      const observer = new MutationObserver(function(mutationsList, observer) {
-        const element = document.querySelector('span[data-select2-id="5"]');
-        if (element) {
-          element.style.display = 'none';
-          observer.disconnect(); // Hentikan observer setelah elemen ditemukan
-        }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }, 1000);
-});
+  $('.sel-barang').each(function(){ initSelect2Barang($(this)); });
 
-		</script>
-		<script>
-		
+  // Saat pilih salesperson → load daftar outlet (by API yang sudah kamu punya)
+  // Asumsi endpoint GET: /admin/salespersons/<sp_id>/customers → [{customer_id, name, address}]
+  $("#namasales").on("change", function(){
+    const spId = $(this).val();
+    const spName = $('#namasales option:selected').data('name') || '';
+    $("#idsales").val(spId || '');
+    const $out = $("#namaoutlet");
+    $("#idoutlet").val('');
+    $("#alamatoutlet").val('');
+    $out.empty().append('<option value="">Pilih Outlet</option>').trigger('change');
+
+    if(!spId) return;
+
+    $.getJSON(`/admin/salespersons/${spId}/customers`, function(rows){
+      // rows: [{customer_id, name, address}]
+      const frag = document.createDocumentFragment();
+      rows.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.customer_id;
+        opt.text = r.name;
+        opt.dataset.address = r.address || '';
+        frag.appendChild(opt);
+      });
+      $out.append(frag).trigger('change');
+    }).fail(function(xhr){
+      console.error('Gagal load outlet:', xhr.responseText);
+      alert('Gagal memuat outlet untuk sales terpilih.');
+    });
+  });
+
+  // Outlet terpilih → set id & alamat
+  $("#namaoutlet").on("change", function(){
+    const $opt = $(this).find('option:selected');
+    $("#idoutlet").val($opt.val() || '');
+    $("#alamatoutlet").val($opt.data('address') || '');
+  });
+
+  // Saat pilih barang di repeater → isi hidden id + hint stok/limit
+  $(document).on('change', '.sel-barang', function(){
+    const $row = $(this).closest('[data-repeater-item]');
+    const $opt = $(this).find('option:selected');
+    $row.find('.idbarang').val($opt.val() || '');
+    $row.find('.qty').val($opt.data('qty') || '');
+    $row.find('.hint-stok').text('Stok: ' + ($opt.data('stok') ?? '-'));
+    $row.find('.hint-limit').text('Limit: ' + ($opt.data('limit') ?? '-'));
+  });
+
+  // ===== Format angka utilities (pakai versi kamu) =====
+  function formatKoma(val){
+    val = val.replace(/[^\d,]/g, '');
+    if (val.length > 0 && val[0] !== ',') val = ',' + val.replace(',', '');
+    val = val.slice(0, 3);
+    if (!/^,\d{0,2}$/.test(val)) val = val.slice(0,-1);
+    return val;
+  }
+  function splitKomaValue(num){
+    let v = parseFloat(num || 0).toFixed(2);
+    let [depan, belakang] = v.split(".");
+    depan = depan.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return { int: depan, koma: ',' + belakang };
+  }
+  function bersihkanFormatAngka(s){ return (s||'').toString().replace(/\./g, ''); }
+  function formatAngkaInput(el){
+    let angka = (el.value||'').replace(/\./g, "");
+    el.value = formatAngka(angka);
+  }
+  function formatAngka(angka){
+    angka = angka.toString();
+    let number_string = angka.replace(/[^,\d]/g, "").toString();
+    let split = number_string.split(",");
+    let sisa = split[0].length % 3;
+    let hasil = split[0].substr(0, sisa);
+    let ribuan = split[0].substr(sisa).match(/\d{3}/g);
+    if (ribuan) {
+      let separator = sisa ? "." : "";
+      hasil += separator + ribuan.join(".");
+    }
+    return hasil;
+  }
+  function formatDiskon(input){
+    let angka = input.value.replace(/[^,\d]/g, '');
+    if (!angka){ input.value=''; return; }
+    angka = parseInt(angka,10);
+    input.value = (angka>=0 && angka<=100) ? angka : '';
+  }
+
+  // Auto-hitungan total/hpp/profit
+  $(document).on("input", ".jmlpermintaan, .hargasatuan, .hargasatuan-koma, .diskon, .hpp, .hpp-koma", function(){
+    const $row = $(this).closest("[data-repeater-item]");
+    const jumlah = parseFloat(($row.find('.jmlpermintaan').val()||'0').replace(',', '.')) || 0;
+
+    const hs_int  = bersihkanFormatAngka($row.find('.hargasatuan').val()||'0');
+    const hs_koma = ($row.find('.hargasatuan-koma').val()||',00').replace(',','') || '00';
+    const harga_satuan = parseFloat(${hs_int}.${hs_koma}) || 0;
+
+    const hpp_int  = bersihkanFormatAngka($row.find('.hpp').val()||'0');
+    const hpp_koma = ($row.find('.hpp-koma').val()||',00').replace(',','') || '00';
+    const hpp = parseFloat(${hpp_int}.${hpp_koma}) || 0;
+
+    const diskon = parseFloat($row.find('.diskon').val()||'0') || 0;
+
+    let harga_total = jumlah * harga_satuan;
+    if (diskon) harga_total -= harga_total * (diskon/100);
+
+    const total_hpp = jumlah * hpp;
+    const profit = harga_total - total_hpp;
+
+    const t = splitKomaValue(harga_total);
+    const h = splitKomaValue(total_hpp);
+    const p = splitKomaValue(profit);
+
+    $row.find('.hargatotal').val(t.int);
+    $row.find('.hargatotal-koma').val(t.koma);
+    $row.find('.totalhpp').val(h.int);
+    $row.find('.totalhpp-koma').val(h.koma);
+    $row.find('.profit').val(p.int);
+    $row.find('.profit-koma').val(p.koma);
+  });
+
+  // Trigger periodik supaya nilai keep-in-sync
+  setInterval(function(){
+    $(".jmlpermintaan, .hargasatuan, .diskon, .hpp").trigger("input");
+  }, 2500);
+
+  // Submit
+  $("#modal-submit-tambah").on("click", function(){
+    let cancel = false;
+
+    const payload = {
+      tglfaktur: convertToISO($("#tglfaktur").val()),
+      jthtempo: convertToISO($("#jthtempo").val()),
+      nofaktur: $("#nofaktur").val(),
+      // tetap kirim nama (kompatibel backend lama) + id (skema baru)
+      nama_sales: $('#namasales option:selected').data('name') || '',
+      id_sales: $("#idsales").val() || null,
+      nama_outlet: $('#namaoutlet option:selected').text() || '',
+      id_outlet: $("#idoutlet").val() || null,
+      pembayaran: $("#pembayaran").val(),
+      pajak: $("#pajak").val(),
+      items: []
+    };
+
+    // Validasi dasar
+    if(!payload.id_sales || !payload.id_outlet){
+      alert("Pilih sales & outlet terlebih dahulu.");
+      return;
+    }
+
+    // Data barang dari server (untuk cek stok-limit warning)
+    const data_barang = {{ data_barang | tojson | safe }};
+
+    $("[data-repeater-item]").each(function(){
+      if (cancel) return;
+      const $row = $(this);
+      const id_barang = $row.find(".sel-barang").val();
+      if(!id_barang) return; // skip baris kosong
+
+      // cek stok warning
+      const jml = parseInt($row.find(".jmlpermintaan").val()||'0',10);
+      const found = data_barang.find(b => String(b.id) === String(id_barang));
+      if(found){
+        const sisa = (found.sisa_gudang||0) - jml;
+        if (sisa <= (found.stoklimit||0)){
+          if(!confirm("Stok akan melewati limit! Lanjutkan?")) { cancel = true; return false; }
+        }
+      }
+
+      const hs = bersihkanFormatAngka($row.find(".hargasatuan").val()||'0') + '.' + ($row.find(".hargasatuan-koma").val().replace(',','')||'00');
+      const ht = bersihkanFormatAngka($row.find(".hargatotal").val()||'0') + '.' + ($row.find(".hargatotal-koma").val().replace(',','')||'00');
+      const hp = bersihkanFormatAngka($row.find(".hpp").val()||'0') + '.' + ($row.find(".hpp-koma").val().replace(',','')||'00');
+      const th = bersihkanFormatAngka($row.find(".totalhpp").val()||'0') + '.' + ($row.find(".totalhpp-koma").val().replace(',','')||'00');
+      const pf = bersihkanFormatAngka($row.find(".profit").val()||'0') + '.' + ($row.find(".profit-koma").val().replace(',','')||'00');
+
+      payload.items.push({
+        id_barang: id_barang,
+        jmlpermintaan: $row.find(".jmlpermintaan").val()||"0",
+        harga_satuan: hs,
+        diskon: $row.find(".diskon").val()||"0",
+        harga_total: ht,
+        cn: $row.find(".cn").val()||"0",
+        hpp: hp,
+        totalhpp: th,
+        batch: $row.find(".batch").val()||"",
+        ed: $row.find(".ed").val()||"",
+        profit: pf
+      });
+    });
+
+    if(cancel) return;
+
+    $.ajax({
+      url: '/admin/pengeluaran',
+      method: 'POST',
+      data: JSON.stringify(payload),
+	  credentials: 'include',
+	  headers:{
+      'contentType': 'application/json',
+	  'X-CSRF-TOKEN': getCookie('csrf_access_token')||''
+	  },
+	  success: function(){
+        alert("Tambah Data Pengeluaran Sukses");
+        location.href = "/admin/pengeluaran";
+      },
+      error: function(xhr){
+        const msg = xhr.responseJSON?.error || xhr.statusText || 'Unknown error';
+        alert("Gagal simpan: " + msg);
+      }
+    });
+  });
 </script>
 {% endblock %}

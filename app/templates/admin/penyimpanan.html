@@ -276,7 +276,11 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
 		const nama_barang = document.getElementById('nama_barang').value;
 		const queryParams = new URLSearchParams();
 		if (nama_barang !== "nama_barang") queryParams.append("id_barang", nama_barang);
-		window.location.href = `?${queryParams.toString()}`;
+		url = `?${queryParams.toString()}`
+		$.pjax({
+			url: url,
+			container: '#pjax-container'
+		});
 		}
 async function resetStok(productId, nama) {
   if (!confirm(`Reset stok "${nama}" menjadi 0?`)) return;
@@ -290,7 +294,11 @@ async function resetStok(productId, nama) {
     if (!res.ok) throw new Error(data.error || 'Gagal reset stok');
     alert('Stok berhasil di-reset');
     // reload / refresh table
-    location.reload();
+    $.pjax({
+            url: '',
+            container: '#pjax-container'
+			});
+	
   } catch (e) {
     alert(e.message);
   }

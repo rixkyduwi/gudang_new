@@ -1,0 +1,141 @@
+{% extends "include/include.html" %}
+{% block pjax_content %}
+
+<!-- Select2 assets (taruh di layout global kalau mau) -->
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="mb-0">Relasi Customer</h4>
+        </div>
+
+        <div class="card-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Salesperson</label>
+              <select id="sp" class="form-select">
+                <option value="">-- pilih --</option>
+                {% for s in sales %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-8">
+              <label class="form-label">Customers (multi-select)</label>
+              <select id="cust" class="form-select" multiple style="width:100%">
+                {% for c in customers %}
+                <option value="{{ c.id }}" data-address="{{ (c.address or '')|e }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+              <small class="text-muted d-block">Ketik untuk mencari nama/alamat.</small>
+              <div class="mt-2">
+                <button class="btn btn-primary" onclick="assign()">Tambahkan ke Sales</button>
+              </div>
+            </div>
+          </div>
+
+          <h5 class="mt-4">Customers yang Terhubung</h5>
+          <table class="table table-sm table-striped" id="tbl">
+            <thead><tr>
+			<th>Nama </th>
+			<th>Alamat </th>
+			<th style="width:120px">Aksi</th>
+			</tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$.ajaxSetup({
+    beforeSend: function(xhr) {
+        xhr.setRequestHeader('Authorization', 'Bearer ' + "{{ session['jwt_token'] }}");
+    }
+});
+function loadList(){
+  const sp = $('#sp').val();
+  if(!sp){
+    $('#tbl tbody').html('<tr><td colspan=2>Pilih salesperson dulu</td></tr>');
+    return;
+  }
+  $.getJSON(`/admin/salespersons/${sp}/customers`, function(rows){
+    const html = (rows || []).map(r=>`
+        <tr>
+            <td>${r.name}</td>
+            <td>${r.address}</td>
+            <td><button class="btn btn-sm btn-danger" onclick="unassign(${sp}, ${r.customer_id})">Lepaskan</button></td>
+        </tr>
+    `).join('') || '<tr><td colspan=4>(kosong)</td></tr>';
+    $('#tbl tbody').html(html);
+});
+}
+$('#sp').on('change', loadList);
+
+function assign(){
+  const sp = $('#sp').val();
+  if(!sp){ alert('Pilih salesperson'); return; }
+  // Ambil ID terpilih dari Select2
+  const selected = ($('#cust').val() || []).map(Number);
+  if(selected.length===0){ alert('Pilih minimal 1 customer'); return; }
+  $.ajax({
+    url: `/admin/salespersons/${sp}/customers`,
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({ customer_ids: selected }),
+    success: function(){ alert('✅ sukses menambahkan'); loadList(); },
+    error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+  });
+}
+function unassign(sp, cid){
+  if(!confirm('Lepaskan customer ini dari sales?')) return;
+  $.ajax({
+    url: `/admin/salespersons/${sp}/customers/${cid}`,
+    method: 'DELETE',
+    success: function(){ alert('✅ dilepaskan'); loadList(); },
+    error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+  });
+}
+
+$(document).ready(function () {
+ 
+// Template hasil dropdown (nama + alamat)
+function optionTemplate (state) {
+  if (!state.id) return state.text;
+  const addr = state.element?.dataset?.address || '';
+  const name = state.text || '';
+  const html = `<div><div>${name}</div><span class="sub">${addr || '(Alamat tidak tersedia)'}</span></div>`;
+  return $(html);
+}
+// Template item yang sudah terpilih
+function selectionTemplate (state) {
+  if (!state.id) return state.text;
+  const addr = state.element?.dataset?.address || '';
+  const name = state.text || '';
+  return $(`<span><span>${name}</span></span>`);
+}
+
+$(function(){
+  $('#cust').select2({
+    placeholder: 'Pilih pelanggan…',
+    width: '100%',
+    templateResult: optionTemplate,
+    templateSelection: selectionTemplate,
+    matcher: function(params, data){
+      if ($.trim(params.term) === '') return data;
+      const term = params.term.toLowerCase();
+      const text = (data.text || '').toLowerCase();
+      const addr = (data.element?.dataset?.address || '').toLowerCase();
+      return (text.includes(term) || addr.includes(term)) ? data : null;
+    }
+  });
+});
+});
+</script>
+{% endblock %}

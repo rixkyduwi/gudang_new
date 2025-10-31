@@ -1,4 +1,3 @@
-{% if session['jwt_token'] %}
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
   <head>
@@ -202,7 +201,35 @@
     <script src="/static/dist/js/custom.min.js"></script>
 	<!-- CountUP -->
 	<script src="/static/js/countUp.umd.js"></script>
-
+	<!-- Select2 -->
+    <script src="/static/assets/libs/select2/dist/js/select2.full.min.js"></script>
+    <script src="/static/assets/libs/select2/dist/js/select2.min.js"></script>
+	<style>	
+	  .select2-results__option .sub { display:block; font-size:12px; color:#6c757d; }
+	  .select2-selection_choice_display .sub { display:block; font-size:12px; color:#6c757d; }
+	</style>
+    <!-- form repeater js-->
+	<script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
+	<script>
+	function getCookie(name) {
+		return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1];
+	}
+	function logout(){
+	$.ajax({
+    url: "/logout", 
+	method: "POST", 
+    data: JSON.stringify({}),
+    contentType: 'application/json',
+    success: function(data){
+		location.href="/";
+	},
+    error: function(xhr, status, err){
+      const payload = xhr.responseJSON || {error: xhr.responseText || err || 'Unknown error'};
+      onError(payload, status, err);
+    }
+  });
+}
+	</script>
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -290,9 +317,9 @@
                   <ul class="list-style-none">
                     <li class="p-30 pt-0">
                       <div class="mt-4">
-                        <a
+                        <button
+						  onclick="logout()"
                           class="btn btn-info text-white"
-                          href="/keluar"
                         >
                           Logout
                         </a>
@@ -319,60 +346,21 @@
   </script>
     <script src="/static/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <!-- apps -->
-    <script>
-    function handleResponse(data, crud, url) {
-    console.log("Response:", data);
-
-    try {
-        // Kalau response berupa string, coba parse ke JSON
-        if (typeof data === "string") {
-            try {
-                data = JSON.parse(data);
-            } catch (e) {
-                console.warn("Response bukan JSON, lanjut pakai string");
-            }
-        }
-
-        // Cek isi pesan sukses/gagal
-        if (data && data.msg && data.msg.toUpperCase() === "SUKSES") {
-            alert(`✅ Sukses ${crud} data`);
-        } else if (data && data.error) {
-            alert(`❌ Gagal ${crud} data: ${data.error}`);
-        } else {
-            alert(`⚠️ Gagal ${crud} data (respon tidak dikenal)`);
-        }
-
-    } catch (err) {
-        console.error("Error saat handleResponse:", err);
-        alert("⚠️ Terjadi kesalahan: " + (err.message || err));
-    } finally {
-        // Selalu redirect ke URL, tapi beri sedikit delay biar alert sempat tampil
-        setTimeout(() => {
-            window.location.href = url;
-        }, 500);
-    }
-}
-
-</script>
     <!-- slimscrollbar scrollbar JavaScript -->
     <script src="/static/assets/libs/perfect-scrollbar/dist/perfect-scrollbar.jquery.min.js"></script>
     <script src="/static/assets/extra-libs/sparkline/sparkline.js"></script>
-    
     <!-- page agenda js-->
     <script src="/static/assets/libs/moment/min/moment.min.js"></script>
-	<!-- Select2 -->
-    <script src="/static/assets/libs/select2/dist/js/select2.full.min.js"></script>
-    <script src="/static/assets/libs/select2/dist/js/select2.min.js"></script>
     {% block js %}{% endblock js %}
 	<script>
-	
+
 function activateSidebar(status) {
     var urlPath = window.location.pathname;
     console.log(urlPath);
 	var element = $("ul#sidebarnav a").filter(function () {
             var linkPath = this.pathname;
 				console.log(linkPath);
-            return urlPath.startsWith(linkPath);
+            return urlPath==linkPath;
         });
 	
     element.parentsUntil(".sidebar-nav").each(function () {
@@ -449,12 +437,5 @@ $(document).ready(function () {
 	  $(".select2").select2();
 	});	  
 	</script>
-    
   </body>
 </html>
-{% else %}
-<!-- Jika jwt_token tidak ada -->
-<script>
-    window.location.href = "/";
-</script>
-{% endif %}

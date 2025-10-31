@@ -25,9 +25,12 @@ function formatToMMDDYYY(datestr){
       url: url,
       method: method,
       data: JSON.stringify(data),
-      contentType: 'application/json',
-      headers: { 'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}" },
-      success: onSuccess,
+	  credentials: 'include',
+	  headers:{
+      'contentType': 'application/json',
+	  'X-CSRF-TOKEN': getCookie('csrf_access_token')||''
+	  },
+	  success: onSuccess,
       error: onError
     });
   }
@@ -38,72 +41,18 @@ function formatToMMDDYYY(datestr){
     $('#generic-modal').modal('show');
   }
 
-  function hapus_tahun(event){
-    $("#modal-submit").show()
-    showModal("Hapus Tahun",
-            `<span class="mb-2">Keterangan: Pilih data tahun berapa yang mau dihapus</span>
-              <select class="form-select" id="tahun_hps" name="educationDate">
-                <option value="" >Semua Tahun</option>
-                {% for i in tahun %}
-                <option value="{{i.tahun}}">{{i.tahun}}</option>
-                {% endfor %}
-              </select>`,
-          function() {
-          var tahun = $("#tahun_hps").val();
-          $("#delete").html("Loading ...");
-          $.ajax({
-            url: "/admin/penerimaan/hapus/tahun",
-            method: 'DELETE',
-            headers: {'Authorization': 'Bearer ' + "{{ session['jwt_token'] }}"},
-            data: { tahun: tahun },
-            dataType: 'json',
-            success: function(data) {
-              handleResponse(data, "hapus", "/admin/dana");
-            }
-          });
-          if (event) event.preventDefault();
-    })
-  }
-
-  function edit(id, pabrik, nama_barang, satuan, jumlah, harga_pabrik, tanggal) {
-    $("#modal-submit").show()
-    showModal(
-        `Edit Data `,
-        `<div class="form-group"> <label for="pabrik">pabrik </label> <input type="text" id="pabrik_edit" class="form-control" value="${ pabrik }"> </div>
-         <div class="form-group"> <label for="nama_barang">nama barang</label> <input type="text" id="nama_barang_edit" class="form-control"value="${ nama_barang }"> </div>
-         <div class="form-group"> <label for="satuan">satuan</label> <input type="text" id="satuan_edit" class="form-control"value="${ satuan }"> </div>
-         <div class="form-group"> <label for="jumlah">jumlah</label> <input type="number" id="jumlah_edit" class="form-control" min="0"placeholder="0" value="${ jumlah }" > </div>
-         <div class="form-group"> <label for="harga_pabrik">harga pabrik </label> Rp <input type="text" oninput="formatRupiah(this)" placeholder="0" value="${ harga_pabrik }" id="harga_pabrik_edit" class="form-control"> </div>
-         <div class="form-group"> <label for="tanggal">Tanggal</label> <input type="date" id="tanggal_edit" class="form-control"value="${ tanggal }"> </div>`,
-        function() {
-           const data = {
-                id:id,
-                pabrik: $("#pabrik_edit").val(),
-                nama_barang: $("#nama_barang_edit").val(),
-                satuan: $("#satuan_edit").val(),
-                jumlah: $('#jumlah_edit').val(),
-                harga_pabrik: $('#harga_pabrik_edit').val(),
-                tanggal: $('#tanggal_edit').val()
-            };
-        handleAjax(
-          '/admin/penerimaan/edit/id',
-          'PUT',
-          data,
-          function(response) { window.location.reload();},
-          function(xhr, status, error) { console.error("Error:", error); console.log(xhr.responseText); alert("Error :"+error) }
-        );
-      }
-    );
-  }
-
   function hapus(id) {
     if (confirm(`Are you sure you want to delete ?`)) {
       handleAjax(
         '/admin/penerimaan/hapus/id',
         'DELETE',
         { id: id },
-        function() { window.location.reload(); },
-        function(xhr, status, error) { console.error("Error:", error); }
+        function() { $.pjax({
+            url: '',
+            container: '#pjax-container'
+			});
+		},
+		function(xhr, status, error) { console.error("Error:", error); }
       );
     } else {
       alert('Aksi penghapusan dibatalkan.');
@@ -250,7 +199,7 @@ function formatToMMDDYYY(datestr){
                                 <td>
 								{% for j in i.detail %}
                                 
-                                <div style="">{{ j.qty }} </div>
+                                <div style="">{{ j.base_unit }} </div>
 								
                                 {% endfor %}
 								</td>
@@ -292,7 +241,7 @@ function formatToMMDDYYY(datestr){
 								</td>
 								 
                                 <td>
-                                <a href="/admin/penerimaan/edit/{{i.id}}" class="btn btn-warning" data-pjax >Edit</a>
+                                <a href="/admin/penerimaan/{{i.id}}" class="btn btn-warning" data-pjax >Edit</a>
                                   <button onclick="hapus({{ i.id |int }})" class="btn btn-danger">Hapus</button>
                                 </td>
                             </tr>
@@ -391,8 +340,11 @@ function formatToMMDDYYY(datestr){
         if (bulan !== "bulan") queryParams.append("bulan", bulan);
         if (tanggal !== "tanggal") queryParams.append("tanggal", tanggal);
         if (nama_principle !== "nama_principle") queryParams.append("nama_principle", nama_principle);
-
-        window.location.href = `?${queryParams.toString()}`;
+		url = `?${queryParams.toString()}`
+		$.pjax({
+			url: url,
+			container: '#pjax-container'
+		});
         }
         $('#tambah-modal').on('shown.bs.modal', function () {
           $('#nmbarang').select2({

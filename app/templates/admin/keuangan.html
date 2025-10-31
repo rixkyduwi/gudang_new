@@ -405,8 +405,11 @@ function submitEdit(idBarangKeluar) {
         if (tanggal !== "tanggal") queryParams.append("tanggal", tanggal);
         if (nama_outlet !== "nama_outlet") queryParams.append("nama_outlet", nama_outlet);
         if (nama_sales !== "nama_sales") queryParams.append("nama_sales", nama_sales);
-
-        window.location.href = `?${queryParams.toString()}`;
+		url = `?${queryParams.toString()}`
+		$.pjax({
+			url: url,
+			container: '#pjax-container'
+		});
         }
   
 </script>

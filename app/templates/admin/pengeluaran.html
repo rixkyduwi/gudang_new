@@ -20,7 +20,11 @@
         '/admin/pengeluaran/hapus/id',
         'DELETE',
         { id: id },
-        function() { window.location.reload(); },
+        function() { $.pjax({
+            url: '',
+            container: '#pjax-container'
+			});
+		},
         function(xhr, status, error) { console.error("Error:", error); }
       );
     } else {
@@ -65,7 +69,7 @@
                 <div class="mb-3">
                   <select class="form-select select2" style="width: 100%; height: 36px" id="tahun_data" name="tahun">
                     <option value="" >Semua Tahun</option>
-                    {% for i in tahun %}
+                    {% for i in list_tahun %}
                     <option value="{{ i.tahun }}" {% if request.args.get('tahun')|int == i.tahun|int %} selected {% endif %} >{{ i.tahun }}</option>
                     {% endfor %}
                   </select>
@@ -341,7 +345,11 @@
         if (nama_sales !== "nama_sales") queryParams.append("nama_sales", nama_sales);
         if (nama_outlet !== "nama_outlet") queryParams.append("nama_outlet", nama_outlet);
 
-        window.location.href = `?${queryParams.toString()}`;
+        url = `?${queryParams.toString()}`
+		$.pjax({
+			url: url,
+			container: '#pjax-container'
+		});
         }
         $('#tambah-modal').on('shown.bs.modal', function () {
           $('#nmbarang').select2({

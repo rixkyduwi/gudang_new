@@ -1,0 +1,150 @@
+{% extends "include/include.html" %}
+{% block pjax_content %}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+	   <div class="card-header bg-seccondary">
+<h4>Sales Targets</h4>
+
+<div class="row g-3 align-items-end mb-3">
+  <div class="col-md-4">
+    <label class="form-label">Salesperson</label>
+    <select id="sp" class="form-select">
+      <option value="">-- pilih --</option>
+      {% for s in sales %}
+      <option value="{{ s.id }}">{{ s.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">Year</label>
+    <input id="year" type="number" class="form-control" value="{{ now().year if false else '' }}" placeholder="2025">
+  </div>
+  <div class="col-md-3">
+    <button class="btn btn-secondary" onclick="loadTargets()">Load</button>
+    <button class="btn btn-primary" onclick="openCreateSalesTarget()">Tambah</button>
+    <button class="btn btn-outline-primary" onclick="openBulk()">Bulk 12 Bulan</button>
+  </div>
+</div>
+</div>
+<div class="card-body">
+<table class="table table-sm table-striped" id="tbl">
+  <thead><tr><th>Salesperson</th><th>Month</th><th>Year</th><th class="text-end">Target</th><th style="width:120px">Aksi</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="generic-modal" tabindex="-1"><div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="modal-title">Form</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer"><button id="modal-submit" class="btn btn-primary">Simpan</button></div>
+  </div>
+</div></div>
+	   </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+$.ajaxSetup({
+    beforeSend: function(xhr) {
+        xhr.setRequestHeader('Authorization', 'Bearer ' + "{{ session['jwt_token'] }}");
+    }
+});
+function loadTargets(){
+  const sp = $('#sp').val(), y = $('#year').val();
+  const qs = $.param({salesperson_id: sp||'', year: y||''});
+  $.getJSON('/admin/sales_targets/data?'+qs, function(rows){
+    const html = rows.map(r=>`
+      <tr>
+        <td>${r.salesperson_name}</td>
+        <td>${r.month}</td>
+        <td>${r.year}</td>
+        <td class="text-end">${Number(r.target_amount).toLocaleString()}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" onclick="delTarget(${r.id})">Hapus</button>
+        </td>
+      </tr>`).join('') || '<tr><td colspan=5>(kosong)</td></tr>';
+    $('#tbl tbody').html(html);
+  });
+}
+
+function showModal(title, body, onSubmit){
+  $('#modal-title').text(title);
+  $('#modal-body').html(body);
+  $('#modal-submit').off('click').on('click', onSubmit);
+  $('#generic-modal').modal('show');
+}
+
+function openCreateSalesTarget(){
+  const sp = $('#sp').val(), y = $('#year').val();
+  showModal('Tambah Target', `
+    <div class="mb-2"><label class="form-label">Salesperson ID</label>
+      <input id="f_sp" class="form-control" value="${sp||''}" placeholder="ID sales"></div>
+    <div class="mb-2"><label class="form-label">Month (1-12)</label>
+      <input id="f_m" type="number" class="form-control" min="1" max="12" value=""></div>
+    <div class="mb-2"><label class="form-label">Year</label>
+      <input id="f_y" type="number" class="form-control" value="${y||''}"></div>
+    <div class="mb-2"><label class="form-label">Target Amount</label>
+      <input id="f_amt" type="number" class="form-control" min="0" step="1000"></div>
+  `, function(){
+    const payload = {
+      salesperson_id: Number($('#f_sp').val()),
+      month: Number($('#f_m').val()),
+      year: Number($('#f_y').val()),
+      target_amount: Number($('#f_amt').val())
+    };
+    $.ajax({
+      url:'/admin/sales_targets', method:'POST',
+      contentType:'application/json', data: JSON.stringify(payload),
+      success: function(res){ alert('✅ tersimpan'); $('#generic-modal').modal('hide'); loadTargets(); },
+      error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+    });
+  });
+}
+
+function openBulk(){
+  const sp = $('#sp').val(), y = $('#year').val();
+  if(!sp || !y){ alert('Pilih salesperson & year dulu'); return; }
+  showModal('Bulk 12 Bulan', `
+    <div class="mb-2"><label class="form-label">Base Amount (default tiap bulan)</label>
+      <input id="base" type="number" class="form-control" min="0" step="1000" value="0"></div>
+    <div class="row g-2">
+      ${Array.from({length:12}).map((_,i)=>`
+        <div class="col-6">
+          <label class="form-label mb-1">Bulan ${i+1}</label>
+          <input type="number" class="form-control" id="m${i+1}" min="0" step="1000">
+        </div>`).join('')}
+    </div>
+    <small class="text-muted">Kalau kolom bulan kosong, akan dipakai Base Amount.</small>
+  `, function(){
+    const months = {};
+    for(let i=1;i<=12;i++){
+      const v = Number(document.getElementById('m'+i).value||NaN);
+      if(!Number.isNaN(v)) months[i]=v;
+    }
+    const payload = { salesperson_id:Number(sp), year:Number(y), base_amount:Number($('#base').val()||0), months };
+    $.ajax({
+      url:'/admin/sales_targets/bulk', method:'POST',
+      contentType:'application/json', data: JSON.stringify(payload),
+      success: function(res){ alert('✅ bulk ok'); $('#generic-modal').modal('hide'); loadTargets(); },
+      error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+    });
+  });
+}
+
+function delTarget(id){
+  if(!confirm('Hapus target ini?')) return;
+  $.ajax({
+    url:'/admin/sales_targets/'+id, method:'DELETE',
+    success: function(res){ alert('✅ terhapus'); loadTargets(); },
+    error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+  });
+}
+</script>
+{% endblock %}

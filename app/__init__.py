@@ -26,9 +26,6 @@ app.config['SECURITY_PASSWORD_SALT'] = b'asahdjhwquoyo192382qo'
 # Nonaktifkan rute login bawaan
 app.config['SECURITY_LOGIN_URL'] = None
 app.config['SECURITY_LOGOUT_URL'] = '/logout'  
-app.config['JWT_SECRET_KEY'] = 'qwdu92y17dqsu81'
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 ALLOWED_EXTENSIONS = {'xlsx'}
 
@@ -46,7 +43,7 @@ class User(db.Model, UserMixin):
     active = db.Column(db.Boolean())
     
 
-jwt = JWTManager(app)
+jwt_manager = JWTManager(app)
 mysql = MySQL()
 mysql.init_app(app)
 
@@ -90,25 +87,15 @@ def page_not_found(error):
         return response
     # Jika tidak, kirim respons dalam format HTML
     return render_template('404.html'), 404
+@app.errorhandler(401)
+def unauthorized(e):
+    return redirect(url_for('login'))
 
 # Route untuk halaman yang tidak ada
 @app.route('/invalid')
 def invalid():
     # Menggunakan abort untuk memicu kesalahan 404
      abort(404)
-
-# Middleware untuk menambahkan header cache-control
-@app.after_request
-def add_header(response):
-    # Kalau request ke static folder, boleh cache lama
-    if request.path.startswith("/static/"):
-        response.cache_control.max_age = 31536000  # cache 1 tahun
-    else:
-        # Semua halaman & API lain = realtime
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-    return response
     
 
 def render_pjax(template, pjax_block='pjax_content', **kwargs):
@@ -126,29 +113,10 @@ from flask_compress import Compress
 
 Compress(app)
 
-from flask_assets import Environment, Bundle
 
-assets = Environment(app)
-parent_dir = os.path.join(project_directory, 'static')
-css_files = [
-    f"css/{f}" for f in os.listdir(parent_dir) 
-    if f.endswith(".css") and os.path.isfile(os.path.join(parent_dir, f))
-]
-js_files = [
-    f"js/{f}" for f in os.listdir(parent_dir) 
-    if f.endswith(".js") and os.path.isfile(os.path.join(parent_dir, f))
-]
-
-css_bundle = Bundle(*css_files,filters="cssmin", output="gen/all.min.css")
-js_bundle = Bundle(*js_files,filters="jsmin", output="gen/all.min.js")
-
-try:
-    assets.register("css_all", css_bundle)
-except Exception as e:
-    app.logger.error(f"Failed to register CSS bundle: {e}")
-
-try:
-    assets.register("js_all", js_bundle)
-except Exception as e:
-    app.logger.error(f"Failed to register JS bundle: {e}")
+from .admin_master import admin_master_bp
+app.register_blueprint(admin_master_bp)
+from .admin_sales import admin_sales_bp
+app.register_blueprint(admin_sales_bp)
 from . import login, api_admin
+

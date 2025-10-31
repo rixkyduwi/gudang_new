@@ -1,0 +1,312 @@
+{% extends 'include/include.html' %}
+{% block pjax_content %}
+<div class="page-titles">
+  <div class="row">
+    <div class="col-lg-8 col-md-6 col-12 align-self-center">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0 d-flex align-items-center">
+          <li class="breadcrumb-item">
+            <a href="index.html" class="link">
+              <i class="ri-home-3-line fs-5"></i>
+            </a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Data Keuangan</li>
+        </ol>
+      </nav>
+      <h1 class="mb-0 fw-bold">Data Keuangan</h1>
+    </div>
+    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
+      
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="border-bottom title-part-padding">
+          <h4>Data Keuangan</h4>
+          <h4>Filter:</h4>
+            <div class="row col-12"> 
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="tahun_data" name="tahun">
+                <option value="" >Semua Tahun</option>
+                {% for i in tahun %}
+                <option value="{{ i.tahun }}" {% if request.args.get('tahun')|int == i.tahun|int %} selected {% endif %} >{{ i.tahun }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" style="width: 100%; height: 36px" id="bulan_data" name="bulan">
+                <option value="" >Semua Bulan</option>
+                {% for i in [{"value":"1","nama_bulan":"Januari"},{"value":"2","nama_bulan":"Februari"},{"value":"3","nama_bulan":"Maret"},
+                {"value":"4","nama_bulan":"April"},{"value":"5","nama_bulan":"Mei"},{"value":"6","nama_bulan":"Juni"},{"value":"7","nama_bulan":"Juli"},
+                {"value":"8","nama_bulan":"Agustus"},{"value":"9","nama_bulan":"September"},{"value":"10","nama_bulan":"Oktober"},
+                {"value":"11","nama_bulan":"November"},{"value":"12","nama_bulan":"Desember"}] %}
+                <option value="{{ i.value }}" {% if request.args.get('bulan')|int == i.value|int %} selected {% endif %} >{{ i.nama_bulan }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2 " 
+              style="width: 100%; height: 36px" id="tanggal_data" name="tanggal">
+                <option value="" >Semua Tanggal</option>
+                {% for i in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16",
+                "17","18","19","20","21","22","23","24","25","26","27","28","29","30","31"] %}
+                <option value="{{ i }}"  {% if request.args.get('tanggal')|int == i|int %} selected {% endif %} >{{ i }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+             <div class="col-sm-3">
+            <div class="mb-3">
+            </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="sales_data" name="sales_data">
+                <option value="" >Nama Sales</option>
+                {% for i in nama_sales %}
+                <option value="{{ i.nama_sales }}" {% if request.args.get('nama_sales') == i.nama_sales %} selected {% endif %} >{{ i.nama_sales }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <div class="mb-3">
+              <select class="form-select select2" 
+              style="width: 100%; height: 36px" id="outlet_data" name="outlet_data">
+                <option value="" >Nama Outlet</option>
+                {% for i in nama_outlet %}
+                <option value="{{ i.nama_outlet }}" {% if request.args.get('nama_outlet') == i.nama_outlet %} selected {% endif %} >{{ i.nama_outlet }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </div>
+            <div class="col-sm-3">
+            <div class="mb-3">
+              <button class="btn btn-info" onclick="run()">Submit</button>
+            </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+            <div id="table_" class="mt-3">
+              <h4>Data Keuangan </h4>
+                 <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+                     <h6 class="mb-0">Grafis Tabel</h6>
+                 </div>
+
+                 <!-- Apply max-height for Transaksi table -->
+                 <div>
+				  <table id="table__data" class="table w-100 table-bordered display text-nowrap">
+					<thead style="background-color:#f6f8fb;">
+					  <tr>
+						<th>No Faktur</th>
+						<th>Sales</th>
+						<th>Outlet</th>
+						<th>Total</th>
+						<th>Status</th>
+						<th>Pembayaran</th>
+					  </tr>
+					</thead>
+					<tbody class="data-utama">
+					  {% for inv in info_list %}
+					  <tr>
+						<td>{{ inv.invoice_no }}</td>
+						<td>{{ inv.nama_sales }}</td>
+						<td>{{ inv.nama_outlet }}</td>
+						<td>Rp {{ "{:,.2f}".format(inv.performa_sales) }}</td>
+						<td>
+						  {% if inv.status == 'PAID' %}
+							<span class="badge bg-success">Lunas</span>
+						  {% elif inv.status == 'PARTIAL' %}
+							<span class="badge bg-warning text-dark">Sebagian</span>
+						  {% else %}
+							<span class="badge bg-danger">Belum Lunas</span>
+						  {% endif %}
+						</td>
+						<td>
+						  <button class="btn btn-sm btn-outline-primary"
+								  onclick="showPayments({{ inv.id_barang_keluar }}, '{{ inv.invoice_no }}')">
+							Detail
+						  </button>
+						</td>
+					  </tr>
+					  {% endfor %}
+					</tbody>
+				  </table>
+				</div>
+
+				<!-- MODAL Pembayaran -->
+				<div class="modal fade" id="modalPayments" tabindex="-1">
+				  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+					<div class="modal-content">
+					  <div class="modal-header">
+						<h5 class="modal-title">Pembayaran Faktur <span id="modalInvoiceNo"></span></h5>
+						<button class="btn-close" data-bs-dismiss="modal"></button>
+					  </div>
+					  <div class="modal-body">
+						<table class="table table-sm table-striped" id="tblPayments" >
+						  <thead >
+							<tr>
+							  <th>Tanggal</th>
+							  <th>Metode</th>
+							  <th>Nominal</th>
+							  <th>Catatan</th>
+							  <th></th>
+							</tr>
+						  </thead>
+						  <tbody></tbody>
+						</table>
+
+						<hr>
+						<h6>Tambah Pembayaran Baru</h6>
+						<form id="formPayment">
+						  <input type="hidden" id="ref_id">
+						  <div class="row g-2 mb-2">
+							<div class="col-md-3">
+							  <input type="date" id="pay_date" class="form-control" required>
+							</div>
+							<div class="col-md-3">
+							  <select id="method" class="form-select" required>
+								<option value="">Metode...</option>
+								<option>Cash</option>
+								<option>Transfer</option>
+								<option>Tempo</option>
+							  </select>
+							</div>
+							<div class="col-md-3">
+							  <input type="number" id="amount" min="0" class="form-control" placeholder="Nominal (Rp)" required>
+							</div>
+							<div class="col-md-3">
+							  <input type="text" id="note" class="form-control" placeholder="Catatan (opsional)">
+							</div>
+						  </div>
+						  <button type="submit" class="btn btn-primary btn-sm">Simpan Pembayaran</button>
+						</form>
+					  </div>
+					</div>
+				  </div>
+				</div>        
+            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <strong>Halaman {{ page }} dari {{ total_pages }}</strong> — Total Data: {{ total_records }}
+            </div>
+            <nav aria-label="Page navigation">
+              <ul class="pagination mb-0">
+
+                <!-- Tombol pertama -->
+                {% if page > 1 %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page=1&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">&laquo; First</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo; First</span></li>
+                {% endif %}
+
+                <!-- Tombol sebelumnya -->
+                {% if has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                {% endif %}
+
+                <!-- Nomor halaman -->
+                {% for p in page_range %}
+                  {% if p == page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                  {% else %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ p }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">{{ p }}</a>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+
+                <!-- Tombol selanjutnya -->
+                {% if has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                {% endif %}
+
+                <!-- Tombol terakhir -->
+                {% if page < total_pages %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ total_pages }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">Last &raquo;</a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled"><span class="page-link">Last &raquo;</span></li>
+                {% endif %}
+
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- This Page JS -->
+<script>
+$(document).ready(function(){ 
+	$("#table__data").DataTable({
+		"paging": false,          // Menonaktifkan pagination
+		"info": false,           // Menonaktifkan info jumlah entri
+		"searching": false,       // Mengaktifkan fitur pencarian
+		"lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
+		"scrollX": true,  // Mengaktifkan scroll horizontal
+		"scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
+		"scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
+    })
+	 $(".complex-colorpicker").datepicker({
+	    autoclose: true,
+	    todayHighlight: true,
+	    format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
+	    language: "id"          // opsional, kalau kamu include file locale id
+	  });
+})
+function convertToISO(dateStr) {
+  // dari "dd/mm/yyyy" ke "yyyy-mm-dd"
+  let parts = dateStr.split("/");
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+function run() {
+	const tahun = document.getElementById('tahun_data').value;
+	const bulan = document.getElementById('bulan_data').value;
+	const tanggal = document.getElementById('tanggal_data').value;
+	const nama_outlet = document.getElementById('outlet_data').value;
+	const nama_sales = document.getElementById('sales_data').value;
+	
+	const queryParams = new URLSearchParams();
+	if (tahun !== "tahun") queryParams.append("tahun", tahun);
+	if (bulan !== "bulan") queryParams.append("bulan", bulan);
+	if (tanggal !== "tanggal") queryParams.append("tanggal", tanggal);
+	if (nama_outlet !== "nama_outlet") queryParams.append("nama_outlet", nama_outlet);
+	if (nama_sales !== "nama_sales") queryParams.append("nama_sales", nama_sales);
+	url = `?${queryParams.toString()}`
+	$.pjax({
+		url: url,
+		container: '#pjax-container'
+	});
+}
+  
+</script>
+{% endblock %}
