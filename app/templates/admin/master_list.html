@@ -93,23 +93,6 @@ function handleAjax(url, method, data, onSuccess, onError) {
   });
 }
 
-function handleResponse(data, crud, reloadUrl){
-  try{
-    if (data && data.msg === "SUKSES"){
-      alert(`✅ Sukses ${crud}`);
-    } else {
-      alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
-    }
-  }catch(e){
-    alert('⚠ Error: '+e.message);
-  }finally{
-   $('#generic-modal').modal('hide'); // tutup modal
-		 $.pjax({
-            url: reloadUrl || location.href,
-            container: '#pjax-container'
-        });
-  }
-}
 
 function showModal(title, html, onSubmit){
   $('#modal-title').text(title);

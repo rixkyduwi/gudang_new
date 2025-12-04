@@ -516,7 +516,6 @@ def tambah_penerimaan():
             qty_base   = parse_decimal(it.get('qty_base') or (qty_uom*factor if unit_label else qty))
             unit_price_uom  = parse_decimal(it.get('unit_price_uom') or (unit_price if not unit_label else 0))
             unit_price_base = parse_decimal(it.get('unit_price_base') or ((unit_price_uom/factor) if unit_label and factor else unit_price))
-            method = it.get('method')
             g.con.execute("""
                 INSERT INTO purchase_items
                 (purchase_id, product_id, qty, unit_price, total_amount,
@@ -529,7 +528,7 @@ def tambah_penerimaan():
             g.con.execute("""
                 INSERT INTO stock_moves (product_id, ref_type, ref_id, qty_in, note)
                 VALUES (%s,'PURCHASE',%s,%s,%s)
-            """, (product_id, purchase_id, int(qty_base), f"Invoice {invoice_no}. Method {method}"))
+            """, (product_id, purchase_id, int(qty_base), f"Invoice {invoice_no}"))
 
             total_hdr += total_amount
 
@@ -814,6 +813,7 @@ def edit_penyimpanan():
         })
     except Exception as e:
         g.con.connection.rollback()
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 @app.route('/admin/penyimpanan/hapus/id', methods=['DELETE'])
@@ -857,7 +857,7 @@ def tambah_pengeluaran():
     data_customers = fetch("SELECT id, name, address FROM customers ORDER BY name")
 
     # tanggal & jth tempo default
-    today = time_zone_wib().date()sdfe
+    today = time_zone_wib().date()
     jth_tempo = (today + timedelta(days=30)).strftime("%Y-%m-%d")
     nofaktur  = next_invoice_no_for_date(today)
 

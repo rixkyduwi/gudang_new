@@ -211,24 +211,77 @@
     <!-- form repeater js-->
 	<script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
 	<script>
-	function getCookie(name) {
-		return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1];
+	// ambil cookie helper
+	function readCookie(name) {
+	  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+	  return v ? decodeURIComponent(v.pop()) : null;
+	}
+
+	// cari CSRF token (coba access, kalau nggak ada coba refresh)
+	function getCsrfToken() {
+	  // library flask-jwt-extended biasanya menaruh token CSRF di cookie bernama:
+	  // 'csrf_access_token' (atau 'csrf_refresh_token' kalau hanya refresh yang di-set)
+	  return readCookie('csrf_access_token') || readCookie('csrf_refresh_token') || '';
+	}
+
+	// global ajax setup (opsional, supaya semua $.ajax otomatis pakai CSRF)
+	$.ajaxSetup({
+	  beforeSend: function(xhr, settings) {
+		const csrf = getCsrfToken();
+		if (csrf) {
+		  xhr.setRequestHeader('X-CSRF-TOKEN', csrf);
+		}
+		// optional helpful header
+		xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+	  }
+	});
+
+	function handleResponse(data, crud, reloadUrl){
+	console.log(data)
+	  try{
+		if (data && data.msg === "SUKSES"){
+		  alert(`✅ Sukses ${crud}`);
+		} else {
+		  if (data.error.includes("401")){location.href="/login"}
+		  alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
+		}
+	  }catch(e){
+		alert('⚠ Error: '+e.message);
+	  }finally{
+	   $('#generic-modal').modal('hide'); // tutup modal
+			 $.pjax({
+				url: reloadUrl || location.href,
+				container: '#pjax-container'
+			});
+	  }
+	}
+	// generic helper (ganti handleAjax lama dengan ini)
+	function handleAjax(url, method, data, onSuccess, onError) {
+	  $.ajax({
+		url: url,
+		method: method,
+		data: JSON.stringify(data),
+		contentType: 'application/json',
+		// Authorization header REMOVED (no session jwt_token)
+		success: onSuccess,
+		error: onError
+	  });
 	}
 	function logout(){
-	$.ajax({
-    url: "/logout", 
-	method: "POST", 
-    data: JSON.stringify({}),
-    contentType: 'application/json',
-    success: function(data){
-		location.href="/";
-	},
-    error: function(xhr, status, err){
-      const payload = xhr.responseJSON || {error: xhr.responseText || err || 'Unknown error'};
-      onError(payload, status, err);
-    }
-  });
-}
+		$.ajax({
+		url: "/logout", 
+		method: "POST", 
+		data: JSON.stringify({}),
+		contentType: 'application/json',
+		success: function(data){
+			location.href="/";
+		},
+		error: function(xhr, status, err){
+		  const payload = xhr.responseJSON || {error: xhr.responseText || err || 'Unknown error'};
+		  onError(payload, status, err);
+		}
+	  });
+	}
 	</script>
     {% block head %}{% endblock %}
   </head>

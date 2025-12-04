@@ -194,18 +194,30 @@ jwt = JWTManager(app)
 @jwt.unauthorized_loader
 def unauthorized(reason):
     print("Unauthorized 401")
-    return redirect(url_for('login'))
+    if request.method == "GET":
+        return redirect(url_for('login'))
+    else:
+        return jsonify({"error": "Unauthorized 401"}), 401
 
 @jwt.expired_token_loader
 def expired(jwt_header, jwt_payload):
-    print("Token expired 401")
-    return redirect(url_for('login'))
+    resp = jsonify(message="Token expired 401")
+    print(request.method)
+    unset_jwt_cookies(resp)
+    if request.method == "GET":
+        return redirect(url_for('login'))
+    else:
+        return jsonify({"error": "Token expired 401"}), 401
 
 @jwt.invalid_token_loader
 def invalid(reason):
-    print("Invalid token 422")
-    return redirect(url_for('login'))
-
+    resp = jsonify(message="Invalid token 401")
+    print(request.method)
+    unset_jwt_cookies(resp)
+    if request.method == "GET":
+        return redirect(url_for('login'))
+    else:
+        return jsonify({"error": "Invalid token 401"}), 401
 
 #---
 #

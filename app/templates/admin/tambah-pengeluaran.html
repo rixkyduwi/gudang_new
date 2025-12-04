@@ -62,10 +62,9 @@
               <label for="namasales">Salesperson</label>
               <select id="namasales" class="select2 form-control" style="width:100%">
                 <option value="">Pilih Sales</option>
-                {# asumsi nama_sales = [{id, nama_sales}] atau minimal {nama_sales} #}
-                {% for s in nama_sales %}
-                  <option value="{{ s.id or s.nama_sales }}"
-                          data-name="{{ s.nama_sales }}">{{ s.nama_sales }}</option>
+                {% for s in data_sales %}
+                  <option value="{{ s.id or s.name }}"
+                          data-name="{{ s.name }}">{{ s.name }}</option>
                 {% endfor %}
               </select>
               <input type="hidden" id="idsales">  <!-- simpan id sales terpilih -->
@@ -120,12 +119,11 @@
                       {% for b in data_barang %}
                         <option
                           value="{{ b.id }}"
-                          data-kode="{{ b.kode_barang }}"
-                          data-qty="{{ b.qty }}"
-                          data-stok="{{ b.sisa_gudang }}"
-                          data-limit="{{ b.stoklimit }}"
-                        >
-                          {{ b.nama_barang }}
+                          data-kode="{{ b.code }}"
+                          data-qty="{{ b.unit }}"
+                          data-stok="{{ b.qty_on_hand }}"
+                          data-limit="{{ b.stok_min }}"
+                        >{{b.name}}
                         </option>
                       {% endfor %}
                     </select>
@@ -427,11 +425,11 @@
 
     const hs_int  = bersihkanFormatAngka($row.find('.hargasatuan').val()||'0');
     const hs_koma = ($row.find('.hargasatuan-koma').val()||',00').replace(',','') || '00';
-    const harga_satuan = parseFloat(${hs_int}.${hs_koma}) || 0;
+    const harga_satuan = parseFloat(`${hs_int}.${hs_koma}`) || 0;
 
     const hpp_int  = bersihkanFormatAngka($row.find('.hpp').val()||'0');
     const hpp_koma = ($row.find('.hpp-koma').val()||',00').replace(',','') || '00';
-    const hpp = parseFloat(${hpp_int}.${hpp_koma}) || 0;
+    const hpp = parseFloat(`${hpp_int}.${hpp_koma}`) || 0;
 
     const diskon = parseFloat($row.find('.diskon').val()||'0') || 0;
 
@@ -531,7 +529,6 @@
 	  credentials: 'include',
 	  headers:{
       'contentType': 'application/json',
-	  'X-CSRF-TOKEN': getCookie('csrf_access_token')||''
 	  },
 	  success: function(){
         alert("Tambah Data Pengeluaran Sukses");
