@@ -65,6 +65,14 @@ ENTITIES = {
         "id": "id",
         "search": ["name"],
         "order_by": "name ASC"
+    },
+    "senders": {
+        "table": "senders",
+        "columns": ["name", "is_active"],
+        "columns_name": ["name", "status"],
+        "id": "id",
+        "search": ["name"],
+        "order_by": "name ASC"
     }
 }
 

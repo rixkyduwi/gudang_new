@@ -124,6 +124,10 @@ function fieldsFor(entity){
       {name:'name', label:'Nama', type:'text', required:true},
       {name:'is_active', label:'Aktif', type:'checkbox', value:1}
     ];
+    case 'senders': return [
+      {name:'name', label:'Nama', type:'text', required:true},
+      {name:'is_active', label:'Aktif', type:'checkbox', value:1}
+    ];
     default: return [];
   }
 }

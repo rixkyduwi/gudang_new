@@ -328,6 +328,15 @@ def dashboard():
         ORDER BY s.name ASC
     """, (start_month, end_month, tahun_ini, bulan_ini))
 
+    # SALES HARIAN (sum sales_items untuk invoice_date = today)
+    g.con.execute("""
+        SELECT COALESCE(SUM(si.total_amount),0)
+        FROM sales_items si
+        JOIN sales_invoices inv ON inv.id = si.sales_invoice_id
+        WHERE inv.invoice_date = %s
+    """, (today,))
+    sales_harian = g.con.fetchone()[0] or 0
+    print(sales_harian)
     # -------------------------
     # Inkaso (penerimaan pembayaran hari ini) – ambil dari payments
     # -------------------------
@@ -367,6 +376,7 @@ def dashboard():
         'admin/dashboard.html',
         tahun_ini=tahun_ini,
         target_sales=target_sales,
+        sales_harian = sales_harian,
         inkaso=inkaso,
         hari_ini=hari_ini,
         revenue=revenue,
@@ -869,6 +879,7 @@ def tambah_pengeluaran():
     """)
     # Sales & Customer
     data_sales = fetch("SELECT id, name FROM salespersons WHERE is_active=1 ORDER BY name")
+    data_pengirim = fetch("SELECT id, name FROM senders WHERE is_active=1 ORDER BY name")
     data_customers = fetch("SELECT id, name, address FROM customers ORDER BY name")
 
     # tanggal & jth tempo default
@@ -878,6 +889,7 @@ def tambah_pengeluaran():
 
     return render_pjax("admin/tambah-pengeluaran.html",
         data_sales=data_sales,
+        data_pengirim=data_pengirim,
         data_customers=data_customers,
         data_barang=data_barang,
         tanggal=today.strftime("%Y-%m-%d"),
@@ -948,11 +960,13 @@ def admin_pengeluaran():
                si.payment_term,
                si.tax_flag,
                si.status,
-               s.name AS nama_sales,
+               sp.name AS nama_sales,
+               s.name AS nama_pengirim,
                COALESCE(c.name,'-') AS nama_customer,
                COALESCE(SUM(si2.total_amount),0) AS performa_sales
         FROM sales_invoices si
-        JOIN salespersons s ON s.id = si.salesperson_id
+        JOIN salespersons sp ON sp.id = si.salesperson_id
+        LEFT JOIN senders s ON s.id = si.sender_id
         LEFT JOIN customers c ON c.id = si.customer_id
         LEFT JOIN sales_items si2 ON si2.sales_invoice_id = si.id
         {where}
@@ -1004,6 +1018,7 @@ def tambah_pengeluaran_action():
     pay_term     = d.get('pembayaran')  # "CASH"/"TEMPO" → mapping opsional
     tax_flag     = d.get('pajak')       # "Yes"/"No" → optional
     salesperson_name = d.get('nama_sales')
+    sender_name = d.get('nama_pengirim')
     customer_name    = d.get('nama_outlet')  # optional
     items = d.get('items') or []
 
@@ -1014,6 +1029,10 @@ def tambah_pengeluaran_action():
     sp = one("SELECT id FROM salespersons WHERE name=%s", (salesperson_name,))
     if not sp: return jsonify({"error": "Salesperson not found"}), 404
     sp_id = sp[0]
+    # resolve sender
+    sender = one("SELECT id FROM sender WHERE name=%s", (sender_name,))
+    if not sp: return jsonify({"error": "Sender not found"}), 404
+    sender_id = sender[0]
     cust_id = None
     if customer_name:
         c = one("SELECT id FROM customers WHERE name=%s", (customer_name,))
@@ -1032,9 +1051,9 @@ def tambah_pengeluaran_action():
             tax_rate = 0.0
         g.con.execute("""
             INSERT INTO sales_invoices
-            (salesperson_id, customer_id, invoice_no, invoice_date, due_date, payment_term, tax_flag, tax_rate, status)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'UNPAID')
-        """, (sp_id, cust_id, invoice_no, invoice_date,due_date, pay_term, tax_flag, tax_rate ))
+            (salesperson_id, sender_id, customer_id, invoice_no, invoice_date, due_date, payment_term, tax_flag, tax_rate, status)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'UNPAID')
+        """, (sp_id, sender_id, cust_id, invoice_no, invoice_date,due_date, pay_term, tax_flag, tax_rate ))
         sales_id = g.con.lastrowid
 
         total_hdr = Decimal('0')

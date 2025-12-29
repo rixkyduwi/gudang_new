@@ -105,6 +105,19 @@
               </select>
             </div>
 
+            <!-- Sender-->
+            <div class="form-group">
+              <label for="namapengirim">Sender</label>
+              <select id="namapengirim" class="form-select" style="width:100%">
+                <option value="">Pilih Pengirim</option>
+                {% for s in data_pengirim %}
+                  <option value="{{ s.id or s.name }}"
+                          data-name="{{ s.name }}">{{ s.name }}</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" id="idsender">  <!-- simpan id sales terpilih -->
+            </div>
+
             <!-- REPEATER ITEM -->
             <div class="email-repeater mb-3">
               <div data-repeater-list="items">
@@ -194,12 +207,24 @@
 
                   <div class="form-group">
                     <label>Batch</label>
-                    <input type="text" class="batch form-control">
+                    <div class="input-group">
+                    <input type="text" id="tglfaktur" class="complex-colorpicker batch form-control"
+                        placeholder="mm/yyyy">
+                    <span class="input-group-text">
+                      <i data-feather="calendar" class="feather-sm"></i>
+                    </span>
+                    </div>
                   </div>
 
                   <div class="form-group">
                     <label>Expired Date (ED)</label>
-                    <input type="text" class="ed form-control" placeholder="YYYY-MM-DD">
+                    <div class="input-group">
+                    <input type="text" id="tglfaktur" class="complex-colorpicker ed form-control"
+                       placeholder="dd/mm/yyyy">
+                    <span class="input-group-text">
+                      <i data-feather="calendar" class="feather-sm"></i>
+                    </span>
+                    </div>
                   </div>
 
                   <button data-repeater-delete class="mt-2 btn btn-danger w-100" type="button">
@@ -311,6 +336,7 @@
 
   // Inisialisasi Select2 global
   $('#namasales').select2({ width: '100%', placeholder: 'Pilih sales…' });
+  $('#namapengirim').select2({ width: '100%', placeholder: 'Pilih sales…' });
   $('#namaoutlet').select2({
     width:'100%',
     placeholder:'Pilih outlet…',
@@ -355,7 +381,11 @@
       alert('Gagal memuat outlet untuk sales terpilih.');
     });
   });
-
+  $("#namapengirim").on("change", function(){
+    const sId = $(this).val();
+    const sName = $('#namapengirim option:selected').data('name') || '';
+    $("#idsender").val(sId || '');
+  });
   // Outlet terpilih → set id & alamat
   $("#namaoutlet").on("change", function(){
     const $opt = $(this).find('option:selected');
@@ -460,6 +490,7 @@
       nofaktur: $("#nofaktur").val(),
       // tetap kirim nama (kompatibel backend lama) + id (skema baru)
       nama_sales: $('#namasales option:selected').data('name') || '',
+      nama_pengirim: $('#namasales option:selected').data('name') || '',
       id_sales: $("#idsales").val() || null,
       nama_outlet: $('#namaoutlet option:selected').text() || '',
       id_outlet: $("#idoutlet").val() || null,
@@ -508,8 +539,8 @@
         harga_total: ht,
         hpp: hp,
         totalhpp: th,
-        batch_no: $row.find(".batch").val()||"",
-        ed: $row.find(".ed").val()||"",
+        batch_no: convertToISO($row.find(".batch").val()||""),
+        ed: convertToISO($row.find(".ed").val()||""),
         profit: pf
       });
     });
