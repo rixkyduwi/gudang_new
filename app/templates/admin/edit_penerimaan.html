@@ -1,6 +1,6 @@
 {% extends 'include/include.html' %}
 {% block pjax_content %}
-    <div class="page-titles">
+    <div class="page-titles pb-0">
         <div class="row">
             <div class="col-lg-8 col-md-6 col-12 align-self-center">
                 <nav aria-label="breadcrumb">
@@ -23,9 +23,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-                        <div class="mt-3">
-                            <h4>Edit Data
-                            </h4>
+                        <div>
                             <div class="form-group">
                                 <label for="tglfaktur">Tanggal Faktur
                                 </label>
@@ -444,23 +442,12 @@
             url: "/admin/penerimaan/{{ purchase['id'] }}",
             method: 'PUT',
             data: JSON.stringify(data),
-			credentials: 'include',
-			headers:{
-			'contentType': 'application/json',
-			'X-CSRF-TOKEN': getCookie('csrf_access_token')||''
-			},
+			contentType: 'application/json',
             success: function (response) {
-                alert("Edit Data Penerimaan Sukses");
-                location.href = "/admin/penerimaan";
+				handleResponse(response, "Edit", "/admin/penerimaan")
             },
             error: function (xhr, status, error) {
-                console.error("Error:", error);
-                if (xhr.responseJSON && xhr.responseJSON.error) {
-                    var errorMessages = xhr.responseJSON.error;
-                    alert("Validation Errors:\n" + errorMessages);
-                } else {
-                    alert("An unexpected error occurred: " + error);
-                }
+                handleResponse(xhr.responseJSON, "Edit", "/admin/penerimaan/{{ purchase['id'] }}")
             }
         });
     });

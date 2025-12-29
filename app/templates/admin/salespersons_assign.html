@@ -54,11 +54,6 @@
 </div>
 
 <script>
-$.ajaxSetup({
-    beforeSend: function(xhr) {
-        xhr.setRequestHeader('Authorization', 'Bearer ' + "{{ session['jwt_token'] }}");
-    }
-});
 function loadList(){
   const sp = $('#sp').val();
   if(!sp){
@@ -90,7 +85,7 @@ function assign(){
     contentType: 'application/json',
     data: JSON.stringify({ customer_ids: selected }),
     success: function(){ alert('✅ sukses menambahkan'); loadList(); },
-    error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+    error: function(xhr){ if (data.error.includes("401")){location.href="/login"}; alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
   });
 }
 function unassign(sp, cid){
@@ -99,7 +94,7 @@ function unassign(sp, cid){
     url: `/admin/salespersons/${sp}/customers/${cid}`,
     method: 'DELETE',
     success: function(){ alert('✅ dilepaskan'); loadList(); },
-    error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+    error: function(xhr){ if (data.error.includes("401")){location.href="/login"}; alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
   });
 }
 

@@ -131,6 +131,54 @@
 	  overflow:hidden;
 	  text-overflow:elipsis;
 	  }
+	  @media (max-width: 768px) {
+  table.table-responsive-stack thead {
+    display: none; /* header hilang di mobile */
+  }
+
+  table.table-responsive-stack,
+  table.table-responsive-stack tbody,
+  table.table-responsive-stack tr,
+  table.table-responsive-stack td {
+    display: block;
+    width: 100%;
+  }
+
+  table.table-responsive-stack tr {
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: #fff;
+  }
+
+  table.table-responsive-stack td {
+    border: 0 !important;
+    padding: 6px 0;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  table.table-responsive-stack td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    opacity: .75;
+    flex: 0 0 45%;
+    max-width: 45%;
+  }
+
+  table.table-responsive-stack td > * {
+    flex: 1;
+    min-width: 0;
+  }
+}
+.sidebar-toggler {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 	</style>
  
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -242,8 +290,8 @@
 		if (data && data.msg === "SUKSES"){
 		  alert(`✅ Sukses ${crud}`);
 		} else {
-		  if (data.error.includes("401")){location.href="/login"}
 		  alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
+		  if (data.error.includes("401")){location.href="/login"};
 		}
 	  }catch(e){
 		alert('⚠ Error: '+e.message);
@@ -334,7 +382,7 @@
               <!-- This is  -->
               <li class="nav-item">
                 <a
-                  class="nav-link sidebartoggler d-none d-md-block"
+                  class="nav-link sidebartoggler sidebar-toggler d-none d-md-block"
                   href="javascript:void(0)"
                   ><i data-feather="menu"></i
                 ></a>
@@ -464,6 +512,7 @@ $(document).ready(function () {
 	$(".select2").select2();
 });
 </script>
+
     <script>
 	
     var tahunSaatIni=(new Date).getFullYear();document.getElementById("copyright").innerHTML=tahunSaatIni+" © All Rights Reserved";
@@ -488,7 +537,7 @@ $(document).ready(function () {
 	  });
 	  activateSidebar("");
 	  $(".select2").select2();
-	});	  
+	  });	  
 	</script>
   </body>
 </html>

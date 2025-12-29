@@ -245,7 +245,17 @@ def format_rupiah(value):
         return f"{bagian_utama},{bagian_koma}"
     except (InvalidOperation, ValueError, TypeError):
         return value
+@app.template_filter('format_performa_sales')
+def format_performa_sales(value):
+    try:
+        # Format bagian utama dengan titik pemisah ribuan
+        bagian_utama = f"{int(value):,}".replace(",", ".")
 
+        # Gabungkan dan pakai koma sebagai desimal (gaya Indonesia)
+        return f"{bagian_utama}"
+    except (InvalidOperation, ValueError, TypeError):
+        return value
+        
 @app.template_filter('format_date')
 def format_date(value):
     if not value:
@@ -375,6 +385,7 @@ def parse_decimal(x, default=Decimal('0')):
         return default
 
 @app.route('/admin/penerimaan-tambah', methods=['GET'])
+@jwt_required()
 def admin_penerimaan_tambah():
     data_barang = fetch("SELECT id, code, name, unit, stock_min FROM products WHERE is_active=1 ORDER BY name")
     data_supplier = fetch("SELECT id, name, address, phone FROM suppliers ORDER BY name")
@@ -386,6 +397,7 @@ def admin_penerimaan_tambah():
     )
 
 @app.route('/admin/penerimaan')
+@jwt_required()
 def admin_penerimaan():
     tahun   = request.args.get('tahun', type=int)
     bulan   = request.args.get('bulan', type=int)
@@ -539,6 +551,7 @@ def tambah_penerimaan():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/admin/penerimaan/<int:id>', methods=['GET'])
+@jwt_required()
 def penerimaan_detail(id):
     hdr = fetch("""
         SELECT p.id, p.supplier_id,  p.invoice_date, p.invoice_no,
@@ -644,6 +657,7 @@ def penerimaan_delete(id):
         return jsonify({"error": str(e)}), 500
         
 @app.route('/admin/penyimpanan')
+@jwt_required()
 def adminpenyimpanan():
     # Param lama tetap didukung biar nggak breaking
     product_id = request.args.get('product_id') or request.args.get('id_barang')
@@ -843,6 +857,7 @@ def next_invoice_no_for_date(d):
 
 
 @app.route('/admin/pengeluaran-tambah')
+@jwt_required()
 def tambah_pengeluaran():
     # Produk + stok (gunakan view v_product_stock)
     data_barang = fetch("""
@@ -871,6 +886,7 @@ def tambah_pengeluaran():
     )
 
 @app.route('/api/sales/invoice_no/<path:tanggal>')
+@jwt_required()
 def api_sales_invoice_no(tanggal):
     dt = None
     for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
@@ -887,6 +903,7 @@ def api_sales_invoice_no(tanggal):
     return jsonify({"nofaktur": nofaktur, "jatuh_tempo": jth_tempo})
 
 @app.route('/admin/pengeluaran')
+@jwt_required()
 def admin_pengeluaran():
     tahun   = request.args.get('tahun', type=int)
     bulan   = request.args.get('bulan', type=int)
@@ -928,6 +945,8 @@ def admin_pengeluaran():
                si.invoice_no,
                si.invoice_date,
                si.due_date,
+               si.payment_term,
+               si.tax_flag,
                si.status,
                s.name AS nama_sales,
                COALESCE(c.name,'-') AS nama_customer,
@@ -978,6 +997,7 @@ def admin_pengeluaran():
 @jwt_required()
 def tambah_pengeluaran_action():
     d = request.get_json() or {}
+    print(d)
     invoice_no   = d.get('nofaktur') or d.get('invoice_no')
     invoice_date = d.get('tglfaktur') or d.get('invoice_date')
     due_date     = d.get('jthtempo') or d.get('due_date')  # format YYYY-MM-DD
@@ -1005,11 +1025,16 @@ def tambah_pengeluaran_action():
 
     try:
         # Header
+        if tax_flag == "Iya":
+            tax_rate = 12.0%(11.0/12.0)
+            print(tax_rate)
+        else:
+            tax_rate = 0.0
         g.con.execute("""
             INSERT INTO sales_invoices
-            (salesperson_id, customer_id, invoice_no, invoice_date, due_date, status)
-            VALUES (%s,%s,%s,%s,%s,'UNPAID')
-        """, (sp_id, cust_id, invoice_no, invoice_date, due_date))
+            (salesperson_id, customer_id, invoice_no, invoice_date, due_date, payment_term, tax_flag, tax_rate, status)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'UNPAID')
+        """, (sp_id, cust_id, invoice_no, invoice_date,due_date, pay_term, tax_flag, tax_rate ))
         sales_id = g.con.lastrowid
 
         total_hdr = Decimal('0')
@@ -1028,6 +1053,11 @@ def tambah_pengeluaran_action():
 
             # UoM-lite (kalau form tidak pakai, factor=1 & qty_base=qty)
             unit_label = it.get('unit_label')
+            batch_no   = it.get('batch_no')
+            ed         = it.get('ed')
+            print(unit_label)
+            print(batch_no)
+            print(ed)
             factor     = parse_decimal(it.get('uom_factor_to_base') or (1 if not unit_label else 1))
             qty_uom    = parse_decimal(it.get('qty_uom') or (qty if not unit_label else 0))
             qty_base   = parse_decimal(it.get('qty_base') or (qty_uom * factor if unit_label else qty))
@@ -1045,11 +1075,11 @@ def tambah_pengeluaran_action():
             # Insert item
             g.con.execute("""
                 INSERT INTO sales_items
-                (sales_invoice_id, product_id, qty, unit_price, discount_percent, total_amount,
-                 unit_label, uom_factor_to_base, qty_uom, qty_base, unit_price_uom, unit_price_base)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (sales_id, product_id, qty, unit_price, disc_pct, total_amount,
-                  unit_label, factor, qty_uom, qty_base, unit_price_uom, unit_price_base))
+                (sales_invoice_id, product_id, qty, unit_price, discount_percent, total_amount, batch_no,
+                 unit_label, uom_factor_to_base, qty_uom, qty_base, unit_price_uom, unit_price_base, expiry_date)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (sales_id, product_id, qty, unit_price, disc_pct, total_amount, batch_no,
+                  unit_label, factor, qty_uom, qty_base, unit_price_uom, unit_price_base, ed))
 
             # Stock move (OUT)
             g.con.execute("""
@@ -1062,10 +1092,14 @@ def tambah_pengeluaran_action():
         # (opsional) pembayaran awal
         paid_amount = parse_decimal(d.get('paid_amount') or 0)
         if paid_amount > 0:
+            status = "PARTIAL"
             g.con.execute("""
                 INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
                 VALUES ('SALE', %s, %s, %s, %s, %s)
-            """, (sales_id, invoice_date, d.get('method') or 'CASH', paid_amount, 'Pembayaran awal'))
+            """, (sales_id, invoice_date, pay_term, paid_amount, 'Pembayaran awal'))
+            if paid_amount == total_hdr:
+                status = "PAID"
+            g.con.execute("""UPDATE sales_invoice SET status = %s WHERE id=%s """, (status,sales_id,))
 
         g.con.connection.commit()
         return jsonify({"msg":"SUKSES","id":sales_id,"total":str(total_hdr)})
@@ -1148,6 +1182,7 @@ def pengeluaran_delete(id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/ceknofaktur/<path:tanggal>')
+@jwt_required()
 def ceknofaktur(tanggal):
     dt_tanggal = None
     print(tanggal)
@@ -1468,6 +1503,7 @@ def export_pdf(buffer, pajak):
     pdf.save()
 
 @app.route('/admin/pengeluaran/print', methods=['GET'])
+@jwt_required()
 def print_pdf():
     buffer = io.BytesIO()
     export_pdf(buffer,"")
@@ -1478,6 +1514,7 @@ def print_pdf():
     return send_file(buffer,as_attachment=True,download_name="faktur.pdf",mimetype='application/pdf')
 
 @app.route('/admin/pengeluaran/print_pajak', methods=['GET'])
+@jwt_required()
 def print_pdf_pajak():
     buffer = io.BytesIO()
     export_pdf(buffer,"pajak")
@@ -1523,6 +1560,7 @@ def hapus_pengeluaran():
         print(str(e))
         return jsonify({"error": str(e)})
 @app.route('/admin/keuangan')
+@jwt_required()
 def adminkeuangan():
     # --- Params ---
     tahun        = request.args.get('tahun', type=int)
@@ -1675,7 +1713,7 @@ def adminkeuangan():
         "admin/keuangan.html",
         info_list=info_list,
         # filters & dropdowns
-        tahun=fetch("SELECT DISTINCT YEAR(invoice_date) AS y FROM sales_invoices ORDER BY y DESC"),
+        list_tahun=fetch("SELECT DISTINCT YEAR(invoice_date) AS tahun FROM sales_invoices ORDER BY tahun DESC"),
         data_sales=data_sales,
         data_outlet=data_outlet,
         nama_outlet=fetch("SELECT DISTINCT name FROM customers ORDER BY name"),
@@ -1775,6 +1813,7 @@ def keuangan_edit():
         g.con.execute("ROLLBACK")
         return jsonify({"error": str(e)}), 500
 @app.route('/api/payments/sale/<int:ref_id>')
+@jwt_required()
 def get_payments(ref_id):
     rows = fetch("""
         SELECT id, pay_date, method, amount, note
@@ -1802,6 +1841,7 @@ def delete_payment(id):
     g.con.connection.commit()
     
 @app.route('/admin/administrasi')
+@jwt_required()
 def adminadministrasi():
     tahun   = request.args.get('tahun', type=int)
     bulan   = request.args.get('bulan', type=int)
@@ -2068,6 +2108,7 @@ def query_performa(tahun: int | None, bulan: int | None,
     return fetch(sql, tuple(params))
 
 @app.route('/admin/performa_sales')
+@jwt_required()
 def adminperformasales():
     tahun = request.args.get('tahun', type=int)
     bulan = request.args.get('bulan', type=int)
@@ -2200,6 +2241,7 @@ def build_date_range(
     return clause, params
 
 @app.route('/admin/performa_sales/export_excel')
+@jwt_required()
 def adminperformasalesprint():
     t0 = time.perf_counter()
     log = current_app.logger
@@ -2331,6 +2373,7 @@ def adminperformasalesprint():
     )
 
 @app.route('/admin/latest_penerimaan', methods=['GET'])
+@jwt_required()
 def latest_penerimaan_excell():
     wb = Workbook()
     ws = wb.active
@@ -2357,7 +2400,7 @@ def latest_penerimaan_excell():
     ws[f'A{current_row}'].font = Font(size=14, bold=True)
     ws[f'A{current_row}'].alignment = Alignment(horizontal="center")
     upd_width(["LAPORAN BULANAN PERUSAHAAN"])
-    current_row += 2
+    current_row += 1
 
     # nama bulan lokal
     list_bulan = [
@@ -2391,12 +2434,12 @@ def latest_penerimaan_excell():
         hasil = fetch("""
             SELECT
                 pu.invoice_date,
-                pu.invoice_number,
+                pu.invoice_no,
                 sup.name      AS supplier,
                 pr.name       AS nama_barang,
                 pr.code       AS kode_barang,
                 pr.unit       AS unit_produk,
-                pi.quantity   AS qty_item,
+                pi.qty   AS qty_item,
                 pi.unit_price,
                 pi.total_amount,
                 tot.total_inv,
@@ -2417,20 +2460,13 @@ def latest_penerimaan_excell():
                 GROUP BY ref_id
             ) pay ON pay.ref_id = pu.id
             WHERE pu.invoice_date >= %s AND pu.invoice_date < %s
-            ORDER BY pu.invoice_date, pu.invoice_number, pi.id
+            ORDER BY pu.invoice_date, pu.invoice_no, pi.id
         """, (start, end))
 
         if not hasil:
             continue
 
         # judul bulan
-        judul_bulan = f"LAPORAN PEMBELIAN - {nama_bulan_by_num(bulan)} {tahun_ini}"
-        ws.merge_cells(f'A{current_row}:K{current_row}')
-        ws[f'A{current_row}'] = judul_bulan
-        ws[f'A{current_row}'].alignment = Alignment(horizontal="center")
-        ws[f'A{current_row}'].font = Font(bold=True)
-        upd_width([judul_bulan])
-        current_row += 1
 
         # header
         headers = [
@@ -2464,7 +2500,7 @@ def latest_penerimaan_excell():
 
             row_vals = [
                 row['invoice_date'].strftime("%Y-%m-%d") if row['invoice_date'] else '',
-                row['invoice_number'],
+                row['invoice_no'],
                 row['supplier'],
                 row['nama_barang'],
                 row['kode_barang'],
@@ -2514,6 +2550,7 @@ def latest_penerimaan_excell():
     )
 
 @app.route('/admin/latest_pengeluaran', methods=['GET'])
+@jwt_required()
 def latest_pengeluaran_excell():
     wb = Workbook()
     ws = wb.active
@@ -2540,7 +2577,7 @@ def latest_pengeluaran_excell():
     ws[f'A{current_row}'].font = Font(size=14, bold=True)
     ws[f'A{current_row}'].alignment = Alignment(horizontal="center")
     upd_width(["LAPORAN BULANAN PERUSAHAAN"])
-    current_row += 2
+    current_row += 1
 
     # daftar bulan lokal (hindari dependensi variabel eksternal)
     list_bulan = [
@@ -2570,12 +2607,12 @@ def latest_pengeluaran_excell():
             SELECT
                 inv.invoice_date,
                 inv.due_date,
-                inv.invoice_number,
+                inv.invoice_no,
                 sp.name        AS nama_sales,
                 c.name         AS nama_outlet,
                 p.name         AS nama_barang,
                 p.unit         AS unit_produk,
-                si.quantity    AS qty_item,
+                si.qty    AS qty_item,
                 si.unit_price,
                 si.total_amount,
                 tot.total_inv,
@@ -2597,20 +2634,11 @@ def latest_pengeluaran_excell():
                 GROUP BY ref_id
             ) pay ON pay.ref_id = inv.id
             WHERE inv.invoice_date >= %s AND inv.invoice_date < %s
-            ORDER BY inv.invoice_date, inv.invoice_number, si.id
+            ORDER BY inv.invoice_date, inv.invoice_no, si.id
         """, (start, end))
 
         if not hasil:
             continue
-
-        # judul bulan
-        judul_bulan = f"{nama_bulan_by_num(bulan)} - {tahun_ini}"
-        ws.merge_cells(f'A{current_row}:L{current_row}')
-        ws[f'A{current_row}'] = judul_bulan
-        ws[f'A{current_row}'].alignment = Alignment(horizontal="center")
-        ws[f'A{current_row}'].font = Font(bold=True)
-        upd_width([judul_bulan])
-        current_row += 1
 
         # header tabel
         headers = [
@@ -2648,7 +2676,7 @@ def latest_pengeluaran_excell():
             row_vals = [
                 row['invoice_date'].strftime("%Y-%m-%d") if row['invoice_date'] else '',
                 row['due_date'].strftime("%Y-%m-%d") if row['due_date'] else '',
-                row['invoice_number'],
+                row['invoice_no'],
                 row['nama_sales'],
                 row['nama_outlet'],
                 row['nama_barang'],
@@ -2701,6 +2729,7 @@ def latest_pengeluaran_excell():
 
 
 @app.route("/admin/Report_Laporan")
+@jwt_required()
 def report_laporan():
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -2735,7 +2764,7 @@ def report_laporan():
         SELECT COALESCE(SUM(p.amount),0)
         FROM payments p
         WHERE p.ref_type='SALE'
-          AND p.paid_at >= %s AND p.paid_at < %s
+          AND p.pay_date >= %s AND p.pay_date < %s
     """, (start_day, end_day))
     inkaso_harian = g.con.fetchone()[0] or 0
     data_rows.append(("INKASO - HARIAN", format_rp(inkaso_harian)))
@@ -2799,11 +2828,11 @@ def report_laporan():
         # --- PURCHASE (invoice vs payment) ---
         g.con.execute("""
             WITH inv AS (
-              SELECT pi.id, SUM(pit.total_amount) AS total_inv
-              FROM purchase_invoices pi
-              JOIN purchase_items pit ON pit.purchase_invoice_id = pi.id
-              WHERE YEAR(pi.invoice_date)=%s AND MONTH(pi.invoice_date)=%s
-              GROUP BY pi.id
+              SELECT p.id, SUM(pit.total_amount) AS total_inv
+              FROM purchases p
+              JOIN purchase_items pit ON pit.purchase_id = p.id
+              WHERE YEAR(p.invoice_date)=%s AND MONTH(p.invoice_date)=%s
+              GROUP BY p.id
             ),
             pay AS (
               SELECT ref_id, SUM(amount) AS total_pay

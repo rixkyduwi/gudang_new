@@ -51,11 +51,6 @@
   </div>
 </div>
 <script>
-$.ajaxSetup({
-    beforeSend: function(xhr) {
-        xhr.setRequestHeader('Authorization', 'Bearer ' + "{{ session['jwt_token'] }}");
-    }
-});
 function loadTargets(){
   const sp = $('#sp').val(), y = $('#year').val();
   const qs = $.param({salesperson_id: sp||'', year: y||''});
@@ -103,7 +98,7 @@ function openCreateSalesTarget(){
       url:'/admin/sales_targets', method:'POST',
       contentType:'application/json', data: JSON.stringify(payload),
       success: function(res){ alert('✅ tersimpan'); $('#generic-modal').modal('hide'); loadTargets(); },
-      error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+      error: function(xhr){ if (data.error.includes("401")){location.href="/login"}; alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
     });
   });
 }
@@ -133,7 +128,7 @@ function openBulk(){
       url:'/admin/sales_targets/bulk', method:'POST',
       contentType:'application/json', data: JSON.stringify(payload),
       success: function(res){ alert('✅ bulk ok'); $('#generic-modal').modal('hide'); loadTargets(); },
-      error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+      error: function(xhr){if (xhr.error.includes("401")){location.href="/login"}; alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
     });
   });
 }
@@ -143,7 +138,7 @@ function delTarget(id){
   $.ajax({
     url:'/admin/sales_targets/'+id, method:'DELETE',
     success: function(res){ alert('✅ terhapus'); loadTargets(); },
-    error: function(xhr){ alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
+    error: function(xhr){if (data.error.includes("401")){location.href="/login"}; alert('❌ gagal: ' + (xhr.responseJSON?.error || xhr.statusText)); }
   });
 }
 </script>

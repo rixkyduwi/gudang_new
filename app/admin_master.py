@@ -34,6 +34,7 @@ ENTITIES = {
     "products": {
         "table": "products",
         "columns": ["code", "name", "unit", "stock_min"],   # editable cols
+        "columns_name": ["kode", "nama barang", "unit", "stock_min"],   # editable cols
         "id": "id",
         "search": ["code", "name"],
         "order_by": "name ASC, code ASC",
@@ -44,6 +45,7 @@ ENTITIES = {
     "suppliers": {
         "table": "suppliers",
         "columns": ["name", "address", "phone"],
+        "columns_name": ["nama", "alamat", "telepon"],
         "id": "id",
         "search": ["name", "phone"],
         "order_by": "name ASC"
@@ -51,6 +53,7 @@ ENTITIES = {
     "customers": {
         "table": "customers",
         "columns": ["name", "address", "npwp"],
+        "columns_name": ["nama", "alamat", "npwp"],
         "id": "id",
         "search": ["name", "npwp"],
         "order_by": "name ASC"
@@ -58,6 +61,7 @@ ENTITIES = {
     "salespersons": {
         "table": "salespersons",
         "columns": ["name", "is_active"],
+        "columns_name": ["name", "status"],
         "id": "id",
         "search": ["name"],
         "order_by": "name ASC"
@@ -109,6 +113,7 @@ def list_entity(entity):
                            entity=entity,
                            rows=rows,
                            columns=cfg["columns"],
+                           columns_name=cfg["columns_name"],
                            q=q, **pager)
 
 @admin_master_bp.route("/<entity>", methods=["POST"])

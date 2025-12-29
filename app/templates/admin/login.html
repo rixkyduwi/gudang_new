@@ -65,8 +65,7 @@
                 }),
                 success: function(response) {
                     if (response.success) {
-						sessionStorage.setItem('jwt_token', response.token);
-                        window.location.href = '/admin/dashboard';
+						window.location.href = '/admin/dashboard';
                     } else {
                         document.getElementById("msg").innerHTML = response.message;
                     }

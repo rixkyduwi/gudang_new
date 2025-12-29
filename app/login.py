@@ -44,7 +44,7 @@ app.config.update(
     JWT_COOKIE_SECURE=True,                         # True di production (HTTPS)
     JWT_COOKIE_SAMESITE="Lax",                      # atau "Strict" jika cocok
     JWT_COOKIE_CSRF_PROTECT=True,                   # aktifkan CSRF untuk cookie-JWT
-    JWT_ACCESS_TOKEN_EXPIRES=timedelta(minutes=30), # contoh
+    JWT_ACCESS_TOKEN_EXPIRES=timedelta(hours=2), # contoh
     JWT_REFRESH_TOKEN_EXPIRES=timedelta(days=7),
 )
 #

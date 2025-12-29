@@ -1,7 +1,7 @@
 {% extends "include/include.html" %}
 {% block pjax_content %}
 
-<div class="container-fluid">
+<div class="container-fluid pb-0">
   <div class="row">
     <div class="col-12">
       <div class="card">
@@ -21,7 +21,7 @@
 		  <thead>
 			<tr>
 			  <th>ID</th>
-			  {% for c in columns %}<th class="text-capitalize">{{ c.replace('_',' ') }}</th>{% endfor %}
+			  {% for c in columns_name %}<th class="text-capitalize">{{ c.replace('_',' ') }}</th>{% endfor %}
 			  <th style="width:160px">Aksi</th>
 			</tr>
 		  </thead>
@@ -192,7 +192,7 @@ function openEdit(id){
 }
 
 function doDelete(id){
-  if(!confirm('Yakin hapus?')) return;
+  if(!confirm('Yakin Hapus?')) return;
   handleAjax(`/admin/${ENTITY}`, 'DELETE', {id},
     (res)=>handleResponse(res, 'hapus', location.pathname),
     (err)=>handleResponse(err, 'hapus', location.pathname));

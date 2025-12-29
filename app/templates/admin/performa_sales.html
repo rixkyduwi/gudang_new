@@ -1,6 +1,6 @@
 {% extends 'include/include.html' %}
 {% block pjax_content %}
-<div class="page-titles">
+<div class="page-titles pb-0">
   <div class="row">
     <div class="col-lg-8 col-md-6 col-12 align-self-center">
       <nav aria-label="breadcrumb">
@@ -32,8 +32,9 @@
 
 <div class="container-fluid">
   <div class="card">
-    <div class="border-bottom title-part-padding">
-      <h4 class="mb-3">Filter</h4>
+  
+    <div class="card-body">
+      <h4 class="mb-3">Filter:</h4>
       <div class="row g-2">
         <div class="col-sm-3">
           <select class="form-select select2" id="tahun_data" name="tahun" style="width:100%">
@@ -63,17 +64,6 @@
         </div>
 
         <div class="col-sm-3">
-          <select class="form-select select2" id="sales_data" name="sales" style="width:100%">
-            <option value="">Semua Sales</option>
-            {% for s in nama_sales %}
-              <option value="{{ s.nama_sales }}" {{ 'selected' if request.args.get('sales') == s.nama_sales else '' }}>
-                {{ s.nama_sales }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-sm-3">
           <select class="form-select select2" id="lunas_tidak" name="lunas_tidak" style="width:100%">
             <option value="">Semua Status</option>
             <option value="Lunas" {{ 'selected' if request.args.get('lunas_tidak') == 'Lunas' else '' }}>Lunas</option>
@@ -84,10 +74,18 @@
         <div class="col-sm-3 mt-2">
           <button class="btn btn-info" onclick="run()">Submit</button>
         </div>
+		<div class="col-sm-3">
+          <select class="form-select select2" id="sales_data" name="sales" style="width:100%">
+            <option value="">Semua Sales</option>
+            {% for s in nama_sales %}
+              <option value="{{ s.nama_sales }}" {{ 'selected' if request.args.get('sales') == s.nama_sales else '' }}>
+                {{ s.nama_sales }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
-    </div>
 
-    <div class="card-body">
       {% for h in list_tahun %}
         {% set tahun_req = request.args.get('tahun') %}
         {% if not tahun_req or tahun_req|string == h.tahun|string %}
@@ -96,7 +94,7 @@
 
             <div class="scroll-table">
               <table id="table_{{ h.tahun }}_data" class="table w-100 table-bordered display text-nowrap">
-                <thead style="background-color:#f6f8fb;">
+                <thead class="table-light">
                   <tr>
                     <th>No</th>
                     <th>Nama Outlet</th>
@@ -118,15 +116,15 @@
                       {% set key = 'M' ~ m %}
                       <td>
                         <div class="d-flex justify-content-between w-100">
-                          <span>Rp</span>
-                          <span>{{ (r[key] or 0) | format_rupiah }}</span>
+                          <span></span>
+                          <span>{{ (r[key] or 0) | format_performa_sales }}</span>
                         </div>
                       </td>
                     {% endfor %}
                     <td>
                       <div class="d-flex justify-content-between w-100">
-                        <span>Rp</span>
-                        <span>{{ (r.total_sales or 0) | format_rupiah }}</span>
+                        <span></span>
+                        <span>{{ (r.total_sales or 0) | format_performa_sales }}</span>
                       </div>
                     </td>
                   </tr>
@@ -142,15 +140,15 @@
                     {% for m in months %}
                       <th>
                         <div class="d-flex justify-content-between w-100">
-                          <span>Rp</span>
-                          <span>{{ (ft['M' ~ m] or 0) | format_rupiah }}</span>
+                          <span></span>
+                          <span>{{ (ft['M' ~ m] or 0) | format_performa_sales }}</span>
                         </div>
                       </th>
                     {% endfor %}
                     <th>
                       <div class="d-flex justify-content-between w-100">
-                        <span>Rp</span>
-                        <span>{{ (ft.get('total_sales') or 0) | format_rupiah }}</span>
+                        <span></span>
+                        <span>{{ (ft.get('total_sales') or 0) | format_performa_sales }}</span>
                       </div>
                     </th>
                   </tr>

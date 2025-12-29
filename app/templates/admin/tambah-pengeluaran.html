@@ -1,6 +1,6 @@
 {% extends 'include/include.html' %}
 {% block pjax_content %}
-<div class="page-titles">
+<div class="page-titles pb-0">
   <div class="row">
     <div class="col-lg-8 col-md-6 col-12 align-self-center">
       <nav aria-label="breadcrumb">
@@ -25,8 +25,7 @@
       <div class="card">
         <div class="card-body">
 
-          <div class="mt-3">
-            <h4>Tambah Data</h4>
+          <div >
 
             <!-- Tanggal -->
             <div class="form-group">
@@ -123,8 +122,7 @@
                           data-qty="{{ b.unit }}"
                           data-stok="{{ b.qty_on_hand }}"
                           data-limit="{{ b.stok_min }}"
-                        >{{b.name}}
-                        </option>
+                        >{{b.name}}</option>
                       {% endfor %}
                     </select>
                     <small class="text-muted d-block">
@@ -165,11 +163,6 @@
                       <input type="text" class="hargatotal form-control" placeholder="0" disabled>
                       <input type="text" class="hargatotal-koma form-control" maxlength="3" placeholder=",00" disabled>
                     </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label>CN</label>
-                    <input type="number" class="cn form-control" placeholder="0">
                   </div>
 
                   <div class="form-group">
@@ -289,10 +282,11 @@
     const stok = el?.dataset?.stok || '-';
     const limit = el?.dataset?.limit || '-';
     const kode = el?.dataset?.kode || '';
+    const qty = el?.dataset?.qty || '';
     const $tpl = $(`
       <div>
         <div>${opt.text} <span class="text-muted">(${kode})</span></div>
-        <div class="text-muted small">Stok: ${stok} • Limit: ${limit}</div>
+        <div class="text-muted small">Stok: ${stok} ${qty} • Limit: ${limit}</div>
       </div>
     `);
     return $tpl;
@@ -507,14 +501,14 @@
 
       payload.items.push({
         id_barang: id_barang,
+		unit_label: $row.find(".sel-barang")?.dataset?.qty || '',
         jmlpermintaan: $row.find(".jmlpermintaan").val()||"0",
         harga_satuan: hs,
         diskon: $row.find(".diskon").val()||"0",
         harga_total: ht,
-        cn: $row.find(".cn").val()||"0",
         hpp: hp,
         totalhpp: th,
-        batch: $row.find(".batch").val()||"",
+        batch_no: $row.find(".batch").val()||"",
         ed: $row.find(".ed").val()||"",
         profit: pf
       });
@@ -526,17 +520,13 @@
       url: '/admin/pengeluaran',
       method: 'POST',
       data: JSON.stringify(payload),
-	  credentials: 'include',
-	  headers:{
-      'contentType': 'application/json',
-	  },
-	  success: function(){
-        alert("Tambah Data Pengeluaran Sukses");
-        location.href = "/admin/pengeluaran";
+	  contentType: 'application/json',
+	  success: function(data){
+		handleResponse(data,'Tambah Data Pengeluaran',"/admin/pengeluaran")
       },
       error: function(xhr){
-        const msg = xhr.responseJSON?.error || xhr.statusText || 'Unknown error';
-        alert("Gagal simpan: " + msg);
+		handleResponse(xhr,'Tambah Data Pengeluaran',"/admin/pengeluaran")
+		
       }
     });
   });
