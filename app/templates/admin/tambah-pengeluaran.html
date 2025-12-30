@@ -207,20 +207,14 @@
 
                   <div class="form-group">
                     <label>Batch</label>
-                    <div class="input-group">
-                    <input type="text" id="tglfaktur" class="complex-colorpicker batch form-control"
-                        placeholder="mm/yyyy">
-                    <span class="input-group-text">
-                      <i data-feather="calendar" class="feather-sm"></i>
-                    </span>
-                    </div>
+                    <input type="text" id="batch" class="batch form-control">
                   </div>
 
                   <div class="form-group">
                     <label>Expired Date (ED)</label>
                     <div class="input-group">
-                    <input type="text" id="tglfaktur" class="complex-colorpicker ed form-control"
-                       placeholder="dd/mm/yyyy">
+                    <input type="text" id="ed" class="complex-colorpicker2 ed form-control"
+                       placeholder="mm/yyyy">
                     <span class="input-group-text">
                       <i data-feather="calendar" class="feather-sm"></i>
                     </span>
@@ -270,10 +264,19 @@
     format: "dd/mm/yyyy",
     language: "id"
   });
-
+  $(".complex-colorpicker2").datepicker({
+    autoclose: true,
+    todayHighlight: true,
+    format: "mm/yyyy",
+    language: "id"
+  });
   function convertToISO(ddmmyyyy){
     const [d,m,y] = ddmmyyyy.split('/');
     return `${y}-${m}-${d}`;
+  }
+  function convertmmyyyy(ddmmyyyy){
+    const [d,m,y] = ddmmyyyy.split('/');
+    return `${m}-${d}`;
   }
 
   // Recalc jatuh tempo + no faktur saat tanggal diubah
@@ -539,8 +542,8 @@
         harga_total: ht,
         hpp: hp,
         totalhpp: th,
-        batch_no: convertToISO($row.find(".batch").val()||""),
-        ed: convertToISO($row.find(".ed").val()||""),
+        batch_no: $row.find(".batch").val()||"",
+        ed: convertmmyyyy($row.find(".ed").val()||""),
         profit: pf
       });
     });

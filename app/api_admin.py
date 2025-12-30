@@ -1,8 +1,10 @@
 # Import library bawaan Python
+import decimal
 import io
 import os
 import textwrap
 import locale
+from urllib import response
 import uuid
 import calendar
 import time
@@ -1030,7 +1032,7 @@ def tambah_pengeluaran_action():
     if not sp: return jsonify({"error": "Salesperson not found"}), 404
     sp_id = sp[0]
     # resolve sender
-    sender = one("SELECT id FROM sender WHERE name=%s", (sender_name,))
+    sender = one("SELECT id FROM senders WHERE name=%s", (sender_name,))
     if not sp: return jsonify({"error": "Sender not found"}), 404
     sender_id = sender[0]
     cust_id = None
@@ -1419,8 +1421,8 @@ def hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total
 
 def export_pdf(buffer, pajak):
     id = request.args.get("id")
-    g.con.execute("""SELECT invoice_date, due_date, invoice_no, note
-    FROM purchases WHERE purcases.id = %s """, (id,))
+    g.con.execute("""SELECT invoice_date, due_date, invoice_no, 
+    FROM purchases WHERE purchases.id = %s """, (id,))
     barang_keluar = g.con.fetchone()
     data_db = g.con.fetchall()
     data = []
@@ -1530,7 +1532,13 @@ def print_pdf():
     print(f"PDF size: {len(buffer.getvalue())} bytes")  # Debug ukuran file
     def generate():
         yield buffer.read()
-    return send_file(buffer,as_attachment=True,download_name="faktur.pdf",mimetype='application/pdf')
+    response = send_file(
+    buffer,
+    mimetype='application/pdf',
+    as_attachment=False,
+    )
+    response.headers['Content-Disposition'] = 'inline; filename=faktur.pdf'
+    return response
 
 @app.route('/admin/pengeluaran/print_pajak', methods=['GET'])
 @jwt_required()
@@ -1541,7 +1549,13 @@ def print_pdf_pajak():
     print(f"PDF size: {len(buffer.getvalue())} bytes")  # Debug ukuran file
     def generate():
         yield buffer.read()
-    return send_file(buffer,as_attachment=True,download_name="faktur+pajak.pdf",mimetype='application/pdf')
+    response = send_file(
+    buffer,
+    mimetype='application/pdf',
+    as_attachment=False
+    )
+    response.headers['Content-Disposition'] = 'inline; filename=faktur+pajak.pdf'
+    return response
 @app.route('/admin/pengeluaran/hapus/id', methods=['DELETE'])
 @jwt_required()
 def hapus_pengeluaran():
@@ -2628,6 +2642,7 @@ def latest_pengeluaran_excell():
                 inv.due_date,
                 inv.invoice_no,
                 sp.name        AS nama_sales,
+                s.name         AS nama_pengirim,
                 c.name         AS nama_outlet,
                 p.name         AS nama_barang,
                 p.unit         AS unit_produk,
@@ -2640,6 +2655,7 @@ def latest_pengeluaran_excell():
             JOIN sales_items si       ON si.sales_invoice_id = inv.id
             JOIN products p           ON p.id = si.product_id
             JOIN salespersons sp      ON sp.id = inv.salesperson_id
+            JOIN senders s      ON s.id = inv.sender_id
             JOIN customers c          ON c.id = inv.customer_id
             LEFT JOIN (
                 SELECT sales_invoice_id, SUM(total_amount) AS total_inv
@@ -2934,6 +2950,10 @@ def report_laporan():
 
     c.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True,
-                     download_name="REPORT_LAPORAN.pdf",
-                     mimetype="application/pdf")
+    response = send_file(
+    buffer,
+    mimetype='application/pdf',
+    as_attachment=False
+    )
+    response.headers['Content-Disposition'] = 'inline; filename=REPORT_LAPORAN.pdf'
+    return response
