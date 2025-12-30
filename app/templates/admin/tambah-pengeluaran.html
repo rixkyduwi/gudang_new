@@ -107,9 +107,9 @@
 
             <!-- Sender-->
             <div class="form-group">
-              <label for="namapengirim">Sender</label>
+              <label for="namapengirim">Pengirim</label>
               <select id="namapengirim" class="form-select" style="width:100%">
-                <option value="">Pilih Pengirim</option>
+                <option value="">Tidak ada Pengirim</option>
                 {% for s in data_pengirim %}
                   <option value="{{ s.id or s.name }}"
                           data-name="{{ s.name }}">{{ s.name }}</option>

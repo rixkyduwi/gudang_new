@@ -310,17 +310,7 @@ function formatToMMDDYYY(datestr){
 
     <!-- This Page JS -->
 	<script>
-		$(document).ready(function(){ 
-			$("#table__data").DataTable({
-                "paging": false,          // Menonaktifkan pagination
-                "info": false,           // Menonaktifkan info jumlah entri
-                "searching": false,       // Mengaktifkan fitur pencarian
-                "lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
-                "scrollX": true,  // Mengaktifkan scroll horizontal
-                "scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
-                "scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
-            })
-		})
+		
         function run() {
         const tahun = document.getElementById('tahun_data').value;
         const bulan = document.getElementById('bulan_data').value;

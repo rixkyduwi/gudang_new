@@ -48,6 +48,15 @@
                                     </span>
                                 </div>
                             </div>
+							<!-- Metode Pembayaran header (cashtempo) -->
+							<div class="form-group">
+							  <label for="pembayaran">Metode Pembayaran</label>
+							  <select id="pembayaran" class="form-select">
+								<option value="">Pilih</option>
+								<option value="Cash">Cash</option>
+								<option value="Tempo">Tempo</option>
+							  </select>
+							</div>
                             <div class="form-group">
                                 <label for="supplier">Principle / Supplier</label>
                                 <select class=" form-control select2" style="width: 100%; height: 36px" id="supplier" name="supplier">
@@ -290,6 +299,7 @@
                 nofaktur: $("#nofaktur").val(),
                 id_supplier: $("#supplier").val(),
                 jthtempo: convertToISO($("#jthtempo").val()) || "",
+                pembayaran: $("#pembayaran").val(),
                 items: [] // Array untuk menyimpan data dari repeater
             };
             // Iterasi melalui elemen repeater untuk mengumpulkan data

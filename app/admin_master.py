@@ -33,6 +33,7 @@ def paginate(total, page, per_page):
 ENTITIES = {
     "products": {
         "table": "products",
+        "header_name": "barang",
         "columns": ["code", "name", "unit", "stock_min"],   # editable cols
         "columns_name": ["kode", "nama barang", "unit", "stock_min"],   # editable cols
         "id": "id",
@@ -44,6 +45,7 @@ ENTITIES = {
     },
     "suppliers": {
         "table": "suppliers",
+        "header_name": "suppliers",
         "columns": ["name", "address", "phone"],
         "columns_name": ["nama", "alamat", "telepon"],
         "id": "id",
@@ -52,6 +54,7 @@ ENTITIES = {
     },
     "customers": {
         "table": "customers",
+        "header_name": "outlet",
         "columns": ["name", "address", "npwp"],
         "columns_name": ["nama", "alamat", "npwp"],
         "id": "id",
@@ -60,6 +63,7 @@ ENTITIES = {
     },
     "salespersons": {
         "table": "salespersons",
+        "header_name": "sales",
         "columns": ["name", "is_active"],
         "columns_name": ["name", "status"],
         "id": "id",
@@ -68,6 +72,7 @@ ENTITIES = {
     },
     "senders": {
         "table": "senders",
+        "header_name": "pengirim",
         "columns": ["name", "is_active"],
         "columns_name": ["name", "status"],
         "id": "id",
@@ -119,6 +124,7 @@ def list_entity(entity):
     pager = paginate(total, page, per_page)
     return render_pjax("admin/master_list.html",
                            entity=entity,
+                           header_name=cfg["header_name"],
                            rows=rows,
                            columns=cfg["columns"],
                            columns_name=cfg["columns_name"],
