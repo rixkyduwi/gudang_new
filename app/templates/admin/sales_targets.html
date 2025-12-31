@@ -30,8 +30,8 @@
 </div>
 </div>
 <div class="card-body">
-<table class="table table-sm table-striped" id="tbl">
-  <thead><tr><th>Salesperson</th><th>Month</th><th>Year</th><th class="text-end">Target</th><th style="width:120px">Aksi</th></tr></thead>
+<table class="table table-sm " id="tbl">
+  <thead class="table-light"><tr><th>Salesperson</th><th>Month</th><th>Year</th><th class="text-end">Target</th><th style="width:120px">Aksi</th></tr></thead>
   <tbody></tbody>
 </table>
 
@@ -56,7 +56,7 @@ function loadTargets(){
   const qs = $.param({salesperson_id: sp||'', year: y||''});
   $.getJSON('/admin/sales_targets/data?'+qs, function(rows){
     const html = rows.map(r=>`
-      <tr>
+      <tr class="data-utama">
         <td>${r.salesperson_name}</td>
         <td>${r.month}</td>
         <td>${r.year}</td>

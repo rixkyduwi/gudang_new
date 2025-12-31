@@ -144,9 +144,13 @@
       <h1 class="mb-0 fw-bold">Data Administrasi</h1>
     </div>
     <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
-      <!-- <a href="javascript:void(0)" class="btn btn-info d-flex align-items-center ms-2" onclick="tambahBaris3()">
-        <i class="ri-add-line me-1"></i> Tambah Data
-      </a> -->
+      <a href="{{ url_for('report_administrasi',
+      tahun=request.args.get('tahun'),
+      bulan=request.args.get('bulan'),
+      sales=request.args.get('tanggal'),
+      nama_principle=request.args.get('nama_principle')) }}"
+      class="btn btn-info d-flex align-items-center ms-2">
+      <i class="ri-download-2-line me-2"></i>Report Administrasi</a>
     </div>
   </div>
 </div>

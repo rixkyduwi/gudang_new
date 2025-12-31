@@ -26,7 +26,14 @@
       <h1 class="mb-0 fw-bold">Data Keuangan</h1>
     </div>
     <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
-      
+      <a href="{{ url_for('report_keuangan',
+      tahun=request.args.get('tahun'),
+      bulan=request.args.get('bulan'),
+      sales=request.args.get('tanggal'),
+      nama_outlet=request.args.get('nama_outlet'),
+      nama_sales=request.args.get('nama_sales')) }}"
+class="btn btn-info d-flex align-items-center ms-2">
+<i class="ri-download-2-line me-2"></i>Report Keuangan</a>
     </div>
   </div>
 </div>

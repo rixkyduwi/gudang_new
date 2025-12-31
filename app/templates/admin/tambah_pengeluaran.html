@@ -108,7 +108,7 @@
             <!-- Sender-->
             <div class="form-group">
               <label for="namapengirim">Pengirim</label>
-              <select id="namapengirim" class="form-select" style="width:100%">
+              <select id="namapengirim" class="select2 form-select" style="width:100%">
                 <option value="">Tidak ada Pengirim</option>
                 {% for s in data_pengirim %}
                   <option value="{{ s.id or s.name }}"
@@ -341,7 +341,7 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
 
   // Inisialisasi Select2 global
   $('#namasales').select2({ width: '100%', placeholder: 'Pilih sales…' });
-  $('#namapengirim').select2({ width: '100%', placeholder: 'Pilih sales…' });
+  $('#namapengirim').select2({ width: '100%', placeholder: 'Pilih pengirim…' });
   $('#namaoutlet').select2({
     width:'100%',
     placeholder:'Pilih outlet…',
@@ -385,11 +385,6 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
       console.error('Gagal load outlet:', xhr.responseText);
       alert('Gagal memuat outlet untuk sales terpilih.');
     });
-  });
-  $("#namapengirim").on("change", function(){
-    const sId = $(this).val();
-    const sName = $('#namapengirim option:selected').data('name') || '';
-    $("#idsender").val(sId || '');
   });
   // Outlet terpilih → set id & alamat
   $("#namaoutlet").on("change", function(){

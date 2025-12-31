@@ -38,8 +38,8 @@
           </div>
 
           <h5 class="mt-4">Customers yang Terhubung</h5>
-          <table class="table table-sm table-striped" id="tbl">
-            <thead><tr>
+          <table class="table table-sm " id="tbl">
+            <thead class="table-light"><tr>
 			<th>Nama </th>
 			<th>Alamat </th>
 			<th style="width:120px">Aksi</th>
@@ -62,7 +62,7 @@ function loadList(){
   }
   $.getJSON(`/admin/salespersons/${sp}/customers`, function(rows){
     const html = (rows || []).map(r=>`
-        <tr>
+        <tr class="data-utama">
             <td>${r.name}</td>
             <td>${r.address}</td>
             <td><button class="btn btn-sm btn-danger" onclick="unassign(${sp}, ${r.customer_id})">Lepaskan</button></td>

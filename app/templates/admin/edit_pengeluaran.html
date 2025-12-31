@@ -28,15 +28,15 @@
           <div>
             <div class="form-group">
               <label for="tglfaktur">Tanggal Faktur </label> 
-              <div class="input-group"> <input type="text" id="tglfaktur"  class="complex-colorpicker tglfaktur form-control" value="{{ barang_keluar.2|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+              <div class="input-group"> <input type="text" id="tglfaktur"  class="complex-colorpicker tglfaktur form-control" value="{{ barang_keluar.invoice_date|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
             </div>
             <div class="form-group">
               <label for="jthtempo">Jatuh Tempo</label>
-              <div class="input-group"> <input  disabled  type="text" id="jthtempo"  class="complex-colorpicker jthtempo form-control" value="{{ barang_keluar.3|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+              <div class="input-group"> <input  disabled  type="text" id="jthtempo"  class="complex-colorpicker jthtempo form-control" value="{{ barang_keluar.due_date|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
             </div>
             <div class="form-group">
               <label for="nofaktur">Nomor Faktur</label>
-              <input disabled type="number" id="nofaktur" value="{{ barang_keluar.4|default('') }}" class="form-control">
+              <input disabled type="number" id="nofaktur" value="{{ barang_keluar.invoice_no|default('') }}" class="form-control">
             </div>
             <div class="form-group">
               <label for="namasales">Nama Sales</label>
@@ -44,7 +44,7 @@
               
                 <option value="">Pilih Sales</option>
                 {% for i in nama_sales %}
-                <option value="{{ i.nama_sales }}" {% if i.nama_sales == barang_keluar.7 %}selected{% endif %} >{{ i.nama_sales }}</option>
+                <option value="{{ i.nama_sales }}" {% if i.nama_sales == barang_keluar.nama_sales %}selected{% endif %} >{{ i.nama_sales }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -53,27 +53,27 @@
               <select id="pembayaran" class="pembayaran form-select">
                 <option value="">Pilih Pembayaran</option>
                 
-                <option value="Cash"{% if barang_keluar.5 == "Cash" %} selected{% endif %}>Cash</option>
-                <option value="Tempo"{% if barang_keluar.5 == "Tempo" %} selected{% endif %}>Tempo</option>
+                <option value="Cash"{% if barang_keluar.payment_term == "Cash" %} selected{% endif %}>Cash</option>
+                <option value="Tempo"{% if barang_keluar.payment_term == "Tempo" %} selected{% endif %}>Tempo</option>
               </select>
             </div>
             <div class="form-group">
               <label for="namaoutlet">Nama Outlet</label>
               <select class="form-control select2" style="width: 100%; height: 36px" id="namaoutlet">
                 <option value="">Pilih Outlet</option>
-                <option value="{{barang_keluar.8 }}" selected >{{barang_keluar.8 }}</option>
+                <option value="{{barang_keluar.nama_outlet }}" selected >{{barang_keluar.nama_outlet }}</option>
               </select>
             </div>
             <div class="form-group">
               <label for="alamatpabrik">Alamat Outlet</label>
-              <input disabled type="text" id="alamatoutlet" class="form-control" value="{{ barang_keluar.9|default('') }}">
+              <input disabled type="text" id="alamatoutlet" class="form-control" value="{{ barang_keluar.alamat_outlet|default('') }}">
             </div>
             <div class="form-group">
               <label for="pajak">Pajak</label>
               <select id="pajak" class="pajak form-select">
                 <option value="">Pilih pajak</option>
-                <option value="Iya" {% if barang_keluar.6 == "Iya"  %}selected{% endif %}>Iya</option>
-                <option value="Tidak" {% if barang_keluar.6 == "Tidak" %}selected{% endif %} >Tidak</option>
+                <option value="Iya" {% if barang_keluar.tax_flag == "Iya"  %}selected{% endif %}>Iya</option>
+                <option value="Tidak" {% if barang_keluar.tax_flag == "Tidak" %}selected{% endif %} >Tidak</option>
               </select>
             </div>
             <!-- Sender-->
@@ -83,35 +83,39 @@
                 <option value="">Tidak ada Pengirim</option>
                 {% for s in data_pengirim %}
                   <option value="{{ s.id or s.name }}"
-                          data-name="{{ s.name }}" {% if s.name == barang_keluar.7 %}selected{% endif %} >{{ s.name }}</option>
+                          data-name="{{ s.name }}" {% if s.name == barang_keluar.nama_pengirim %}selected{% endif %} >{{ s.name }}</option>
                 {% endfor %}
               </select>
               <input type="hidden" id="idsender">  <!-- simpan id sales terpilih -->
             </div>
             <div class="email-repeater mb-3">
               <div data-repeater-list="repeater-group">
-                {% for detail in detail_barang_keluar %}
+                {% for detail in items %}
                 <div data-repeater-item class="row mb-3 bg-light border-top mt-4">
                   <div class="form-group">
                     <label for="nmbarang">Nama Barang</label>
                     <select  class="form-control select2 nmbarang" id="nmbarang" style="width: 100%; height: 36px">
                       <option value="">Pilih Barang</option>
-                      {% for i in data_barang %}
-                      <option value="{{i.nama_barang}}"{% if i.nama_barang == detail.14 %}selected{% endif %}>{{i.nama_barang}} | Stok: {{i.sisa_gudang}} | Limit: {{i.stoklimit}}</option>
+                      {% for b in data_barang %}
+                        <option
+                          value="{{ b.id }}"
+                          data-kode="{{ b.code }}"
+                          data-qty="{{ b.unit }}"
+                          data-stok="{{ b.qty_on_hand }}"
+                          data-limit="{{ b.stok_min }}"
+                          {% if b.name == detail.name %}selected{%endif%}
+                        >{{b.name}}</option>
                       {% endfor %}
                     </select>
                   </div>
-                  <input disabled type="hidden" id="idsales" class="idsales form-control" value="{{ barang_keluar.1 }}">
-                  <input disabled type="hidden" id="idbarang" class="idbarang form-control" value="{{ detail.2 }}">
-                  <div class="form-group">
-                    <label for="qty">Quantity</label>
-                    <input disabled type="text" id="qty" class="qty form-control"  value="{{ detail.16 }}">
-                  </div>
+                  <input disabled type="hidden" id="idsales" class="idsales form-control" value="{{ barang_keluar.salesperson_id }}">
+                  <input disabled type="hidden" id="idbarang" class="idbarang form-control" value="{{ detail.product_id }}">
+                  
                   <div class="form-group row mt-2">
                     <label for="jmlpermintaan" class="col-sm-2 col-form-label">Jumlah Permintaan</label>
                     <div class="col-sm-10">
                       <div class="input-group">
-                        <input type="number"  placeholder="0" min="0" id="jmlpermintaan" class="jmlpermintaan form-control" value="{{ detail.3 }}">
+                        <input type="number"  placeholder="0" min="0" id="jmlpermintaan" class="jmlpermintaan form-control" value="{{ detail.qty }}">
                       </div>
                     </div>
                   </div>
@@ -122,7 +126,7 @@
                         <div class="input-group-prepend">
                           <span class="input-group-text">Rp</span>
                         </div>
-                        <input type="text" oninput="formatAngkaInput(this)" placeholder="0" id="hargasatuan" class="hargasatuan form-control" value="{{ detail.4 }}">
+                        <input type="text" oninput="formatAngkaInput(this)" placeholder="0" id="hargasatuan" class="hargasatuan form-control" value="{{ detail.unit_price }}">
                         <div class="input-group-append">
                          <input type="text" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" class="hargasatuan-koma form-control" >
                             </div>
@@ -133,7 +137,7 @@
                     <label for="diskon" class="col-sm-2 col-form-label">Diskon</label>
                     <div class="col-sm-10">
                       <div class="input-group">
-                        <input type="number" oninput="formatDiskon(this)" placeholder="0" id="diskon"  min="0" max="100" class="diskon form-control" value="{{ detail.5 }}">
+                        <input type="number" oninput="formatDiskon(this)" placeholder="0" id="diskon"  min="0" max="100" class="diskon form-control" value="{{ detail.discount_percent }}">
                         <div class="input-group-append">
                           <span class="input-group-text">%</span>
                         </div>
@@ -147,18 +151,10 @@
                         <div class="input-group-prepend">
                           <span class="input-group-text">Rp</span>
                         </div>
-                        <input disabled type="text" placeholder="0" id="hargatotal" class="hargatotal form-control" value="{{ detail.6 }}">
+                        <input disabled type="text" placeholder="0" id="hargatotal" class="hargatotal form-control" value="{{ detail.total_amount }}">
                         <div class="input-group-append">
                           <input type="text" disabled maxlength="3" placeholder=",00" class="hargatotal-koma form-control" >
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group row mt-2">
-                    <label for="cn" class="col-sm-2 col-form-label">Cn</label>
-                    <div class="col-sm-10">
-                      <div class="input-group">
-                        <input type="number" placeholder="0" id="cn" class="cn form-control" value="{{ detail.7 }}">
                       </div>
                     </div>
                   </div>

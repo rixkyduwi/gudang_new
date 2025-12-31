@@ -5,7 +5,7 @@
   <div class="row">
     <div class="col-12">
       <div class="card">
-	   <div class="card-header bg-seccondary">
+	   <div class="card-header responsive-header bg-seccondary">
 		<div class="d-flex justify-content-between align-items-center mb-3">
 		  <h4 class="mb-0 text-capitalize">{{ header_name }}</h4>
 		  <div>
@@ -20,8 +20,9 @@
 		</div>
 	   </div>
 	   <div class="card-body">
-		<table class="table table-striped table-sm">
-		  <thead>
+      <div class="table-responsive">
+		<table class="table table-sm">
+		  <thead class="table-light">
 			<tr>
 			  <th>ID</th>
 			  {% for c in columns_name %}<th class="text-capitalize">{{ c.replace('_',' ') }}</th>{% endfor %}
@@ -30,8 +31,8 @@
 		  </thead>
 		  <tbody>
 			{% for r in rows %}
-			<tr>
-			  <td>{{ r.id }}</td>
+			<tr class="data-utama">
+			  <td>{{ loop.index  }}</td>
 			  {% for c in columns %}<td>{{ r[c] }}</td>{% endfor %}
 			  <td>
 				<button class="btn btn-sm btn-warning" onclick="openEdit('{{ r.id }}')">Edit</button>
@@ -41,8 +42,8 @@
 			{% endfor %}
 		  </tbody>
 		</table>
-
-		<nav aria-label="pg">
+  </div>
+		<!-- <nav aria-label="pg">
 		  <ul class="pagination">
 			{% if has_prev %}<li class="page-item"><a class="page-link" href="?page={{ page-1 }}&per_page={{ per_page }}&q={{ q }}">Prev</a></li>{% endif %}
 			{% for p in page_range %}
@@ -52,7 +53,7 @@
 			{% endfor %}
 			{% if has_next %}<li class="page-item"><a class="page-link" href="?page={{ page+1 }}&per_page={{ per_page }}&q={{ q }}">Next</a></li>{% endif %}
 		  </ul>
-		</nav>
+		</nav> -->
 
 		<!-- Modal -->
 		<div class="modal fade" id="generic-modal" tabindex="-1">

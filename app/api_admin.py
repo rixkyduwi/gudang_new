@@ -341,7 +341,7 @@ def dashboard():
         FROM sales_items si
         JOIN sales_invoices inv ON inv.id = si.sales_invoice_id
         WHERE inv.invoice_date = %s
-    """, (today,))
+    """, (time_zone_wib().date(),))
     sales_harian = g.con.fetchone()[0] or 0
     print(sales_harian)
     # -------------------------
@@ -887,7 +887,7 @@ def tambah_pengeluaran():
     data_sales = fetch("SELECT id, name FROM salespersons WHERE is_active=1 ORDER BY name")
     data_pengirim = fetch("SELECT id, name FROM senders WHERE is_active=1 ORDER BY name")
     data_customers = fetch("SELECT id, name, address FROM customers ORDER BY name")
-
+    print(data_pengirim)
     # tanggal & jth tempo default
     today = time_zone_wib().date()
     jth_tempo = (today + timedelta(days=30)).strftime("%Y-%m-%d")
@@ -1136,34 +1136,51 @@ def tambah_pengeluaran_action():
 
 @app.route('/admin/pengeluaran/<int:id>', methods=['GET'])
 @jwt_required()
-def pengeluaran_detail(id):
+def penjualan_detail(id):
+    # 1. Ambil Header Penjualan (Sales Invoice)
+    # Menghubungkan sales_invoices dengan customers (asumsi ada tabel customers)
     hdr = fetch("""
-        SELECT p.id, p.supplier_id,  p.invoice_date, p.invoice_no,p.due_date,p.payment_term,
-                s.name AS supplier_name,
-                s.address AS supplier_address,
-                s.phone AS supplier_phone,
-               p.status
-        FROM purchases p
-        JOIN suppliers s ON s.id = p.supplier_id
-        WHERE p.id=%s
+        SELECT 
+            si.id, si.invoice_no, si.invoice_date, si.due_date, 
+            si.payment_term, si.status, si.tax_flag, si.tax_rate,
+            c.name AS nama_outlet,
+            sp.name AS nama_sales,
+            s.name AS nama_pengirim,
+            c.address AS alamat_outlet
+        FROM sales_invoices si
+        LEFT JOIN customers c ON c.id = si.customer_id
+        LEFT JOIN salespersons sp ON sp.id = si.salesperson_id
+        LEFT JOIN senders s ON s.id = si.sender_id
+        WHERE si.id = %s
     """, (id,))
+
     if not hdr:
-        return "Not found", 404
+        return "Invoice Penjualan tidak ditemukan", 404
+
+    # 2. Ambil Item Penjualan
     items = fetch("""
-        SELECT pi.id, pi.product_id, pr.code, pr.name, pr.unit,
-               pi.qty, pi.unit_price, pi.total_amount,
-               pi.unit_label, pi.uom_factor_to_base, pi.qty_uom, pi.qty_base, pi.unit_price_uom, pi.unit_price_base
-        FROM purchase_items pi
-        JOIN products pr ON pr.id = pi.product_id
-        WHERE pi.purchase_id=%s
-        ORDER BY pi.id
+        SELECT 
+            si.id, si.product_id, p.code, p.name, p.unit,
+            si.qty, si.unit_price, si.total_amount, si.discount_percent,
+            si.unit_label, si.qty_uom, si.unit_price_uom
+        FROM sales_items si
+        JOIN products p ON p.id = si.product_id
+        WHERE si.sales_invoice_id = %s
+        ORDER BY si.id
     """, (id,))
-    data_supplier = fetch("SELECT id, name FROM suppliers ORDER BY name")
-    data_barang   = fetch("SELECT id, code, name, unit FROM products WHERE is_active=1 ORDER BY name")
+
+    # 3. Data Pendukung untuk Dropdown (Edit Mode)
+    data_customer = fetch("SELECT id, name FROM customers ORDER BY name")
+    data_sales = fetch("SELECT id, name FROM salespersons ORDER BY name")
+    data_barang = fetch("SELECT id, code, name, unit, stock_min FROM products WHERE is_active=1 ORDER BY name")
+    
     return render_pjax("admin/edit_pengeluaran.html",
-                           purchase=hdr[0], items=items,
-                           data_supplier=data_supplier, data_barang=data_barang,
-                           tanggal=time_zone_wib().date())
+                        barang_keluar=hdr[0], 
+                        items=items,
+                        data_outlet=data_customer, 
+                        data_barang=data_barang,
+                        data_sales =data_sales,
+                        tanggal=time_zone_wib().date())
 @app.route('/admin/pengeluaran/<int:id>', methods=['PUT'])
 @jwt_required()
 def pengeluaran_edit(id):
@@ -1387,7 +1404,7 @@ def awal(pdf, width, height, barang_keluar, ada_diskon, ada_batch, ada_ed, cash_
     return y, x_margin, width, header_positions
 
 
-def hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total_pages=1, ada_diskon=False):
+def hitung_total(pengirim, pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total_pages=1, ada_diskon=False):
     pdf.line(x_margin, y, width - x_margin, y)
     y -= 0.4 * cm
 
@@ -1430,6 +1447,8 @@ def hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total
             pdf.drawString(x_margin, y3 - 0.5 * cm, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3 - 0.5 * cm, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, "Expedisi")
+            print(pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
 
         else:
             pdf.setFont("Helvetica-Bold", 10)
@@ -1454,6 +1473,8 @@ def hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total
             pdf.drawString(x_margin, y3, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3, "Expedisi")
+            print(pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
 
     # Bukan halaman terakhir: cuma footer tanda tangan
     else:
@@ -1463,12 +1484,16 @@ def hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total
             pdf.drawString(x_margin, y3 - 0.5 * cm, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3 - 0.5 * cm, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, "Expedisi")
+            print(pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
         else:
             pdf.setFont("Helvetica-Bold", 10)
             y3 = y - 0.5 * cm
             pdf.drawString(x_margin, y3, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3, "Expedisi")
+            print(pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
 
 
 def export_pdf(buffer, pajak):
@@ -1493,7 +1518,7 @@ def export_pdf(buffer, pajak):
             si.tax_flag,
             si.status,
             sp.name AS nama_sales,
-            COALESCE(s.name,'-') AS nama_pengirim,
+            COALESCE(s.name,'') AS nama_pengirim,
             COALESCE(c.name,'-') AS nama_customer,
             COALESCE(c.npwp,'-') AS npwp_customer,
             COALESCE(c.address,'-') AS alamat_customer,
@@ -1532,7 +1557,7 @@ def export_pdf(buffer, pajak):
         FROM sales_items it
         JOIN products p ON p.id = it.product_id
         WHERE it.sales_invoice_id = %s
-        ORDER BY it.id
+        ORDER BY p.name DESC
     """, (invoice_id,))
 
     # Build data tabel (list of dict) + flag kolom
@@ -1583,6 +1608,7 @@ def export_pdf(buffer, pajak):
 
     # PDF setup
     pdf = canvas.Canvas(buffer, pagesize=(21.6 * cm, 14.5 * cm))
+    pdf.setTitle("Sistem Gudang - Print Pdf")
     width, height = (21.6 * cm, 14.5 * cm)
 
     cash_tempo = header.get("payment_term") or "-"
@@ -1655,7 +1681,8 @@ def export_pdf(buffer, pajak):
         y -= 0.5 * cm
 
     # Footer terakhir
-    hitung_total(pdf, y, x_margin, width, running_total, pajak, page_num, total_pages, ada_diskon)
+    print(header.get("nama_pengirim"))
+    hitung_total(header.get("nama_pengirim"), pdf, y, x_margin, width, running_total, pajak, page_num, total_pages, ada_diskon)
     pdf.save()
 
 @app.route('/admin/pengeluaran/print', methods=['GET'])
@@ -1672,7 +1699,7 @@ def print_pdf():
     mimetype='application/pdf',
     as_attachment=False,
     )
-    response.headers['Content-Disposition'] = 'inline; filename=faktur.pdf'
+    response.headers['Content-Disposition'] = 'inline; filename="faktur.pdf"'
     return response
 
 @app.route('/admin/pengeluaran/print_pajak', methods=['GET'])
@@ -1689,7 +1716,7 @@ def print_pdf_pajak():
     mimetype='application/pdf',
     as_attachment=False
     )
-    response.headers['Content-Disposition'] = 'inline; filename=faktur+pajak.pdf'
+    response.headers['Content-Disposition'] = 'inline; filename="faktur+pajak.pdf"'
     return response
 @app.route('/admin/pengeluaran/hapus/id', methods=['DELETE'])
 @jwt_required()
@@ -1896,6 +1923,141 @@ def adminkeuangan():
         total_pages=total_pages, total_records=total_records,
         has_next=has_next, has_prev=has_prev, page_range=page_range
     ) 
+
+@app.route('/admin/keuangan/excell', methods=['GET'])
+@jwt_required()
+def report_keuangan():
+    t0 = time.perf_counter()
+    log = current_app.logger
+
+    # --- 1. Params & Build Query ---
+    tahun        = request.args.get('tahun', type=int)
+    bulan        = request.args.get('bulan', type=int)
+    tanggal      = request.args.get('tanggal', type=int)
+    nama_sales_q = request.args.get('nama_sales', '', type=str)
+    nama_cust_q  = request.args.get('nama_outlet', '', type=str)
+
+    filters, params = [], []
+    clause, prms = build_date_range(year=tahun, month=bulan, day=tanggal, alias="si", col="invoice_date")
+    if clause:
+        filters.append(clause); params += prms
+    if nama_sales_q:
+        filters.append("s.name = %s"); params.append(nama_sales_q)
+    if nama_cust_q:
+        filters.append("c.name = %s"); params.append(nama_cust_q)
+
+    where_clause = (" WHERE " + " AND ".join(filters)) if filters else ""
+
+    # --- 2. Fetch Data Invoices ---
+    invoices = fetch(f"""
+        SELECT
+          si.id,
+          si.invoice_date   AS tglfaktur,
+          si.invoice_no     AS nomerfaktur,
+          si.due_date       AS jatuhtempo,
+          si.status,
+          s.name            AS nama_sales,
+          COALESCE(c.name,'-')     AS nama_outlet,
+          COALESCE(si_amt.total_invoice, 0) AS total_invoice,
+          COALESCE(pay_amt.total_payment, 0) AS total_payment,
+          COALESCE(si_amt.total_invoice, 0) - COALESCE(pay_amt.total_payment, 0) AS outstanding
+        FROM sales_invoices si
+        JOIN salespersons s ON s.id = si.salesperson_id
+        LEFT JOIN customers c ON c.id = si.customer_id
+        LEFT JOIN (
+            SELECT sales_invoice_id, SUM(total_amount) AS total_invoice
+            FROM sales_items GROUP BY sales_invoice_id
+        ) si_amt ON si_amt.sales_invoice_id = si.id
+        LEFT JOIN (
+            SELECT ref_id, SUM(amount) AS total_payment
+            FROM payments WHERE ref_type='SALE' GROUP BY ref_id
+        ) pay_amt ON pay_amt.ref_id = si.id
+        {where_clause}
+        ORDER BY si.invoice_date DESC, si.id DESC
+    """, tuple(params))
+
+    # --- 3. Siapkan Workbook Excel ---
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Laporan Keuangan"
+
+    # Header Tabel
+    headers = [
+        "Tanggal Faktur", "No Faktur", "Jatuh Tempo", "Nama Sales", 
+        "Nama Outlet", "Status", "Total Faktur", "Total Bayar", "Outstanding"
+    ]
+    
+    # Judul Atas
+    ws.merge_cells("A1:I1")
+    ws["A1"] = "LAPORAN PIUTANG & KEUANGAN"
+    ws["A1"].font = Font(size=14, bold=True)
+    ws["A1"].alignment = Alignment(horizontal="center")
+
+    # Tulis Header (Baris 2)
+    ws.append(headers)
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+
+    # --- 4. Isi Data (Body) ---
+    row_idx = 3
+    grand_total_invoice = 0
+    grand_total_payment = 0
+    grand_total_outstanding = 0
+
+    for inv in invoices:
+        ws.append([
+            inv["tglfaktur"],
+            inv["nomerfaktur"],
+            inv["jatuhtempo"],
+            inv["nama_sales"],
+            inv["nama_outlet"],
+            inv["status"],
+            inv["total_invoice"],
+            inv["total_payment"],
+            inv["outstanding"]
+        ])
+        
+        # Akumulasi untuk footer
+        grand_total_invoice += inv["total_invoice"]
+        grand_total_payment += inv["total_payment"]
+        grand_total_outstanding += inv["outstanding"]
+        row_idx += 1
+
+    # --- 5. Footer (Total) ---
+    ws.append(["", "", "", "", "", "TOTAL", grand_total_invoice, grand_total_payment, grand_total_outstanding])
+    footer_row = ws.max_row
+    for col_num in range(6, 10):
+        ws.cell(row=footer_row, column=col_num).font = Font(bold=True)
+
+    # --- 6. Formatting ---
+    # Format Rupiah untuk kolom G, H, I (7, 8, 9)
+    for r in range(3, ws.max_row + 1):
+        for c in range(7, 10):
+            cell = ws.cell(row=r, column=c)
+            cell.number_format = '#,##0'
+            cell.alignment = Alignment(horizontal="right")
+
+    # Auto Width
+    for i, col_title in enumerate(headers, 1):
+        column_letter = get_column_letter(i)
+        ws.column_dimensions[column_letter].width = 18
+
+    # --- 7. Output ---
+    bio = io.BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+
+    t1 = time.perf_counter()
+    log.info(f"[EXPORT] Excel generated in {t1-t0:.3f}s")
+
+    return send_file(
+        bio,
+        as_attachment=True,
+        download_name=f"Laporan_Keuangan_{int(time.time())}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 @app.route('/admin/keuangan/edit/id', methods=['PUT'])
 @jwt_required()
 def keuangan_edit():
@@ -2143,6 +2305,139 @@ def adminadministrasi():
         total_pages=total_pages, total_records=total_records,
         has_next=has_next, has_prev=has_prev, page_range=page_range
     )
+@app.route('/admin/administrasi/excell', methods=['GET'])
+@jwt_required()
+def report_administrasi():
+    t0 = time.perf_counter()
+    log = current_app.logger
+    tahun   = request.args.get('tahun', type=int)
+    bulan   = request.args.get('bulan', type=int)
+    tanggal = request.args.get('tanggal', type=int)
+    supplier_name = request.args.get('nama_principle', type=str)
+
+    filters, params, count_params = [], [], []
+
+    clause, prms = build_date_range(
+        year=tahun, month=bulan, day=tanggal,
+        alias="p", col="invoice_date"
+    )
+    if clause:
+        filters.append(clause); params += prms; count_params += prms
+    if supplier_name:
+        filters.append("s.name = %s"); params.append(supplier_name); count_params.append(supplier_name)
+
+    where_clause = (" WHERE " + " AND ".join(filters)) if filters else ""
+
+    # Count distinct purchases
+    cnt = one(f"""
+        SELECT COUNT(*) FROM (
+          SELECT p.id
+          FROM purchases p
+          JOIN suppliers s ON s.id = p.supplier_id
+          {where_clause}
+          GROUP BY p.id
+        ) x
+    """, tuple(count_params))
+    total_records = cnt[0] if cnt else 0
+
+
+    # Header + agregat total & payment
+    rows = fetch(f"""
+        SELECT
+          p.id,
+          p.invoice_date AS tglfaktur,
+          p.invoice_no   AS nofaktur,
+          p.status,
+          s.name   AS nama_supplier,
+          s.address AS alamat,
+          s.phone   AS tlp,
+          COALESCE(pi_sum.total_belanja, 0)  AS performa_belanja,
+          COALESCE(pay_sum.total_bayar, 0)   AS total_bayar,
+          (COALESCE(pi_sum.total_belanja, 0) - COALESCE(pay_sum.total_bayar, 0)) AS outstanding,
+          -- pembayaran terakhir (optional, untuk tampilan)
+          (SELECT p2.pay_date FROM payments p2
+             WHERE p2.ref_type='PURCHASE' AND p2.ref_id=p.id
+             ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS tanggal_pembayaran_terakhir,
+          (SELECT p3.method FROM payments p3
+             WHERE p3.ref_type='PURCHASE' AND p3.ref_id=p.id
+             ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS metode_terakhir,
+          (SELECT p4.note FROM payments p4
+             WHERE p4.ref_type='PURCHASE' AND p4.ref_id=p.id
+             ORDER BY p4.pay_date DESC, p4.id DESC LIMIT 1) AS keterangan_terakhir
+        FROM purchases p
+        JOIN suppliers s ON s.id = p.supplier_id
+        LEFT JOIN (
+          SELECT purchase_id, SUM(total_amount) AS total_belanja
+          FROM purchase_items
+          GROUP BY purchase_id
+        ) pi_sum ON pi_sum.purchase_id = p.id
+        LEFT JOIN (
+          SELECT ref_id, SUM(amount) AS total_bayar
+          FROM payments
+          WHERE ref_type='PURCHASE'
+          GROUP BY ref_id
+        ) pay_sum ON pay_sum.ref_id = p.id
+        {where_clause}
+        ORDER BY p.id DESC
+    """, tuple(params))
+
+    # Detail item untuk invoice di halaman ini
+    detail_map = {}
+    if rows:
+        ids = tuple(r['id'] for r in rows)
+        detail = fetch("""
+            SELECT
+              pi.purchase_id,
+              pr.code, pr.name,
+              pi.qty, pi.unit_price, pi.total_amount,
+              pi.unit_label, pi.qty_uom, pi.uom_factor_to_base, pi.qty_base
+            FROM purchase_items pi
+            JOIN products pr ON pr.id = pi.product_id
+            WHERE pi.purchase_id IN %s
+            ORDER BY pi.id
+        """, (ids,))
+        for d in detail:
+            detail_map.setdefault(d['purchase_id'], []).append(d)
+
+    info_list = []
+    for r in rows:
+        info_list.append({
+            "id": r["id"],
+            "tglfaktur": r["tglfaktur"],
+            "nofaktur": r["nofaktur"],
+            "status": r["status"],
+            "nama_supplier": r["nama_supplier"],
+            "alamat": r["alamat"],
+            "tlp": r["tlp"],
+            "performa_belanja": r["performa_belanja"],
+            "total_bayar": r["total_bayar"],
+            "outstanding": r["outstanding"],
+            "tanggal_pembayaran_terakhir": r["tanggal_pembayaran_terakhir"],
+            "metode_terakhir": r["metode_terakhir"],
+            "keterangan_terakhir": r["keterangan_terakhir"],
+            "detail_items": detail_map.get(r["id"], [])
+        })
+    # Auto Width
+    for i, col_title in enumerate(headers, 1):
+        column_letter = get_column_letter(i)
+        ws.column_dimensions[column_letter].width = 18
+
+    # --- 7. Output ---
+    bio = io.BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+
+    t1 = time.perf_counter()
+    log.info(f"[EXPORT] Excel generated in {t1-t0:.3f}s")
+
+    return send_file(
+        bio,
+        as_attachment=True,
+        download_name=f"Laporan_Keuangan_{int(time.time())}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    
 @app.route('/admin/administrasi/edit/id', methods=['PUT'])
 @jwt_required()
 def edit_administrasi():
@@ -2902,6 +3197,7 @@ def latest_pengeluaran_excell():
 def report_laporan():
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
+    c.setTitle("Sistem Gudang - Print Pdf")
     width, height = A4
 
     # ----- Header & Logo -----
@@ -3089,5 +3385,5 @@ def report_laporan():
     mimetype='application/pdf',
     as_attachment=False
     )
-    response.headers['Content-Disposition'] = 'inline; filename=REPORT_LAPORAN.pdf'
+    response.headers['Content-Disposition'] = 'inline; filename="REPORT_LAPORAN.pdf"'
     return response

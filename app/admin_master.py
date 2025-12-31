@@ -50,6 +50,7 @@ ENTITIES = {
         "columns_name": ["nama", "alamat", "telepon"],
         "id": "id",
         "search": ["name", "phone"],
+        "soft_delete": True,  # arsipkan, bukan delete fisik
         "order_by": "id ASC"
     },
     "customers": {
@@ -59,6 +60,7 @@ ENTITIES = {
         "columns_name": ["nama", "alamat", "npwp"],
         "id": "id",
         "search": ["name", "npwp"],
+        "soft_delete": True,  # arsipkan, bukan delete fisik
         "order_by": "id ASC"
     },
     "salespersons": {
@@ -68,6 +70,7 @@ ENTITIES = {
         "columns_name": ["name", "status"],
         "id": "id",
         "search": ["name"],
+        "soft_delete": True,  # arsipkan, bukan delete fisik
         "order_by": "id ASC"
     },
     "senders": {
@@ -77,6 +80,7 @@ ENTITIES = {
         "columns_name": ["name", "status"],
         "id": "id",
         "search": ["name"],
+        "soft_delete": True,  # arsipkan, bukan delete fisik
         "order_by": "id ASC"
     }
 }
@@ -116,10 +120,9 @@ def list_entity(entity):
         SELECT {cfg['id']} AS id, {", ".join(cfg["columns"])}{extra}
         FROM {cfg['table']}
         {where_clause}
-        ORDER BY {cfg['order_by']}
-        LIMIT %s OFFSET %s
-    """
-    rows = fetch(list_sql, params + [per_page, offset])
+        ORDER BY {cfg['order_by']}"""
+        #LIMIT %s OFFSET %s"""
+    rows = fetch(list_sql, params) #+ [per_page, offset])
 
     pager = paginate(total, page, per_page)
     return render_pjax("admin/master_list.html",
