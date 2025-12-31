@@ -246,6 +246,8 @@
 
 <!-- JS -->
 <script>
+  
+$('a[href="/admin/pengeluaran"]').addClass("active");
   // Repeater
   $(".email-repeater").repeater({
     show: function () {
@@ -564,5 +566,24 @@
       }
     });
   });
+  
+  $("#tambah-barang").on("click", function() {
+            console.log("halol");
+            setTimeout(function() {
+                $(".nmbarang").select2();
+                $('span[data-select2-id="3"]').hide();
+                const observer = new MutationObserver(function(mutationsList, observer) {
+                    const element = document.querySelector('span[data-select2-id="5"]');
+                    if (element) {
+                        element.style.display = 'none';
+                        observer.disconnect(); // Hentikan observer setelah elemen ditemukan
+                    }
+                });
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }, 1000);
+        });
 </script>
 {% endblock %}

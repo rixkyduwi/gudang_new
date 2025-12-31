@@ -74,7 +74,7 @@
         <div class="col-sm-3 mt-2">
           <button class="btn btn-info" onclick="run()">Submit</button>
         </div>
-		<div class="col-sm-3">
+		    <div class="col-sm-3">
           <select class="form-select select2" id="sales_data" name="sales" style="width:100%">
             <option value="">Semua Sales</option>
             {% for s in nama_sales %}
@@ -84,6 +84,7 @@
             {% endfor %}
           </select>
         </div>
+        
       </div>
 
       {% for h in list_tahun %}
@@ -92,8 +93,8 @@
           <div id="table_{{ h.tahun }}" class="mt-4">
             <h4 class="mb-3">Data Performa Sales {{ h.tahun }}</h4>
 
-            <div class="scroll-table">
-              <table id="table_{{ h.tahun }}_data" class="table w-100 table-bordered display text-nowrap">
+            <div class="table-responsive scroll-table">
+              <table id="table_{{ h.tahun }}_data" class="table w-100 table-bordered display ">
                 <thead class="table-light">
                   <tr>
                     <th>No</th>
@@ -108,7 +109,7 @@
                 </thead>
                 <tbody>
                   {% for r in data_fix if r.tahun == h.tahun %}
-                  <tr>
+                  <tr class="data-utama">
                     <td>{{ loop.index }}</td>
                     <td>{{ r.nama_outlet }}</td>
                     <td>{{ r.nama_sales }}</td>
@@ -156,19 +157,6 @@
               </table>
             </div>
 
-            <script>
-              $("#table_{{ h.tahun }}_data").DataTable({
-                paging: false,
-                info: false,
-                searching: true,
-                lengthChange: false,
-                language: { search: "", searchPlaceholder: "Cari..." },
-                dom: '<"search-container"f>rt',
-                scrollX: true,
-                scrollY: "800px",
-                scrollCollapse: true
-              });
-            </script>
           </div>
         {% endif %}
       {% endfor %}

@@ -105,9 +105,9 @@
             </div>
             
                   <!-- Apply max-height for Transaksi table -->
-                  <div class="table-responsive">
-                    <table id="table__data" class="table w-100 table-striped table-bordered display text-nowrap">
-                    <thead class="table-light">
+                  <div class="table-responsive mt-3">
+                    <table id="table__data" class="table table-bordered w-100 table-responsive-stack">
+            <thead class="table-light">
                         <tr>
                         <th> No</th>
                         <th> Tanggal Faktur</th> 
@@ -124,32 +124,32 @@
                     </thead>
                     <tbody>
                         {% for i in info_list %}
-                            <tr >
-                                <td>{{ (page - 1) * per_page + loop.index }}</td>
-                                <td>{{ i.tglfaktur }}</td>
-                                <td>{{ i.nomerfaktur }}</td>
-                                <td>{{ i.nama_sales }}</td>
-                                <td>{{ i.nama_outlet }}</td>
-                                <td>{{ i.cashtempo }}1</td>
+                            <tr class="data-utama">
+                                <td data-label="No">{{ (page - 1) * per_page + loop.index }}</td>
+                                <td data-label="Tanggal Faktur">{{ i.tglfaktur }}</td>
+                                <td data-label="Nomor Faktur">{{ i.nomerfaktur }}</td>
+                                <td data-label="Nama Sales">{{ i.nama_sales }}</td>
+                                <td data-label="Nama Outlet">{{ i.nama_outlet }}</td>
+                                <td data-label="Cash / Tempo">{{ i.cashtempo }}1</td>
 
-                                <td>
+                                <td data-label="Jumlah Total">
                                         <div class="justify-content-between d-flex w-100">
                                             <div>Rp</div>
-                                            <div>{{ i.performa_sales | format_rupiah }}</div>
+                                            <div>{{ i.performa_sales or "0" | format_rupiah }}</div>
                                         </div>
                                 </td>
 
-                                <td>{{ i.tanggal_pembayaran or "-" }}
+                                <td data-label="Tanggal Pembayaran">{{ i.tanggal_pembayaran or "-" }}
                                 </td>
 
-                                <td>{{ i.keterangan_pembayaran or "-" }}
+                                <td data-label="Keterangan Pembayaran">{{ i.keterangan_pembayaran or "-" }}
                                 </td>
 
-                                <td>{{ i.lunas_tidak or "-" }}
+                                <td data-label="Lunas / Tidak Lunas">{{ i.lunas_tidak or "-" }}
                                 </td>
 
                                 
-                                <td>
+                                <td data-label="Aksi">
                                   <button class="btn btn-sm btn-warning"  data-bs-toggle="modal" data-bs-target="#generic-modal-edit-{{i.id_barang_keluar}}">Edit</button>
                                   <button onclick="hapus({{ i.id_barang_keluar |int }})" class="btn btn-sm btn-danger">Hapus</button>
                                 </td>
@@ -308,15 +308,7 @@
 <!-- This Page JS -->
 <script>
 $(document).ready(function(){ 
-	$("#table__data").DataTable({
-		"paging": false,          // Menonaktifkan pagination
-		"info": false,           // Menonaktifkan info jumlah entri
-		"searching": false,       // Mengaktifkan fitur pencarian
-		"lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
-		"scrollX": true,  // Mengaktifkan scroll horizontal
-		"scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
-		"scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
-    })
+	
 	 $(".complex-colorpicker").datepicker({
 	    autoclose: true,
 	    todayHighlight: true,

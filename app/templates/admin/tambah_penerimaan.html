@@ -151,6 +151,7 @@
     </div>
     <!-- This Page JS -->
     <script>
+        $('a[href="/admin/penerimaan"]').addClass("active");
         $("#supplier").select2();
         $(".nmbarang").select2();
         $(".email-repeater").repeater({
@@ -336,7 +337,6 @@
         $("#tambah-barang").on("click", function() {
             console.log("halol");
             setTimeout(function() {
-                $(".nmbarang").change();
                 $(".nmbarang").select2();
                 $('span[data-select2-id="3"]').hide();
                 const observer = new MutationObserver(function(mutationsList, observer) {

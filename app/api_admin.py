@@ -190,7 +190,7 @@ def update_stok_gudang(id_barang, jmlpermintaan, operasi):
     if new_qty < 0:
         return jsonify({"error": "Stok Kurang"}), 404
 
-    ket = "Stok Aman" if new_qty > stoklimit else "Stok Tidak Aman"
+    ket = "Stok Aman" if new_qty >= stoklimit else "Stok Tidak Aman"
 
     print(f"keterangan    : {ket}")
     print("=" * 40)
@@ -257,7 +257,12 @@ def format_performa_sales(value):
         return f"{bagian_utama}"
     except (InvalidOperation, ValueError, TypeError):
         return value
-        
+@app.template_filter('format_0_date')
+def format_0_date(value):
+    if value == "0000-00-00":
+        return "-"
+    else :
+        return value        
 @app.template_filter('format_date')
 def format_date(value):
     if not value:
@@ -402,7 +407,7 @@ def admin_penerimaan_tambah():
     data_barang = fetch("SELECT id, code, name, unit, stock_min FROM products WHERE is_active=1 ORDER BY name")
     data_supplier = fetch("SELECT id, name, address, phone FROM suppliers ORDER BY name")
     return render_pjax(
-        "admin/tambah-penerimaan.html",
+        "admin/tambah_penerimaan.html",
         data_supplier=data_supplier,
         data_barang=data_barang,
         tanggal=time_zone_wib().date()
@@ -566,7 +571,7 @@ def tambah_penerimaan():
 @jwt_required()
 def penerimaan_detail(id):
     hdr = fetch("""
-        SELECT p.id, p.supplier_id,  p.invoice_date, p.invoice_no,
+        SELECT p.id, p.supplier_id,  p.invoice_date, p.invoice_no,p.due_date,p.payment_term,
                 s.name AS supplier_name,
                 s.address AS supplier_address,
                 s.phone AS supplier_phone,
@@ -721,15 +726,14 @@ def adminpenyimpanan():
           p.stock_min  AS stok_limit,
           s.qty_on_hand AS sisa_gudang,
           CASE
-            WHEN s.qty_on_hand <= p.stock_min THEN 'Stok Tidak Aman'
+            WHEN s.qty_on_hand < p.stock_min THEN 'Stok Tidak Aman'
             ELSE 'Aman'
           END AS status
         {base_from}
         {where_clause}
-        ORDER BY s.product_id ASC
-        LIMIT %s OFFSET %s
-    """
-    list_params = params + [per_page, offset]
+        ORDER BY s.product_id ASC """
+        # LIMIT %s OFFSET %s """
+    list_params = params  # + [per_page, offset]
     info_list = fetch(list_sql, list_params)
     print(info_list)
     # Dropdown daftar barang (untuk filter select)
@@ -800,7 +804,7 @@ def edit_penyimpanan():
         new_qty = int(new_qty)
         delta = new_qty - current_qty
         if delta == 0:
-            status = "Stok Tidak Aman" if new_qty <= stock_min else "Aman"
+            status = "Stok Tidak Aman" if new_qty < stock_min else "Aman"
             return jsonify({
                 "msg": "Tidak ada perubahan stok",
                 "product_id": product_id,
@@ -827,7 +831,7 @@ def edit_penyimpanan():
         g.con.execute(sql_now, (product_id,))
         row2 = g.con.fetchone()
         new_now = int(row2[0] or 0)
-        status = "Stok Tidak Aman" if new_now <= stock_min else "Aman"
+        status = "Stok Tidak Aman" if new_now < stock_min else "Aman"
 
         return jsonify({
             "msg": "SUKSES",
@@ -842,13 +846,13 @@ def edit_penyimpanan():
         print(e)
         return jsonify({"error": str(e)}), 500
 
-@app.route('/admin/penyimpanan/hapus/id', methods=['DELETE'])
+@app.route('/admin/penyimpanan/reset', methods=['DELETE'])
 @jwt_required()
-def hapus_id_penyimpanan():
+def reset_stok():
     try:
         id = request.json.get('id')
         # Hapus dari barang_gudang
-        g.con.execute("DELETE FROM barang_gudang WHERE id = %s", (int(id),))
+        g.con.execute(" FROM  WHERE id = %s", (int(id),))
         g.con.connection.commit()
 
         return jsonify({"msg": "BERHASIL DIHAPUS"})
@@ -889,7 +893,7 @@ def tambah_pengeluaran():
     jth_tempo = (today + timedelta(days=30)).strftime("%Y-%m-%d")
     nofaktur  = next_invoice_no_for_date(today)
 
-    return render_pjax("admin/tambah-pengeluaran.html",
+    return render_pjax("admin/tambah_pengeluaran.html",
         data_sales=data_sales,
         data_pengirim=data_pengirim,
         data_customers=data_customers,
@@ -963,7 +967,7 @@ def admin_pengeluaran():
                si.tax_flag,
                si.status,
                sp.name AS nama_sales,
-               s.name AS nama_pengirim,
+               COALESCE(s.name,'-') AS nama_pengirim,
                COALESCE(c.name,'-') AS nama_customer,
                COALESCE(SUM(si2.total_amount),0) AS performa_sales
         FROM sales_invoices si
@@ -982,15 +986,17 @@ def admin_pengeluaran():
     if rows:
         ids = tuple(r['id'] for r in rows)
         details = fetch("""
-            SELECT it.sales_invoice_id,
-                   it.product_id, p.code, p.name,
-                   it.qty, it.unit_price, it.discount_percent, it.total_amount,
+            SELECT it.sales_invoice_id, COALESCE(it.batch_no,'-') AS batch_no, 
+                   COALESCE(it.expired_date,'-') AS expired_date,
+                   it.product_id, p.code, p.name,p.unit, it.qty, it.unit_price, 
+                   it.discount_percent, it.total_amount,
                    it.unit_label, it.uom_factor_to_base, it.qty_uom, it.qty_base
             FROM sales_items it
             JOIN products p ON p.id = it.product_id
             WHERE it.sales_invoice_id IN %s
             ORDER BY it.id
         """, (ids,))
+
         for d in details:
             detail_map.setdefault(d['sales_invoice_id'], []).append(d)
         for r in rows: r['detail'] = detail_map.get(r['id'], [])
@@ -1097,7 +1103,7 @@ def tambah_pengeluaran_action():
             g.con.execute("""
                 INSERT INTO sales_items
                 (sales_invoice_id, product_id, qty, unit_price, discount_percent, total_amount, batch_no,
-                 unit_label, uom_factor_to_base, qty_uom, qty_base, unit_price_uom, unit_price_base, expiry_date)
+                 unit_label, uom_factor_to_base, qty_uom, qty_base, unit_price_uom, unit_price_base, expired_date)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (sales_id, product_id, qty, unit_price, disc_pct, total_amount, batch_no,
                   unit_label, factor, qty_uom, qty_base, unit_price_uom, unit_price_base, ed))
@@ -1128,6 +1134,36 @@ def tambah_pengeluaran_action():
         g.con.connection.rollback()
         return jsonify({"error": str(e)}), 500
 
+@app.route('/admin/pengeluaran/<int:id>', methods=['GET'])
+@jwt_required()
+def pengeluaran_detail(id):
+    hdr = fetch("""
+        SELECT p.id, p.supplier_id,  p.invoice_date, p.invoice_no,p.due_date,p.payment_term,
+                s.name AS supplier_name,
+                s.address AS supplier_address,
+                s.phone AS supplier_phone,
+               p.status
+        FROM purchases p
+        JOIN suppliers s ON s.id = p.supplier_id
+        WHERE p.id=%s
+    """, (id,))
+    if not hdr:
+        return "Not found", 404
+    items = fetch("""
+        SELECT pi.id, pi.product_id, pr.code, pr.name, pr.unit,
+               pi.qty, pi.unit_price, pi.total_amount,
+               pi.unit_label, pi.uom_factor_to_base, pi.qty_uom, pi.qty_base, pi.unit_price_uom, pi.unit_price_base
+        FROM purchase_items pi
+        JOIN products pr ON pr.id = pi.product_id
+        WHERE pi.purchase_id=%s
+        ORDER BY pi.id
+    """, (id,))
+    data_supplier = fetch("SELECT id, name FROM suppliers ORDER BY name")
+    data_barang   = fetch("SELECT id, code, name, unit FROM products WHERE is_active=1 ORDER BY name")
+    return render_pjax("admin/edit_pengeluaran.html",
+                           purchase=hdr[0], items=items,
+                           data_supplier=data_supplier, data_barang=data_barang,
+                           tanggal=time_zone_wib().date())
 @app.route('/admin/pengeluaran/<int:id>', methods=['PUT'])
 @jwt_required()
 def pengeluaran_edit(id):
@@ -1244,244 +1280,343 @@ def to_decimal(val):
         return Decimal(val)
     except (InvalidOperation, TypeError, ValueError):
         return Decimal('0.00')
-def awal(pdf,width,height,barang_keluar,ada_diskon,ada_batch,ada_ed, cash_tempo):
-        # Set margin awal
-        x_margin = 0.75 * cm
-        y = height - 1 * cm
-        y2 = y
-        # Header
-        pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(x_margin, y - 0 * cm, "PT. BREGAS SAPORETE MEDIKALINDO")
-        pdf.setFont("Helvetica", 8 )
-        pdf.drawString(x_margin, y - 0.6 * cm, "Jl. Pati Perum Vero Permai No.39 Margadana, Kota Tegal")
-        pdf.drawString(x_margin, y - 1 * cm, "Telp: 02833170260 | email : bregassaporetemedikalindo@gmail.com ") 
-        pdf.drawString(x_margin, y - 1.4 * cm, "No Rek: 0101-01-003113-30-5 An PT Bregas Saporete Medikalindo(BRI)")
-        pdf.drawString(x_margin, y - 1.8 * cm, "Izin CDAKB: PB-UMKU 912010045181900010001")
-        y -= 2.4 * cm
-        x_margin_9 = x_margin + 9.6 * cm   
-        # Garis pemisah
-        pdf.line(x_margin, y, width - x_margin, y)
-        y -= 0.5 * cm
 
-        # Info Faktur dan "Kepada Yth" (samping-sampingan)
-        tanggal = barang_keluar[0].strftime('%d/%m/%Y')
-        jth_tempo = barang_keluar[1].strftime('%d/%m/%Y')
+def awal(pdf, width, height, barang_keluar, ada_diskon, ada_batch, ada_ed, cash_tempo):
+    # Set margin awal
+    x_margin = 0.75 * cm
+    y = height - 1 * cm
+    y2 = y
 
-        pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(x_margin_9, y2, "FAKTUR")
-        pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(x_margin_9 + 4.2 * cm, y2, "Kepada Yth:")
+    # Header
+    pdf.setFont("Helvetica-Bold", 12)
+    pdf.drawString(x_margin, y - 0 * cm, "PT. BREGAS SAPORETE MEDIKALINDO")
+    pdf.setFont("Helvetica", 8)
+    pdf.drawString(x_margin, y - 0.6 * cm, "Jl. Pati Perum Vero Permai No.39 Margadana, Kota Tegal")
+    pdf.drawString(x_margin, y - 1 * cm, "Telp: 02833170260 | email : bregassaporetemedikalindo@gmail.com ")
+    pdf.drawString(x_margin, y - 1.4 * cm, "No Rek: 0101-01-003113-30-5 An PT Bregas Saporete Medikalindo(BRI)")
+    pdf.drawString(x_margin, y - 1.8 * cm, "Izin CDAKB: PB-UMKU 912010045181900010001")
+    pdf.drawString(x_margin, y - 2.2 * cm, "Izin PBAK :  FK.01.01/VI/4351-e/2020")
+    y -= 2.4 * cm
 
-        # Data Faktur di sebelah kiri
-        pdf.setFont("Helvetica", 8)
-        y2 -= 0.2 * cm
-        pdf.drawString(x_margin_9, y2 - 0.4 * cm, "No Faktur")
-        pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 0.4 * cm, ": "+barang_keluar[2])
-        pdf.drawString(x_margin_9, y2 - 0.8 * cm, "Inv Date")
-        pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 0.8 * cm, ": "+tanggal)
-        pdf.drawString(x_margin_9, y2 - 1.2 * cm, "Sales")
-        print(barang_keluar[3])
-        pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 1.2 * cm, ": "+barang_keluar[3])
-        pdf.drawString(x_margin_9, y2 - 1.6 * cm, "Jatuh Tempo")
-        pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 1.6 * cm, ": "+jth_tempo)
-        pdf.drawString(x_margin_9, y2 - 2 * cm, "Cash / Tempo")
-        pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 2 * cm, ": "+cash_tempo)
-        
-        # Data 'Kepada Yth' dan Alamat di sebelah kanan
-        alamat = barang_keluar[5]
-        alamat_lines = textwrap.wrap(alamat, width=50)
-        pdf.drawString(x_margin_9 + 4.2 * cm, y2 - 0.4 * cm, barang_keluar[4])  # Nama outlet
-        y3 = y2 
-        for i, line in enumerate(alamat_lines[:11]):  # Limit to 6 lines
-            y3 = y2 - (0.8 + i * 0.4) * cm
-            pdf.drawString(x_margin_9 + 4.2 * cm, y2 - (0.8 + i * 0.4) * cm, line)  # Alamat outlet
-        pdf.drawString(x_margin_9 + 4.2 * cm, y3 - 0.4 * cm, f"NPWP: {barang_keluar[6]}")  # Npwp outlet
-        # Tabel barang
-        pdf.setFont("Helvetica-Bold", 9)
-        headers = ["No", "Nama Barang", "Qty"]
-        header_positions = [x_margin, x_margin + 0.6 * cm, x_margin + 9 * cm]
-        
-        if ada_batch == True :
-            header_positions[2] =  x_margin + 7 * cm
-            headers.append("Batch")
-            if ada_ed == True :
-                header_positions[2] =  x_margin + 6 * cm
-                header_positions.append(x_margin + 7.5 * cm)
-            else:
-                header_positions.append(x_margin + 8 * cm)  
-        if ada_ed == True:
-            headers.append("ED")
-            if ada_batch == True :
-                header_positions.append(x_margin + 9.5 * cm)  
-            else:
-                header_positions[2] =  x_margin + 7 * cm
-                header_positions.append(x_margin + 8 * cm)  
-        headers.append("Harga")
-        header_positions.append(x_margin + 11 * cm) 
-        if ada_diskon == True:
-            headers.append("Diskon")
-            header_positions.append(x_margin + 14.5 * cm)
-        headers.append("Total")
-        header_positions.append(x_margin + 16 * cm)
-        for pos, header in zip(header_positions, headers):
-            pdf.drawString(pos, y, header)
-        y -= 0.3 * cm
-        pdf.line(x_margin, y, width - x_margin, y)
-        y -= 0.5 * cm
+    x_margin_9 = x_margin + 9.6 * cm
 
-        pdf.setFont("Helvetica", 9)
-        return y, x_margin,width, header_positions
-    
-    # footer total
-def hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total_pages=1, ada_diskon=False ):
+    # Garis pemisah
+    pdf.line(x_margin, y, width - x_margin, y)
+    y -= 0.5 * cm
+
+    # Info Faktur dan "Kepada Yth" (samping-sampingan)
+    tanggal = barang_keluar["invoice_date"].strftime('%d/%m/%Y') if barang_keluar.get("invoice_date") else "-"
+    jth_tempo = barang_keluar["due_date"].strftime('%d/%m/%Y') if barang_keluar.get("due_date") else "-"
+
+    pdf.setFont("Helvetica-Bold", 12)
+    pdf.drawString(x_margin_9, y2, "FAKTUR")
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(x_margin_9 + 4.2 * cm, y2, "Kepada Yth:")
+
+    # Data Faktur di sebelah kiri
+    pdf.setFont("Helvetica", 8)
+    y2 -= 0.2 * cm
+    pdf.drawString(x_margin_9, y2 - 0.4 * cm, "No Faktur")
+    pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 0.4 * cm, ": " + (barang_keluar.get("invoice_no") or "-"))
+    pdf.drawString(x_margin_9, y2 - 0.8 * cm, "Inv Date")
+    pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 0.8 * cm, ": " + tanggal)
+    pdf.drawString(x_margin_9, y2 - 1.2 * cm, "Sales")
+    pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 1.2 * cm, ": " + (barang_keluar.get("nama_sales") or "-"))
+    pdf.drawString(x_margin_9, y2 - 1.6 * cm, "Jatuh Tempo")
+    if cash_tempo == "CASH":
+        jth_tempo = "-"
+    pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 1.6 * cm, ": " + jth_tempo)
+    pdf.drawString(x_margin_9, y2 - 2 * cm, "Cash / Tempo")
+    pdf.drawString(x_margin_9 + 1.9 * cm, y2 - 2 * cm, ": " + (cash_tempo or "-"))
+
+    # Data 'Kepada Yth' dan Alamat di sebelah kanan
+    alamat = barang_keluar.get("alamat_customer") or "-"
+    alamat_lines = textwrap.wrap(alamat, width=50)
+
+    pdf.drawString(x_margin_9 + 4.2 * cm, y2 - 0.4 * cm, barang_keluar.get("nama_customer") or "-")  # Nama outlet
+
+    y3 = y2
+    for i, line in enumerate(alamat_lines[:11]):  # limit lines
+        y3 = y2 - (0.8 + i * 0.4) * cm
+        pdf.drawString(x_margin_9 + 4.2 * cm, y3, line)
+
+    npwp = barang_keluar.get("npwp_customer") or "-"
+    pdf.drawString(x_margin_9 + 4.2 * cm, y3 - 0.4 * cm, f"NPWP: {npwp}")
+
+    # Tabel barang
+    pdf.setFont("Helvetica-Bold", 9)
+    headers = ["No", "Nama Barang", "Qty"]
+    header_positions = [x_margin, x_margin + 0.6 * cm, x_margin + 9 * cm]
+
+    if ada_batch is True:
+        header_positions[2] = x_margin + 7 * cm
+        headers.append("Batch")
+        if ada_ed is True:
+            header_positions[2] = x_margin + 6 * cm
+            header_positions.append(x_margin + 7.5 * cm)
+        else:
+            header_positions.append(x_margin + 8 * cm)
+
+    if ada_ed is True:
+        headers.append("ED")
+        if ada_batch is True:
+            header_positions.append(x_margin + 9.4 * cm)
+        else:
+            header_positions[2] = x_margin + 7 * cm
+            header_positions.append(x_margin + 8 * cm)
+        x_margin += 4
+
+    headers.append("Harga")
+    header_positions.append(x_margin + 11 * cm)
+
+    if ada_diskon is True:
+        headers.append("Diskon")
+        header_positions.append(x_margin + 14.5 * cm)
+
+    headers.append("Total")
+    header_positions.append(x_margin + 16 * cm)
+
+    for pos, header in zip(header_positions, headers):
+        pdf.drawString(pos, y, header)
+
+    y -= 0.3 * cm
+    pdf.line(x_margin, y, width - x_margin, y)
+    y -= 0.5 * cm
+
+    pdf.setFont("Helvetica", 9)
+    return y, x_margin, width, header_positions
+
+
+def hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num=1, total_pages=1, ada_diskon=False):
+    pdf.line(x_margin, y, width - x_margin, y)
+    y -= 0.4 * cm
+
+    # Halaman terakhir: tampilkan total & pajak (kalau mode pajak)
     if page_num == total_pages:
-        pdf.line(x_margin, y, width - x_margin, y)
-        y -= 0.4 * cm
         if pajak == "pajak":
             pdf.setFont("Helvetica", 8)
-            if ada_diskon == True:
-                pdf.drawString(x_margin + 15.975 * cm, y, f"Rp ")
-                pdf.drawString(x_margin + 15.975 * cm, y - 0.4 * cm, f"Rp ")  
-                pdf.drawString(x_margin + 15.975 * cm, y - 0.8 * cm, f"Rp ")   
-            else:
-                pdf.drawString(x_margin + 16 * cm, y, f"Rp ")
-                pdf.drawString(x_margin + 16 * cm, y - 0.4 * cm, f"Rp ")  
-                pdf.drawString(x_margin + 16 * cm, y - 0.8 * cm, f"Rp ")     
-            pdf.drawString(x_margin + 14 * cm, y, f"Total: ")
+
+            # posisi "Rp" (biar sejajar kalau ada diskon)
+            rp_x = (x_margin + 15.975 * cm) if ada_diskon else (x_margin + 16 * cm)
+            pdf.drawString(rp_x, y, "Rp ")
+            pdf.drawString(rp_x, y - 0.4 * cm, "Rp ")
+            pdf.drawString(rp_x, y - 0.8 * cm, "Rp ")
+
+            pdf.drawString(x_margin + 14 * cm, y, "Total: ")
             pdf.drawRightString(x_margin + 19.6 * cm, y, f"{format_rupiah(jumlah_total)}")
-            pajak_val = Decimal('0.11') * jumlah_total
-            pajak_val = pajak_val.quantize(Decimal('1'), rounding=decimal.ROUND_HALF_UP) # pembulatan
-            pdf.drawString(x_margin + 14 * cm, y - 0.4 * cm, f"PPN 11%: ")  
+
+            pajak_val = (Decimal("0.11") * Decimal(jumlah_total)).quantize(Decimal("1"), rounding=decimal.ROUND_HALF_UP)
+            pdf.drawString(x_margin + 14 * cm, y - 0.4 * cm, "PPN 11%: ")
             pdf.drawRightString(x_margin + 19.6 * cm, y - 0.4 * cm, f"{format_rupiah(pajak_val)}")
-            grand_total = jumlah_total + pajak_val
-            terbilang_rupiah = num2words(int(grand_total), lang='id')
-            terbilang_rupiah = terbilang_rupiah.title() 
-            terbilang_rupiah += " Rupiah"
-            pdf.setFont("Helvetica-Bold", 8)
-            y3 = y
-            if len(terbilang_rupiah) >= 90:
-                terbilang_rupiah_lines = textwrap.wrap(terbilang_rupiah, width=75)
-                for i, line in enumerate(terbilang_rupiah_lines[:3]):
-                    y3 -=  0.4 * cm
-                    pdf.drawString(x_margin ,y - (i * 0.4) * cm, line)
-            else:
-                pdf.drawString(x_margin, y , terbilang_rupiah)
-            pdf.drawString(x_margin + 14 * cm, y - 0.8 * cm, f"Grand Total: ")
-            
+
+            grand_total = Decimal(jumlah_total) + pajak_val
+            pdf.drawString(x_margin + 14 * cm, y - 0.8 * cm, "Grand Total: ")
             pdf.drawRightString(x_margin + 19.6 * cm, y - 0.8 * cm, f"{format_rupiah(grand_total)}")
 
-            # Footer
+            # Terbilang
+            terbilang_rupiah = num2words(int(grand_total), lang="id").title() + " Rupiah"
+            pdf.setFont("Helvetica-Bold", 8)
+
+            y3 = y
+            if len(terbilang_rupiah) >= 90:
+                terbilang_lines = textwrap.wrap(terbilang_rupiah, width=75)
+                for i, line in enumerate(terbilang_lines[:3]):
+                    pdf.drawString(x_margin, y - (i * 0.4) * cm, line)
+                    y3 -= 0.4 * cm
+            else:
+                pdf.drawString(x_margin, y, terbilang_rupiah)
+
+            # Footer tanda tangan
             pdf.drawString(x_margin, y3 - 0.5 * cm, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3 - 0.5 * cm, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, "Expedisi")
+
         else:
             pdf.setFont("Helvetica-Bold", 10)
-            terbilang_rupiah = num2words(jumlah_total, lang='id')
-            terbilang_rupiah = terbilang_rupiah.title() 
-            terbilang_rupiah += " Rupiah"
+
+            terbilang_rupiah = num2words(int(jumlah_total), lang="id").title() + " Rupiah"
             y3 = y
             if len(terbilang_rupiah) >= 90:
-                terbilang_rupiah_lines = textwrap.wrap(terbilang_rupiah, width=75)
-                for i, line in enumerate(terbilang_rupiah_lines[:3]):
-                    y3 -=  0.4 * cm
-                    pdf.drawString(x_margin ,y - (i * 0.4) * cm, line)
+                terbilang_lines = textwrap.wrap(terbilang_rupiah, width=75)
+                for i, line in enumerate(terbilang_lines[:3]):
+                    pdf.drawString(x_margin, y - (i * 0.4) * cm, line)
+                    y3 -= 0.4 * cm
             else:
-                pdf.drawString(x_margin, y , terbilang_rupiah)
-            if ada_diskon == True:
-                pdf.drawString(x_margin + 14.9 * cm, y, f"Total: Rp ")
-            else:
-                pdf.drawString(x_margin + 14.92 * cm, y, f"Total: Rp ")
-            pdf.drawRightString(x_margin + 19.6 * cm, y, f"{format_rupiah(jumlah_total)}")
-            y3 -= 0.5 * cm
+                pdf.drawString(x_margin, y, terbilang_rupiah)
 
-            # Footer
+            if ada_diskon:
+                pdf.drawString(x_margin + 14.9 * cm, y, "Total: Rp ")
+            else:
+                pdf.drawString(x_margin + 14.92 * cm, y, "Total: Rp ")
+            pdf.drawRightString(x_margin + 19.6 * cm, y, f"{format_rupiah(jumlah_total)}")
+
+            y3 -= 0.5 * cm
             pdf.drawString(x_margin, y3, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3, "Expedisi")
+
+    # Bukan halaman terakhir: cuma footer tanda tangan
     else:
-        pdf.line(x_margin, y, width - x_margin, y)
-        y -= 0.4 * cm
         if pajak == "pajak":
             pdf.setFont("Helvetica-Bold", 8)
             y3 = y
-
-            # Footer
             pdf.drawString(x_margin, y3 - 0.5 * cm, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3 - 0.5 * cm, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, "Expedisi")
         else:
             pdf.setFont("Helvetica-Bold", 10)
-            y3 = y
-            y3 -= 0.5 * cm
-
-            # Footer
+            y3 = y - 0.5 * cm
             pdf.drawString(x_margin, y3, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3, "Expedisi")
 
+
 def export_pdf(buffer, pajak):
-    id = request.args.get("id")
-    g.con.execute("""SELECT invoice_date, due_date, invoice_no, 
-    FROM purchases WHERE purchases.id = %s """, (id,))
-    barang_keluar = g.con.fetchone()
-    data_db = g.con.fetchall()
+    # Validasi id aman
+    invoice_id = request.args.get("id", type=int)
+    if not invoice_id:
+        abort(400, description="Parameter 'id' wajib dan harus integer.")
+
+    # fetchone helper
+    def fetchone(sql, params=None):
+        rows = fetch(sql, params)
+        return rows[0] if rows else None
+
+    # Header
+    header = fetchone("""
+        SELECT
+            si.id,
+            si.invoice_no,
+            si.invoice_date,
+            si.due_date,
+            si.payment_term,
+            si.tax_flag,
+            si.status,
+            sp.name AS nama_sales,
+            COALESCE(s.name,'-') AS nama_pengirim,
+            COALESCE(c.name,'-') AS nama_customer,
+            COALESCE(c.npwp,'-') AS npwp_customer,
+            COALESCE(c.address,'-') AS alamat_customer,
+            COALESCE(SUM(it.total_amount),0) AS performa_sales
+        FROM sales_invoices si
+        JOIN salespersons sp ON sp.id = si.salesperson_id
+        LEFT JOIN senders s ON s.id = si.sender_id
+        LEFT JOIN customers c ON c.id = si.customer_id
+        LEFT JOIN sales_items it ON it.sales_invoice_id = si.id
+        WHERE si.id = %s
+        GROUP BY
+            si.id, si.invoice_no, si.invoice_date, si.due_date,
+            si.payment_term, si.tax_flag, si.status,
+            sp.name, s.name, c.name, c.npwp, c.address
+        LIMIT 1
+    """, (invoice_id,))
+    if not header:
+        abort(404, description="Invoice tidak ditemukan.")
+
+    # Detail items
+    details = fetch("""
+        SELECT
+            it.id AS item_id,
+            it.sales_invoice_id,
+            it.product_id,
+            p.code,
+            p.name,
+            p.unit,
+            it.qty,
+            it.unit_price,
+            it.discount_percent,
+            it.total_amount,
+            it.unit_label,
+            it.batch_no,
+            it.expired_date
+        FROM sales_items it
+        JOIN products p ON p.id = it.product_id
+        WHERE it.sales_invoice_id = %s
+        ORDER BY it.id
+    """, (invoice_id,))
+
+    # Build data tabel (list of dict) + flag kolom
     data = []
-    jumlah_total = 0
+    jumlah_total = Decimal("0")
     ada_diskon = False
     ada_batch = False
     ada_ed = False
-    for i in range(len(data_db)):
-        item = {"No":i+1, "Nama Barang":data_db[i][0],"Quantity":str(data_db[i][1])+" "+data_db[i][2],
-                "Harga Satuan": format_currency(data_db[i][3]),"Total":format_currency(data_db[i][4])}
-        data.append(item)
-        jumlah_total += data_db[i][4]
-        if data_db[i][5] and data_db[i][5] != '' and data_db[i][5] != 0:
+
+    for idx, d in enumerate(details, start=1):
+        qty_text = f"{d.get('qty') or 0} {d.get('unit_label') or d.get('unit') or ''}".strip().lower()
+        diskon = d.get("discount_percent") or 0
+        batch = d.get("batch_no")
+        ed = d.get("expired_date")
+
+        total_amount = Decimal(str(d.get("total_amount") or 0))
+        unit_price = Decimal(str(d.get("unit_price") or 0))
+
+        data.append({
+            "No": idx,
+            "Nama Barang": d.get("name") or "-",
+            "QtyText": qty_text,
+            "HargaSatuan": unit_price,
+            "Total": total_amount,
+            "Diskon": diskon,
+            "Batch": batch,
+            "ED": ed,
+        })
+
+        jumlah_total += total_amount
+
+        if diskon not in (None, "", 0, 0.0):
             ada_diskon = True
-        if data_db[i][6] and data_db[i][6] != '' and data_db[i][6] != 0:
+        if batch not in (None, "", 0):
             ada_batch = True
-        if data_db[i][7] and data_db[i][7] != '' and data_db[i][7] != 0:
+        if ed not in (None, "", 0):
             ada_ed = True
 
-    # Pagination logic
+    # Pagination: isi penuh per halaman (tanpa mengurangi logika layout tabel)
     max_rows_per_page = 12
-    total_rows = max(len(data_db), max_rows_per_page)
-    total_pages = (total_rows + max_rows_per_page - 1) // max_rows_per_page
+    n = len(data)
+    total_rows_to_print = max(n, max_rows_per_page)
+    # bulatkan ke kelipatan 12 biar halaman rapi
+    if total_rows_to_print % max_rows_per_page != 0:
+        total_rows_to_print = ((total_rows_to_print // max_rows_per_page) + 1) * max_rows_per_page
 
+    total_pages = max(1, total_rows_to_print // max_rows_per_page)
+
+    # PDF setup
     pdf = canvas.Canvas(buffer, pagesize=(21.6 * cm, 14.5 * cm))
     width, height = (21.6 * cm, 14.5 * cm)
-    cash_tempo = barang_keluar[7]
+
+    cash_tempo = header.get("payment_term") or "-"
     y, x_margin, width, header_positions = awal(
-                pdf, width, height, barang_keluar, ada_diskon, ada_batch, ada_ed, cash_tempo
-            )
+        pdf, width, height, header, ada_diskon, ada_batch, ada_ed, cash_tempo
+    )
 
-    jumlah_total = 0
-    row_idx = 0
     page_num = 1
+    running_total = Decimal("0")
 
-    for i in range(total_rows):
-        if (i > 0 and i % max_rows_per_page == 0):
-            hitung_total(pdf, y, x_margin, width, jumlah_total, pajak, page_num, total_pages,ada_diskon)
+    for i in range(total_rows_to_print):
+        # ganti halaman tiap 12 baris (kecuali i=0)
+        if i > 0 and i % max_rows_per_page == 0:
+            hitung_total(pdf, y, x_margin, width, running_total, pajak, page_num, total_pages, ada_diskon)
             pdf.showPage()
             page_num += 1
             y, x_margin, width, header_positions = awal(
-                pdf, width, height, barang_keluar, ada_diskon, ada_batch, ada_ed, cash_tempo
+                pdf, width, height, header, ada_diskon, ada_batch, ada_ed, cash_tempo
             )
 
-        if i < len(data_db):
-            nama_barang = data_db[i][0]
-            jml = data_db[i][1]
-            satuan = data_db[i][2]
-            harga_satuan = data_db[i][3]
-            total = data_db[i][4]
-            diskon = data_db[i][5] if ada_diskon else None
-            batch = data_db[i][6] if ada_batch else None
-            ed = data_db[i][7] if ada_ed else None
+        # Ambil row data kalau ada, kalau tidak isi kosong
+        if i < n:
+            row = data[i]
+            nama_barang = row["Nama Barang"]
+            qty = row["QtyText"]
+            harga_satuan = row["HargaSatuan"]
+            total = row["Total"]
+            diskon = row["Diskon"] if ada_diskon else None
+            batch = row["Batch"] if ada_batch else None
+            ed = row["ED"] if ada_ed else None
 
-            jumlah_total += total
-            qty = f"{jml} {satuan}"
+            running_total += total
 
-            values = [str(i + 1), nama_barang, qty]
-
+            values = [str(i + 1), nama_barang.strip().title(), qty]
             if ada_batch:
                 values.append(str(batch) if batch else "-")
             if ada_ed:
@@ -1491,36 +1626,36 @@ def export_pdf(buffer, pajak):
 
             if ada_diskon:
                 values.append(f"{diskon}%")
-            
+
             values.append(f"total {format_rupiah(total)}")
 
         else:
-            # Isi kosong untuk baris tidak terpakai
+            # row kosong
             values = [str(i + 1), "-", "-"]
             if ada_batch:
                 values.append("-")
             if ada_ed:
                 values.append("-")
-            values.append("-")  # harga
+            values.append("-")
             if ada_diskon:
                 values.append("-")
-            values.append("-")  # total
-        # Gambar data ke PDF
+            values.append("-")
+
+        # Gambar row ke PDF sesuai posisi header
         for pos, value in zip(header_positions, values):
-            if value.startswith("satuan"):
+            if isinstance(value, str) and value.startswith("satuan"):
                 pdf.drawString(pos, y, "Rp ")
                 pdf.drawRightString(pos + (3.2 * cm), y, value[7:].strip())
-            elif value.startswith("total"):
+            elif isinstance(value, str) and value.startswith("total"):
                 pdf.drawString(pos, y, "Rp ")
                 pdf.drawRightString(x_margin + 19.6 * cm, y, value[6:].strip())
             else:
-                pdf.drawString(pos, y, value)
+                pdf.drawString(pos, y, str(value))
+
         y -= 0.5 * cm
 
-    print(jumlah_total)
-    # Total
-    hitung_total(pdf, y, x_margin,width, jumlah_total, pajak, page_num, total_pages, ada_diskon)
-    #return Response(generate(), mimetype='application/pdf')
+    # Footer terakhir
+    hitung_total(pdf, y, x_margin, width, running_total, pajak, page_num, total_pages, ada_diskon)
     pdf.save()
 
 @app.route('/admin/pengeluaran/print', methods=['GET'])
@@ -1577,7 +1712,7 @@ def hapus_pengeluaran():
             stoklimit = g.con.fetchone()
             if gudang:
                 new_jumlah = max(0, gudang[0] + i[1])
-                if int(new_jumlah) <= stoklimit[0]:
+                if int(new_jumlah) < stoklimit[0]:
                     ket = "Stok Tidak Aman"
                 else :
                     ket = "Stok Aman"
@@ -2556,7 +2691,6 @@ def latest_penerimaan_excell():
         ws[f'K{baris_awal}'].font = Font(bold=True)
         upd_width(['', '', '', '', '', '', '', '', '', '', performa_belanja])
 
-        current_row += 2  # spasi antar bulan
 
     # format angka Rp untuk kolom H, I, K
     rp_cols = [8, 9, 11]  # 1-based index kolom

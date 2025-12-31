@@ -26,9 +26,9 @@ function handleAjax(url, method, data, onSuccess, onError) {
     method: method,                 // atau 'type' kalau jQuery lama
     data: JSON.stringify(data),
     contentType: 'application/json',
+    dataType: 'json',
     success: onSuccess,
     error: onError
-	}
   });
 }
 
@@ -135,14 +135,15 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
           </div>
 		
                   <!-- Apply max-height for Transaksi table -->
-                    <table id="table__data" class="table w-100 table-bordered table-striped display text-nowrap">
-                    <thead  class="table-light">
+                  <div class="table-responsive ">
+                    <table id="table__data" class="table table-bordered w-100 table-responsive-stack">
+            <thead class="table-light">
                       <tr>
                         <th> No</th>
                         <th> Kode Barang</th> 
                         <th> Nama Barang</th> 
-                        <th> Quantity</th>
                         <th> Sisa Stok</th>
+                        <th> Satuan</th>
                         <th> Stok Limit</th>
                         <th> Status</th> 
                         <th> Aksi </th>
@@ -150,15 +151,15 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
                     </thead>
                     <tbody>
                         {% for i in info_list %}
-                            <tr >
-                                <td>{{ (page - 1) * per_page + loop.index }}</td>
-                                <td>{{ i.kode_barang }}</td>
-                                <td>{{ i.nama_barang }}</td>
-                                <td>{{ i.unit }}</td>
-                                <td>{{ i.sisa_gudang }}</td>
-                                <td>{{ i.stok_limit }}</td>
-                                <td>{{ i.status }}</td>
-                                <td>
+                            <tr class="data-utama">
+                                <td data-label="No">{{ (page - 1) * per_page + loop.index }}</td>
+                                <td data-label="Kode Barang">{{ i.kode_barang }}</td>
+                                <td data-label="Nama Barang">{{ i.nama_barang }}</td>
+                                <td data-label="Sisa Stok">{{ i.sisa_gudang }}</td>
+                                <td data-label="Satuan">{{ i.unit }}</td>
+                                <td data-label="Stok Limit">{{ i.stok_limit }}</td>
+                                <td data-label="Status">{{ i.status }}</td>
+                                <td data-label="Aksi">
                                 <!-- <button data-bs-toggle="modal" data-bs-target="#modal-{{ i.product_id }}" class="btn btn-success">Nota</button> -->
                                   <button onclick="edit({{ i.product_id }}, '{{i.kode_barang}}', '{{i.nama_barang}}', '{{i.unit}}', {{i.sisa_gudang}}, {{i.stok_limit}}, '{{i.status}}' )" class="btn btn-sm btn-warning">Edit</button>
                                   <button class="btn btn-sm btn-danger" onclick="resetStok({{ i.product_id }}, '{{ i.nama_barang|e }}')">Reset Stok = 0</button>
@@ -168,67 +169,6 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
                     </tbody>
                 </table>
             
-            <div class="d-flex justify-content-between align-items-center ">
-            <div>
-              <strong>Halaman {{ page }} dari {{ total_pages }}</strong> — Total Data: {{ total_records }}
-            </div>
-            <nav aria-label="Page navigation">
-              <ul class="pagination mb-0">
-
-                <!-- Tombol pertama -->
-                {% if page > 1 %}
-                  <li class="page-item">
-                    <a class="page-link" href="?page=1&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">&laquo; First</a>
-                  </li>
-                {% else %}
-                  <li class="page-item disabled"><span class="page-link">&laquo; First</span></li>
-                {% endif %}
-
-                <!-- Tombol sebelumnya -->
-                {% if has_prev %}
-                  <li class="page-item">
-                    <a class="page-link" href="?page={{ page - 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Previous">
-                      <span aria-hidden="true">&laquo;</span>
-                    </a>
-                  </li>
-                {% else %}
-                  <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-                {% endif %}
-
-                <!-- Nomor halaman -->
-                {% for p in page_range %}
-                  {% if p == page %}
-                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
-                  {% else %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ p }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">{{ p }}</a>
-                    </li>
-                  {% endif %}
-                {% endfor %}
-
-                <!-- Tombol selanjutnya -->
-                {% if has_next %}
-                  <li class="page-item">
-                    <a class="page-link" href="?page={{ page + 1 }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}" aria-label="Next">
-                      <span aria-hidden="true">&raquo;</span>
-                    </a>
-                  </li>
-                {% else %}
-                  <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-                {% endif %}
-
-                <!-- Tombol terakhir -->
-                {% if page < total_pages %}
-                  <li class="page-item">
-                    <a class="page-link" href="?page={{ total_pages }}&per_page={{ per_page }}{% for key, value in request.args.items() if key != 'page' %}&{{ key }}={{ value }}{% endfor %}">Last &raquo;</a>
-                  </li>
-                {% else %}
-                  <li class="page-item disabled"><span class="page-link">Last &raquo;</span></li>
-                {% endif %}
-
-              </ul>
-            </nav>
-          </div>
         </div>
       </div>
     </div>
@@ -257,15 +197,7 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
     <!-- This Page JS -->
 	<script>
 		$(document).ready(function(){ 
-			$("#table__data").DataTable({
-				"paging": false,          // Menonaktifkan pagination
-				"info": false,           // Menonaktifkan info jumlah entri
-				"searching": false,       // Mengaktifkan fitur pencarian
-				"lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
-				"scrollX": true,  // Mengaktifkan scroll horizontal
-				"scrollY": "800px", // Mengatur tinggi tabel menjadi 400px dengan scrollbar vertikal
-				"scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
-			})
+			
 		})
 		function run() {
 		const nama_barang = document.getElementById('nama_barang').value;
@@ -280,7 +212,8 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
 async function resetStok(productId, nama) {
   if (!confirm(`Reset stok "${nama}" menjadi 0?`)) return;
   try {
-    const res = await fetch('/admin/penyimpanan', {
+    handleAjax('/admin/penyimpanan', method, data, onSuccess, onError) {
+    const res = await fetch(, {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ product_id: productId, new_qty: 0, note: 'Reset to zero' })

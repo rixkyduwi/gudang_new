@@ -17,7 +17,7 @@
       .ql-align-justify { text-align: justify; }
       .rata-kiri-mobile { text-align: right !important; }
       @media (max-width: 640px) { .rata-kiri-mobile { text-align: left !important; } .btn-info { margin-top: 5px; margin-bottom: 5px; } }
-      .table-responsive { overflow-x: scroll; cursor: grab; }
+      .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .table-responsive:active { cursor: grabbing; }
       .table-responsive::-webkit-scrollbar { height: 15px; }
       .table-responsive::-webkit-scrollbar-thumb { background-color: #888; border-radius: 10px; }
@@ -69,9 +69,6 @@
 	  .jumlah{ background-color: #e7e9f0; /* Biru sedikit lebih gelap dari data utama */ color: #000; /* Warna teks hitam */ }
 	  .scroll-table {
 	  max-height: 900px;
-	  }
-	  .table-responsive {
-		overflow-x: auto; /* Menambahkan scroll horizontal jika diperlukan */
 	  }
 	  
 	  #sales-overview {
@@ -131,7 +128,13 @@
 	  overflow:hidden;
 	  text-overflow:elipsis;
 	  }
+    .j-jml-menerima{
+      text-align: center;
+    }
 	  @media (max-width: 768px) {
+    .j-jml-menerima{
+      text-align: end;
+    }
   table.table-responsive-stack thead {
     display: none; /* header hilang di mobile */
   }
@@ -149,7 +152,6 @@
     border-radius: 10px;
     margin-bottom: 12px;
     padding: 10px;
-    background: #fff;
   }
 
   table.table-responsive-stack td {
@@ -173,12 +175,32 @@
     flex: 1;
     min-width: 0;
   }
+  /* pengecualian: kolom nama barang */
+  table.table-responsive-stack td.sebaris{
+    display: block;              /* matiin flex biar isi normal */
+  }
+
+  table.table-responsive-stack td.sebaris::before{
+    display: block;              /* label tetap di atas */
+    margin-bottom: 4px;
+    flex: none;
+    max-width: none;
+  }
+
+  table.table-responsive-stack td.sebaris{
+    white-space: normal;         /* pastikan bisa wrap */
+    word-break: break-word;      /* kalau ada kata panjang */
+  }
+  .multi-line > div { margin-bottom: 2px; }
+  .multi-line > div:last-child { margin-bottom: 0; }
+
 }
 .sidebar-toggler {
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+
 	</style>
  
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -509,6 +531,7 @@ function activateSidebar(status) {
 // Panggil pertama kali saat halaman load
 $(document).ready(function () {
     activateSidebar("load-ready");
+    
 	$(".select2").select2();
 });
 </script>

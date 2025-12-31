@@ -12,7 +12,10 @@
 			<input id="q" class="form-control d-inline-block" style="width:240px" placeholder="Cari lalu tekan enter"
 				   value="{{ q or '' }}" onkeydown="if(event.key==='Enter'){goSearch()}">
 				   
-			<button class="btn btn-primary" onclick="openCreate()">Tambah</button>
+			<button class="btn btn-primary" onclick="openCreate()">Tambah {% if entity == "salespersons" %}Sales{% endif %}</button>
+      {% if entity == "salespersons" %}
+			<a class="btn btn-success" href="salespersons/assign" data-pjax>Tambah Outlet Ke Sales</a>
+      {% endif %}
 		  </div>
 		</div>
 	   </div>

@@ -38,7 +38,7 @@ ENTITIES = {
         "columns_name": ["kode", "nama barang", "unit", "stock_min"],   # editable cols
         "id": "id",
         "search": ["code", "name"],
-        "order_by": "name ASC, code ASC",
+        "order_by": "id ASC, name ASC, code ASC",
         "uniques": {"code": "Kode barang sudah ada"},
         "soft_delete": True,  # arsipkan, bukan delete fisik
         "extra_select": "is_active"  # untuk toggle
@@ -50,7 +50,7 @@ ENTITIES = {
         "columns_name": ["nama", "alamat", "telepon"],
         "id": "id",
         "search": ["name", "phone"],
-        "order_by": "name ASC"
+        "order_by": "id ASC"
     },
     "customers": {
         "table": "customers",
@@ -59,7 +59,7 @@ ENTITIES = {
         "columns_name": ["nama", "alamat", "npwp"],
         "id": "id",
         "search": ["name", "npwp"],
-        "order_by": "name ASC"
+        "order_by": "id ASC"
     },
     "salespersons": {
         "table": "salespersons",
@@ -68,7 +68,7 @@ ENTITIES = {
         "columns_name": ["name", "status"],
         "id": "id",
         "search": ["name"],
-        "order_by": "name ASC"
+        "order_by": "id ASC"
     },
     "senders": {
         "table": "senders",
@@ -77,7 +77,7 @@ ENTITIES = {
         "columns_name": ["name", "status"],
         "id": "id",
         "search": ["name"],
-        "order_by": "name ASC"
+        "order_by": "id ASC"
     }
 }
 

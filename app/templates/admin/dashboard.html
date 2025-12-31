@@ -2,13 +2,13 @@
 {% block pjax_content %}
 <div class="container-fluid pb-0 mb-0 h-100 no-scroll " >
   <div class="row mb-2 pb-1 performa">
-    {% for title, value in [
-      ("Performa Belanja", performa_belanja ),
-      ("Performa Sales", performa_penjualan ),
-      ("Sales Harian", sales_harian )
+    {% for title, value, background_color in [
+      ("Performa Belanja", performa_belanja, "" ),
+      ("Performa Sales", performa_penjualan, "" ),
+      ("Sales Harian", sales_harian, "bg-success" )
     ] %}
-    <div class="col-lg-6 col-md-6 mb-1 pb-1" >
-      <div class="card ">
+    <div class="col-lg-4 col-md-4 mb-1 pb-1" >
+      <div class="card {{ background_color }}">
         <div class="card-body performa_a pt-2 pb-2">
           <h4 class="card-title mt-2">{{ title }}</h4>
           <div class="">
@@ -28,7 +28,7 @@
               >
                 <div class="card-body pt-2 pb-2">
                   <h3 class="text-primary mt-2">
-                    Download Latest Report {{tahun_ini}}
+                    Download Latest Report 
                   </h3>
                   <div class=" buttons-report mt-4">
                   <div>

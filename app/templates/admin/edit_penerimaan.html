@@ -62,6 +62,16 @@
                                  </div>
                             </div>
                             <div class="form-group">
+                                <label for="pembayaran">Metode Pembayaran</label>
+                                    <select
+                                        type="text"
+                                        id="pembayaran"
+                                        class="pembayaran form-control">
+                                    <option value="CASH" {% if purchase['payment_term']== 'CASH' %}selected {%endif%}>CASH</option>
+                                    <option value="TEMPO" {% if purchase['payment_term']== 'TEMPO' %}selected {%endif%}>TEMPO</option>
+                                    </select>
+                           </div>
+                            <div class="form-group">
                                 <label for="supplier">Principle / Supplier</label>
                                 <select
                                     class="form-control select2"
@@ -188,18 +198,6 @@
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <div class="form-group">
-                                                <label for="pembayaran">Metode Pembayaran</label>
-                                                <select id="pembayaran" class="pembayaran form-select">
-                                                    <option
-                                                        value="Cash"
-                                                        {% if detail['method'] == "Cash" %}selected{% endif %}>Cash</option>
-                                                    <option
-                                                        value="Tempo"
-                                                        {% if detail['method'] == "Tempo" %}selected{% endif %}>Tempo</option>
-                                                </select>
-                                            </div>
                                             
 											<div>
                                             <button
@@ -244,7 +242,8 @@
 <script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
 <script src="/static/assets/extra-libs/jquery.repeater/repeater-init.js"></script>
 <script src="/static/assets/extra-libs/jquery.repeater/dff.js"></script>
-<script>
+<script>   
+    $('a[href="/admin/penerimaan"]').addClass("active");
 	$(".complex-colorpicker").datepicker({
 	    autoclose: true,
 	    todayHighlight: true,
@@ -417,6 +416,7 @@
             nofaktur: $("#nofaktur").val(),
             id_supplier: $("#supplier").val(),
 			jthtempo: convertToISO($("#jthtempo").val()) || "",
+            pembayaran: $("#pembayaran").val(),
             items: [] // Array untuk menyimpan data dari repeater
         };
         // Iterasi melalui elemen repeater untuk mengumpulkan data

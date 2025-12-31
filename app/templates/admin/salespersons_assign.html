@@ -8,13 +8,13 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header">
-          <h4 class="mb-0">Relasi Customer</h4>
+          <h4 class="mb-0">Relasi Sales dengan Outlet</h4>
         </div>
 
         <div class="card-body">
           <div class="row g-3 mb-3">
             <div class="col-md-4">
-              <label class="form-label">Salesperson</label>
+              <label class="form-label">Nama Sales</label>
               <select id="sp" class="form-select">
                 <option value="">-- pilih --</option>
                 {% for s in sales %}
@@ -99,7 +99,7 @@ function unassign(sp, cid){
 }
 
 $(document).ready(function () {
- 
+$('a[href="/admin/salespersons"]').addClass("active");
 // Template hasil dropdown (nama + alamat)
 function optionTemplate (state) {
   if (!state.id) return state.text;
