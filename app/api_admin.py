@@ -61,150 +61,12 @@ def after_request(response):
 def teardown_request(exception):
     if hasattr(g, 'con'):
         g.con.close()
-
-# Fungsi untuk mengelola gambar (upload, edit, delete)
-def do_image(do, table, id):
-    try:
-        if do == "delete":
-            filename = get_image_filename(table, id)
-            delete_image(filename)
-            return True
-
-        # Upload gambar baru
-        file = request.files['gambar']
-        if file is None or file.filename == '':
-            return "default.jpg"
-        else:
-            filename = get_image_filename(table, id)
-            delete_image(filename)
-            return resize_and_save_image(file, table, id)
-
-    except KeyError:
-        # Jika kunci 'gambar' tidak ada dalam request.files
-        if do == "edit" and table == "galeri":
-            return True
-        reset = request.form.get('reset', 'false')
-        if reset == "true":
-            g.con.execute(f"UPDATE {table} SET gambar = %s WHERE id = %s", ("default.jpg", id))
-            g.con.connection.commit()
-        return "default.jpg"
-
-    except FileNotFoundError:
-        pass  # Jika file tidak ditemukan, abaikan
-
-    except Exception as e:
-        print(str(e))
-        return str(e)
-
-# Fungsi untuk mengubah ukuran dan menyimpan gambar
-def resize_and_save_image(file, table=None, id=None):
-    img = Image.open(file).convert('RGB').resize((600, 300))
-    random_name = uuid.uuid4().hex + ".jpg"
-    destination = os.path.join(app.config['UPLOAD_FOLDER'], random_name)
-    img.save(destination)
-
-    if table and id:
-        g.con.execute(f"UPDATE {table} SET gambar = %s WHERE id = %s", (random_name, id))
-        g.con.connection.commit()
-        return True
-    else:
-        return random_name
-
-# Fungsi untuk mendapatkan nama file gambar dari database
-def get_image_filename(table, id):
-    g.con.execute(f"SELECT gambar FROM {table} WHERE id = %s", (id,))
-    result = g.con.fetchone()
-    if result == "default.jpg":
-        return None
-    return result[0] if result else None
-
-# Fungsi untuk menghapus file gambar dari server
-def delete_image(filename):
-    if filename == "default.jpg":
-        return True
-    if filename:
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        if os.path.exists(image_path):
-            os.remove(image_path)
-
 # Fungsi untuk mengambil data dari database dan mengubahnya menjadi format dictionary
 def fetch(query, params=None):
-    print(query)
-    print(params)
     g.con.execute(query, params or ())
     data = g.con.fetchall()
     column_names = [desc[0] for desc in g.con.description]
     return [dict(zip(column_names, row)) for row in data]
-
-# Fungsi untuk mengambil daftar tahun dari database
-def fetch_years(pilih):
-    if pilih == "barang_masuk":
-        query = "SELECT YEAR(tglfaktur) AS tahun FROM barang_masuk GROUP BY tahun"
-    elif pilih == "barang_keluar":
-        query = "SELECT YEAR(tglfaktur) AS tahun FROM barang_keluar GROUP BY tahun"
-    else:
-        query = ""
-    g.con.execute(query)
-    data_thn = g.con.fetchall()
-    return [{'tahun': str(sistem[0])} for sistem in data_thn]
-
-def fetch_sum(query, params=None):
-    g.con.execute(query, params or ())
-    row = g.con.fetchone()
-    return row[0] if row and row[0] is not None else 0
-# form json    
-def req(key):
-    return request.json.get(key)
-
-# update stok gudang
-def update_stok_gudang(id_barang, jmlpermintaan, operasi):
-    jml = int(jmlpermintaan)
-
-    # Ambil stok gudang dan limit sekali query
-    g.con.execute("""
-        SELECT bg.sisa_gudang, b.stoklimit
-        FROM barang b
-        LEFT JOIN barang_gudang bg ON bg.id_barang = b.id
-        WHERE b.id = %s
-    """, (id_barang,))
-    row = g.con.fetchone()
-    
-    print("=" * 40)
-    print(f"DEBUG update_stok_gudang")
-    print(f"id_barang     : {id_barang}")
-    print(f"jmlpermintaan : {jmlpermintaan}")
-    print(f"operasi       : {operasi}")
-    print(f"sisa_gudang   : {row[0] if row else 'None'}")
-    print(f"stoklimit     : {row[1] if row else 'None'}")
-
-    if not row:
-        return jsonify({"error": "Data barang tidak ditemukan"}), 404
-
-    sisa_gudang, stoklimit = row if row[0] is not None else (0, row[1])
-
-    if operasi == "kurangi":
-        new_qty = sisa_gudang - jml
-    else:
-        new_qty = sisa_gudang + jml
-
-    if new_qty < 0:
-        return jsonify({"error": "Stok Kurang"}), 404
-
-    ket = "Stok Aman" if new_qty >= stoklimit else "Stok Tidak Aman"
-
-    print(f"keterangan    : {ket}")
-    print("=" * 40)
-    # Insert jika belum ada di barang_gudang
-    g.con.execute("""
-        INSERT INTO barang_gudang (id_barang, sisa_gudang, keterangan)
-        VALUES (%s, %s, %s)
-        ON DUPLICATE KEY UPDATE
-            sisa_gudang = VALUES(sisa_gudang),
-            keterangan = VALUES(keterangan)
-    """, (id_barang, new_qty, ket))
-    g.con.connection.commit()
-
-    return True
 
 #function di render_template
 @app.template_filter('format_currency')
@@ -263,10 +125,12 @@ def format_0_date(value):
         return "-"
     else :
         return value
-@app.template_filter('format_0_number')
+@app.template_filter('format_master')
 def format_0_number(value):
     if value == "000-000-000-000":
         return "-"
+    if value == 1:
+        return "Aktif"
     else :
         return value
 @app.template_filter('format_date')
@@ -852,17 +716,31 @@ def edit_penyimpanan():
         g.con.connection.rollback()
         print(e)
         return jsonify({"error": str(e)}), 500
+
 def next_invoice_no_for_date(d):
+    # 1. Tentukan tanggal pertama dan terakhir di bulan tersebut
+    first_day = d.replace(day=1)
+    last_day = d.replace(day=calendar.monthrange(d.year, d.month)[1])
+
+    # 2. Ambil 4 digit terakhir dari invoice_no
+    # Kita tetap mencari berdasarkan rentang bulan agar nomor urut (0001) reset tiap bulan
     row = one("""
-        SELECT RIGHT(invoice_no, 3) AS last_3
+        SELECT RIGHT(invoice_no, 4) AS last_4
         FROM sales_invoices
-        WHERE invoice_date=%s
+        WHERE invoice_date >= %s AND invoice_date <= %s
         ORDER BY invoice_no DESC
         LIMIT 1
-    """, (d,))
-    last = int(row[0]) if row and row[0] else 0
-    return f"{d.strftime('%Y%m%d')}{last+1:03d}"
+    """, (first_day, last_day))
 
+    # 3. Hitung nomor urut berikutnya
+    last = int(row[0]) if row and row[0] else 0
+    next_val = last + 1
+
+    # 4. Format: YYMMDD + 0001
+    # %y (y kecil) menghasilkan 2 digit tahun (misal: 26)
+    # %m menghasilkan 2 digit bulan
+    # %d menghasilkan 2 digit tanggal
+    return f"{d.strftime('%y%m%d')}{next_val:04d}"
 
 @app.route('/admin/pengeluaran-tambah')
 @jwt_required()
@@ -894,23 +772,34 @@ def tambah_pengeluaran():
         nofaktur=nofaktur,
         jth_tempo=jth_tempo
     )
-
 @app.route('/api/sales/invoice_no/<path:tanggal>')
 @jwt_required()
 def api_sales_invoice_no(tanggal):
     dt = None
+    # Mendukung format ISO (2026-01-01) atau format Indonesia (01/01/2026)
     for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
         try:
             dt = datetime.strptime(tanggal, fmt).date()
             break
         except ValueError:
             continue
+            
     if not dt:
-        return jsonify({"error":"Format tanggal tidak dikenali (YYYY-MM-DD / DD/MM/YYYY)"}), 400
+        return jsonify({"error": "Format tanggal tidak dikenali (YYYY-MM-DD / DD/MM/YYYY)"}), 400
 
+    # Memanggil fungsi yang sudah kita perbaiki tadi (Hasil: 2601010001)
     nofaktur = next_invoice_no_for_date(dt)
-    jth_tempo = (dt + timedelta(days=30)).strftime("%d/%m/%Y")
-    return jsonify({"nofaktur": nofaktur, "jatuh_tempo": jth_tempo})
+    
+    # Menghitung jatuh tempo (default 30 hari)
+    # Saya ubah return-nya menjadi YYYY-MM-DD agar mudah disimpan ke database
+    # Jika UI Anda butuh format lain, Anda bisa menyesuaikan strftime-nya
+    jth_tempo = (dt + timedelta(days=30)).strftime("%Y-%m-%d")
+    
+    return jsonify({
+        "nofaktur": nofaktur, 
+        "jatuh_tempo": jth_tempo,
+        "tanggal_faktur_raw": dt.strftime("%Y-%m-%d") # Opsional: untuk debug
+    })
 
 @app.route('/admin/pengeluaran')
 @jwt_required()
@@ -1246,41 +1135,6 @@ def pengeluaran_delete(id):
     except Exception as e:
         g.con.connection.rollback()
         return jsonify({"error": str(e)}), 500
-
-@app.route('/api/ceknofaktur/<path:tanggal>')
-@jwt_required()
-def ceknofaktur(tanggal):
-    dt_tanggal = None
-    print(tanggal)
-    # Coba parse dengan 2 format umum
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
-        try:
-            dt_tanggal = datetime.strptime(tanggal, fmt)
-            break
-        except ValueError:
-            continue
-
-    if not dt_tanggal:
-        return {"error": "Format tanggal tidak dikenali (pakai YYYY-MM-DD atau DD/MM/YYYY)"}, 400
-
-    # Hitung Jatuh Tempo tambah 1 bulan
-    jth_tempo = (dt_tanggal + relativedelta(months=1)).strftime("%d/%m/%Y")
-
-    # Query DB pakai format ISO standar
-    tgl_str = dt_tanggal.strftime('%Y-%m-%d')
-    g.con.execute("""
-        SELECT RIGHT(nomerfaktur, 3) AS last_3
-        FROM barang_keluar 
-        WHERE tglfaktur = %s 
-        ORDER BY nomerfaktur DESC LIMIT 1
-    """, (tgl_str,))
-    row = g.con.fetchone()
-    last_3 = int(row[0]) if row and row[0] else 0
-
-    # Gabungkan tanggal (yyyymmdd) + nomor urut
-    nofaktur = f"{dt_tanggal.strftime('%Y%m%d')}{last_3 + 1:03d}"
-
-    return jsonify({"jatuh_tempo": jth_tempo, "nofaktur": nofaktur})
 
 def to_decimal(val):
     try:
@@ -1710,42 +1564,6 @@ def print_pdf_pajak():
     )
     response.headers['Content-Disposition'] = 'inline; filename="faktur+pajak.pdf"'
     return response
-@app.route('/admin/pengeluaran/hapus/id', methods=['DELETE'])
-@jwt_required()
-def hapus_pengeluaran():
-    try:
-        id = request.json.get('id')
-        print(id)
-        g.con.execute("SELECT id_barang, jmlpermintaan, id FROM detail_barang_keluar WHERE id_barang_keluar = %s", 
-        (int(id),))
-        data = g.con.fetchall()
-        print(data)
-        if not data:
-            return jsonify({"error": "Data tidak ditemukan"}), 404
-
-        for i in data:
-            # Kurangi jumlah di barang_gudang
-            g.con.execute("SELECT sisa_gudang FROM barang_gudang WHERE id_barang = %s", (i[0],))
-            gudang = g.con.fetchone()
-            g.con.execute("SELECT stoklimit FROM barang WHERE id = %s", (i[0],))
-            stoklimit = g.con.fetchone()
-            if gudang:
-                new_jumlah = max(0, gudang[0] + i[1])
-                if int(new_jumlah) < stoklimit[0]:
-                    ket = "Stok Tidak Aman"
-                else :
-                    ket = "Stok Aman"
-                g.con.execute("UPDATE barang_gudang SET sisa_gudang = %s, keterangan = %s WHERE id_barang = %s"
-                              , (new_jumlah, ket, i[0]))
-            # Hapus dari detail_barang_masuk
-            g.con.execute("DELETE FROM detail_barang_keluar WHERE id = %s", (i[2],))
-        # Hapus dari barang_masuk
-        g.con.execute("DELETE FROM barang_keluar WHERE id = %s", (int(id),))
-        g.con.connection.commit()
-        return jsonify({"msg": "SUKSES"})
-    except Exception as e:
-        print(str(e))
-        return jsonify({"error": str(e)})
 @app.route('/admin/keuangan')
 @jwt_required()
 def adminkeuangan():

@@ -39,7 +39,7 @@
               </div>
             </div>
 
-            <!-- Jatuh Tempo (auto by /api/ceknofaktur) -->
+            <!-- Jatuh Tempo (auto by /api/sales/invoice_no) -->
             <div class="form-group">
               <label for="jthtempo">Jatuh Tempo</label>
               <div class="input-group">
@@ -286,7 +286,7 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
     const tgl = $(this).val();
     if(!tgl) return;
     const encoded = encodeURIComponent(tgl);
-    $.getJSON(`/api/ceknofaktur/${encoded}`, function(resp){
+    $.getJSON(`/api/sales/invoice_no/${encoded}`, function(resp){
       $("#jthtempo").val(resp.jatuh_tempo);
       $("#nofaktur").val(resp.nofaktur);
     });

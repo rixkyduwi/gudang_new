@@ -26,14 +26,14 @@
   function hapus(id) {
     if (confirm(`Anda yakin menghapus data ini ?`)) {
       handleAjax(
-        '/admin/pengeluaran/hapus/id',
+        '/admin/pengeluaran/'+id,
         'DELETE',
         { id: id },
         function(data) { 
-			handleResponse(data, "", "/admin/keuangan");
+			handleResponse(data, "", "/admin/pengeluaran");
 		},
         function(xhr, status, error) { 
-			handleResponse(err, "Edit", "/admin/keuangan");
+			handleResponse(err, "Edit", "/admin/pegeluaran");
 		}
       );
     } else {

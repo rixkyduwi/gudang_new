@@ -33,7 +33,7 @@
 			{% for r in rows %}
 			<tr class="data-utama">
 			  <td>{{ loop.index  }}</td>
-			  {% for c in columns %}<td>{{ r[c]|format_0_number }}</td>{% endfor %}
+			  {% for c in columns %}<td>{{ r[c]|format_master }}</td>{% endfor %}
 			  <td>
 				<button class="btn btn-sm btn-warning" onclick="openEdit('{{ r.id }}')">Edit</button>
 				<button class="btn btn-sm btn-danger" onclick="doDelete('{{ r.id }}')">Hapus</button>

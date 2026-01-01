@@ -336,7 +336,7 @@ function formatAngka(angka) {
     let tanggal = $(this).val(); // contoh: 04/09/2025
     if (tanggal) {
       let encoded = encodeURIComponent(tanggal);
-      $.getJSON(`/api/ceknofaktur/${encoded}`, function (data) {
+      $.getJSON(`/api/sales/invoice_no/${encoded}`, function (data) {
         $("#jthtempo").val(data.jatuh_tempo);
         $("#nofaktur").val(data.nofaktur);
       }).fail(function (xhr) {
