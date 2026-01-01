@@ -163,9 +163,11 @@
           <h4 class="mb-0">Filter:</h4>
         </div>
         <div class="card-body">
-            <div class="row col-12"> 
-            <div class="col-sm-3">
-              <div class="mb-3">
+          <div class="row col-12 "> 
+            <div class="col-12 col-md-10">
+              <div class="row g-2">
+                
+                <div class="col-12 col-sm-6 col-lg-3">
               <select class="form-select select2" 
               style="width: 100%; height: 36px" id="tahun_data" name="tahun">
                 <option value="" >Semua Tahun</option>
@@ -174,9 +176,8 @@
                 {% endfor %}
               </select>
               </div>
-            </div>
-            <div class="col-sm-3">
-              <div class="mb-3">
+            
+              <div class="col-12 col-sm-6 col-lg-3">
               <select class="form-select select2" 
               style="width: 100%; height: 36px" id="bulan_data" name="bulan">
                 <option  value="" >Semua Bulan</option>
@@ -188,9 +189,8 @@
                 {% endfor %}
               </select>
               </div>
-            </div>
-            <div class="col-sm-3">
-              <div class="mb-3">
+            
+              <div class="col-12 col-sm-6 col-lg-3">
               <select class="form-select select2 " 
               style="width: 100%; height: 36px" id="tanggal_data" name="tanggal">
                 <option value="" >Semua Tanggal</option>
@@ -200,28 +200,24 @@
                 {% endfor %}
               </select>
               </div>
+              
+              <div class="col-12 col-sm-6 col-lg-3">
+                <select class="form-select select2 " 
+                style="width: 100%; height: 36px" id="nama_principle" name="nama_principle">
+                  <option value="" >Semua Nama Principle</option>
+                    {% for i in data_pabrik %}
+                    <option value="{{ i.nama_supplier }}" {% if request.args.get('nama_principle') == i.nama_supplier %} selected {% endif %} >{{ i.nama_supplier }}</option>
+                    {% endfor %}
+                </select>
+                </div>
             </div>
-			<div class="col-sm-3">
-            <div class="mb-3">
-              <button class="btn btn-info" onclick="run()">Submit</button>
-            </div>
-            </div>
-			<div class="col-sm-3">
-              <div class="mb-3">
-              <select class="form-select select2 " 
-              style="width: 100%; height: 36px" id="nama_principle" name="nama_principle">
-                <option value="" >Semua Nama Principle</option>
-                  {% for i in data_pabrik %}
-                  <option value="{{ i.nama_supplier }}" {% if request.args.get('nama_principle') == i.nama_supplier %} selected {% endif %} >{{ i.nama_supplier }}</option>
-                  {% endfor %}
-              </select>
-              </div>
-            </div>
-            
-            
+          </div>
+        <div class="col-12 col-md-2 ms-md-auto">
+          <button type="button" class="btn btn-info w-100" onclick="run()">Submit</button>
+        </div>
         </div>
                   <!-- Apply max-height for Transaksi table -->
-                  <div class="table-responsive">
+                  <div class="table-responsive mt-3">
                     <table id="table__data" class="table w-100 table-bordered display table-responsive-stack ">
                     <thead  class="table-light">
                       <tr>
@@ -247,7 +243,7 @@
                               <td data-label="Performa Belanja">
                                   <div class="justify-content-between d-flex w-100">
                                             <div>Rp</div>
-                                            <div>{{ i.performa_belanja | format_rupiah }}</div>
+                                            <div>{{ i.performa_belanja | format_performa_sales }}</div>
                                         </div>
                               </td>
                                 <td data-label="Tanggal Pembayaran">{{ i.tanggal_pembayaran or "-" }}
@@ -279,7 +275,7 @@
                                
 									  <input type="hidden" name="id-{{i.id}}" value="{{i.id}}">
 									  <div class="form-group "> <label for="total-{{i.id}}">Total </label>
-									  <input disabled class="form-control" type="text" name="total-{{i.id}}" value="{{i.performa_belanja}}"></div>
+									  <input disabled class="form-control" type="text" name="total-{{i.id}}" value="Rp {{i.performa_belanja|format_performa_sales}}"></div>
                     
 									  <div class="form-group"> <label for="tanggal_pembayaran-{{i.id}}">Tanggal Pembayaran </label>
                     <div class="input-group"> <input type="text" name="tanggal_pembayaran-{{i.id}}" class="complex-colorpicker form-control" value="{{ i.tanggal_pembayaran|default('-')|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>

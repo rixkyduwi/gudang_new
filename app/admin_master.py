@@ -56,8 +56,8 @@ ENTITIES = {
     "customers": {
         "table": "customers",
         "header_name": "outlet",
-        "columns": ["name", "address", "npwp"],
-        "columns_name": ["nama", "alamat", "npwp"],
+        "columns": ["name", "address", "phone","npwp"],
+        "columns_name": ["nama", "alamat", "no hp","npwp"],
         "id": "id",
         "search": ["name", "npwp"],
         "soft_delete": True,  # arsipkan, bukan delete fisik
@@ -71,7 +71,7 @@ ENTITIES = {
         "id": "id",
         "search": ["name"],
         "soft_delete": True,  # arsipkan, bukan delete fisik
-        "order_by": "id ASC"
+        "order_by": "name ASC"
     },
     "senders": {
         "table": "senders",

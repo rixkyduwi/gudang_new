@@ -262,7 +262,13 @@ def format_0_date(value):
     if value == "0000-00-00":
         return "-"
     else :
-        return value        
+        return value
+@app.template_filter('format_0_number')
+def format_0_number(value):
+    if value == "000-000-000-000":
+        return "-"
+    else :
+        return value
 @app.template_filter('format_date')
 def format_date(value):
     if not value:
@@ -780,6 +786,7 @@ def edit_penyimpanan():
     new_qty    = data.get('new_qty')
     note       = data.get('note') or 'Manual adjustment'
 
+
     if not product_id or new_qty is None:
         return jsonify({"error": "product_id dan new_qty wajib"}), 400
 
@@ -845,21 +852,6 @@ def edit_penyimpanan():
         g.con.connection.rollback()
         print(e)
         return jsonify({"error": str(e)}), 500
-
-@app.route('/admin/penyimpanan/reset', methods=['DELETE'])
-@jwt_required()
-def reset_stok():
-    try:
-        id = request.json.get('id')
-        # Hapus dari barang_gudang
-        g.con.execute(" FROM  WHERE id = %s", (int(id),))
-        g.con.connection.commit()
-
-        return jsonify({"msg": "BERHASIL DIHAPUS"})
-    except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 500
-
 def next_invoice_no_for_date(d):
     row = one("""
         SELECT RIGHT(invoice_no, 3) AS last_3
@@ -1923,20 +1915,20 @@ def adminkeuangan():
         total_pages=total_pages, total_records=total_records,
         has_next=has_next, has_prev=has_prev, page_range=page_range
     ) 
-
 @app.route('/admin/keuangan/excell', methods=['GET'])
 @jwt_required()
 def report_keuangan():
     t0 = time.perf_counter()
     log = current_app.logger
 
-    # --- 1. Params & Build Query ---
+    # --- 1. Params ---
     tahun        = request.args.get('tahun', type=int)
     bulan        = request.args.get('bulan', type=int)
     tanggal      = request.args.get('tanggal', type=int)
     nama_sales_q = request.args.get('nama_sales', '', type=str)
     nama_cust_q  = request.args.get('nama_outlet', '', type=str)
 
+    # --- 2. Build Filter ---
     filters, params = [], []
     clause, prms = build_date_range(year=tahun, month=bulan, day=tanggal, alias="si", col="invoice_date")
     if clause:
@@ -1948,19 +1940,24 @@ def report_keuangan():
 
     where_clause = (" WHERE " + " AND ".join(filters)) if filters else ""
 
-    # --- 2. Fetch Data Invoices ---
-    invoices = fetch(f"""
+    # --- 3. Fetch Data ---
+    # Mengambil data faktur beserta info pembayaran terakhir
+    rows = fetch(f"""
         SELECT
-          si.id,
           si.invoice_date   AS tglfaktur,
-          si.invoice_no     AS nomerfaktur,
-          si.due_date       AS jatuhtempo,
-          si.status,
+          si.invoice_no     AS nofaktur,
           s.name            AS nama_sales,
-          COALESCE(c.name,'-')     AS nama_outlet,
-          COALESCE(si_amt.total_invoice, 0) AS total_invoice,
-          COALESCE(pay_amt.total_payment, 0) AS total_payment,
-          COALESCE(si_amt.total_invoice, 0) - COALESCE(pay_amt.total_payment, 0) AS outstanding
+          COALESCE(c.name,'-') AS nama_outlet,
+          si.payment_term   AS metode_pembayaran, -- CASH/TEMPO
+          COALESCE(si_amt.total_invoice, 0) AS jml_total,
+          si.status,
+          -- Info Pembayaran Terakhir
+          (SELECT p2.pay_date FROM payments p2 
+           WHERE p2.ref_type='SALE' AND p2.ref_id=si.id 
+           ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS tgl_bayar,
+          (SELECT p2.note FROM payments p2 
+           WHERE p2.ref_type='SALE' AND p2.ref_id=si.id 
+           ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS ket_bayar
         FROM sales_invoices si
         JOIN salespersons s ON s.id = si.salesperson_id
         LEFT JOIN customers c ON c.id = si.customer_id
@@ -1968,81 +1965,58 @@ def report_keuangan():
             SELECT sales_invoice_id, SUM(total_amount) AS total_invoice
             FROM sales_items GROUP BY sales_invoice_id
         ) si_amt ON si_amt.sales_invoice_id = si.id
-        LEFT JOIN (
-            SELECT ref_id, SUM(amount) AS total_payment
-            FROM payments WHERE ref_type='SALE' GROUP BY ref_id
-        ) pay_amt ON pay_amt.ref_id = si.id
         {where_clause}
         ORDER BY si.invoice_date DESC, si.id DESC
     """, tuple(params))
 
-    # --- 3. Siapkan Workbook Excel ---
+    # --- 4. Build Excel ---
     wb = Workbook()
     ws = wb.active
-    ws.title = "Laporan Keuangan"
+    ws.title = "Laporan Keuangan Penjualan"
 
-    # Header Tabel
+    # Header sesuai permintaan
     headers = [
-        "Tanggal Faktur", "No Faktur", "Jatuh Tempo", "Nama Sales", 
-        "Nama Outlet", "Status", "Total Faktur", "Total Bayar", "Outstanding"
+        "No", "Tgl Faktur", "No Faktur", "Nama Sales", "Nama Outlet", 
+        "Cash/Tempo", "Jumlah Total", "Tgl Bayar", "Ket Bayar", "Status"
     ]
     
-    # Judul Atas
-    ws.merge_cells("A1:I1")
-    ws["A1"] = "LAPORAN PIUTANG & KEUANGAN"
-    ws["A1"].font = Font(size=14, bold=True)
-    ws["A1"].alignment = Alignment(horizontal="center")
-
-    # Tulis Header (Baris 2)
-    ws.append(headers)
+    # Tulis Header (Baris 1)
     for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=2, column=col_num)
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
         cell.font = Font(bold=True)
         cell.alignment = Alignment(horizontal="center")
 
-    # --- 4. Isi Data (Body) ---
-    row_idx = 3
-    grand_total_invoice = 0
-    grand_total_payment = 0
-    grand_total_outstanding = 0
-
-    for inv in invoices:
+    # --- 5. Isi Data Body ---
+    for index, r in enumerate(rows, 1):
         ws.append([
-            inv["tglfaktur"],
-            inv["nomerfaktur"],
-            inv["jatuhtempo"],
-            inv["nama_sales"],
-            inv["nama_outlet"],
-            inv["status"],
-            inv["total_invoice"],
-            inv["total_payment"],
-            inv["outstanding"]
+            index,                      # No
+            r["tglfaktur"],             # Tgl Faktur
+            r["nofaktur"],              # No Faktur
+            r["nama_sales"],            # Nama Sales
+            r["nama_outlet"],           # Nama Outlet
+            r["metode_pembayaran"],     # Cash/Tempo
+            r["jml_total"],             # Jumlah Total
+            r["tgl_bayar"] or "-",      # Tgl Bayar
+            r["ket_bayar"] or "-",      # Ket Bayar
+            r["status"]                 # Status
         ])
-        
-        # Akumulasi untuk footer
-        grand_total_invoice += inv["total_invoice"]
-        grand_total_payment += inv["total_payment"]
-        grand_total_outstanding += inv["outstanding"]
-        row_idx += 1
 
-    # --- 5. Footer (Total) ---
-    ws.append(["", "", "", "", "", "TOTAL", grand_total_invoice, grand_total_payment, grand_total_outstanding])
-    footer_row = ws.max_row
-    for col_num in range(6, 10):
-        ws.cell(row=footer_row, column=col_num).font = Font(bold=True)
+    # --- 6. Styling & Formatting ---
+    last_row = ws.max_row
+    
+    # Format Ribuan untuk kolom Jumlah Total (Kolom G / 7)
+    for row in range(2, last_row + 1):
+        ws.cell(row=row, column=7).number_format = '#,##0'
+        # Alignment No dan Tanggal di tengah
+        ws.cell(row=row, column=1).alignment = Alignment(horizontal="center")
+        ws.cell(row=row, column=2).alignment = Alignment(horizontal="center")
+        ws.cell(row=row, column=6).alignment = Alignment(horizontal="center")
 
-    # --- 6. Formatting ---
-    # Format Rupiah untuk kolom G, H, I (7, 8, 9)
-    for r in range(3, ws.max_row + 1):
-        for c in range(7, 10):
-            cell = ws.cell(row=r, column=c)
-            cell.number_format = '#,##0'
-            cell.alignment = Alignment(horizontal="right")
-
-    # Auto Width
-    for i, col_title in enumerate(headers, 1):
-        column_letter = get_column_letter(i)
-        ws.column_dimensions[column_letter].width = 18
+    # Set Lebar Kolom
+    col_widths = [5, 15, 20, 20, 25, 12, 15, 15, 25, 12]
+    for i, width in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = width
 
     # --- 7. Output ---
     bio = io.BytesIO()
@@ -2050,7 +2024,7 @@ def report_keuangan():
     bio.seek(0)
 
     t1 = time.perf_counter()
-    log.info(f"[EXPORT] Excel generated in {t1-t0:.3f}s")
+    log.info(f"[EXPORT] Keuangan Excel generated in {t1-t0:.3f}s")
 
     return send_file(
         bio,
@@ -2305,139 +2279,110 @@ def adminadministrasi():
         total_pages=total_pages, total_records=total_records,
         has_next=has_next, has_prev=has_prev, page_range=page_range
     )
+
 @app.route('/admin/administrasi/excell', methods=['GET'])
 @jwt_required()
 def report_administrasi():
     t0 = time.perf_counter()
     log = current_app.logger
+    
+    # --- 1. Params & Filter ---
     tahun   = request.args.get('tahun', type=int)
     bulan   = request.args.get('bulan', type=int)
     tanggal = request.args.get('tanggal', type=int)
     supplier_name = request.args.get('nama_principle', type=str)
 
-    filters, params, count_params = [], [], []
-
-    clause, prms = build_date_range(
-        year=tahun, month=bulan, day=tanggal,
-        alias="p", col="invoice_date"
-    )
+    filters, params = [], []
+    clause, prms = build_date_range(year=tahun, month=bulan, day=tanggal, alias="p", col="invoice_date")
     if clause:
-        filters.append(clause); params += prms; count_params += prms
+        filters.append(clause); params += prms
     if supplier_name:
-        filters.append("s.name = %s"); params.append(supplier_name); count_params.append(supplier_name)
+        filters.append("s.name = %s"); params.append(supplier_name)
 
     where_clause = (" WHERE " + " AND ".join(filters)) if filters else ""
 
-    # Count distinct purchases
-    cnt = one(f"""
-        SELECT COUNT(*) FROM (
-          SELECT p.id
-          FROM purchases p
-          JOIN suppliers s ON s.id = p.supplier_id
-          {where_clause}
-          GROUP BY p.id
-        ) x
-    """, tuple(count_params))
-    total_records = cnt[0] if cnt else 0
-
-
-    # Header + agregat total & payment
+    # --- 2. Query Data ---
     rows = fetch(f"""
         SELECT
-          p.id,
           p.invoice_date AS tglfaktur,
           p.invoice_no   AS nofaktur,
+          s.name         AS nama_supplier,
           p.status,
-          s.name   AS nama_supplier,
-          s.address AS alamat,
-          s.phone   AS tlp,
-          COALESCE(pi_sum.total_belanja, 0)  AS performa_belanja,
-          COALESCE(pay_sum.total_bayar, 0)   AS total_bayar,
-          (COALESCE(pi_sum.total_belanja, 0) - COALESCE(pay_sum.total_bayar, 0)) AS outstanding,
-          -- pembayaran terakhir (optional, untuk tampilan)
-          (SELECT p2.pay_date FROM payments p2
-             WHERE p2.ref_type='PURCHASE' AND p2.ref_id=p.id
-             ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS tanggal_pembayaran_terakhir,
-          (SELECT p3.method FROM payments p3
-             WHERE p3.ref_type='PURCHASE' AND p3.ref_id=p.id
-             ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS metode_terakhir,
-          (SELECT p4.note FROM payments p4
-             WHERE p4.ref_type='PURCHASE' AND p4.ref_id=p.id
-             ORDER BY p4.pay_date DESC, p4.id DESC LIMIT 1) AS keterangan_terakhir
+          COALESCE(pi_sum.total_belanja, 0) AS jml_total,
+          -- Ambil info pembayaran terakhir
+          (SELECT p2.pay_date FROM payments p2 
+           WHERE p2.ref_type='PURCHASE' AND p2.ref_id=p.id 
+           ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS tgl_bayar,
+          (SELECT p2.note FROM payments p2 
+           WHERE p2.ref_type='PURCHASE' AND p2.ref_id=p.id 
+           ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS keterangan
         FROM purchases p
         JOIN suppliers s ON s.id = p.supplier_id
         LEFT JOIN (
-          SELECT purchase_id, SUM(total_amount) AS total_belanja
-          FROM purchase_items
-          GROUP BY purchase_id
+          SELECT purchase_id, SUM(total_amount) AS total_belanja 
+          FROM purchase_items GROUP BY purchase_id
         ) pi_sum ON pi_sum.purchase_id = p.id
-        LEFT JOIN (
-          SELECT ref_id, SUM(amount) AS total_bayar
-          FROM payments
-          WHERE ref_type='PURCHASE'
-          GROUP BY ref_id
-        ) pay_sum ON pay_sum.ref_id = p.id
         {where_clause}
-        ORDER BY p.id DESC
+        ORDER BY p.invoice_date DESC, p.id DESC
     """, tuple(params))
 
-    # Detail item untuk invoice di halaman ini
-    detail_map = {}
-    if rows:
-        ids = tuple(r['id'] for r in rows)
-        detail = fetch("""
-            SELECT
-              pi.purchase_id,
-              pr.code, pr.name,
-              pi.qty, pi.unit_price, pi.total_amount,
-              pi.unit_label, pi.qty_uom, pi.uom_factor_to_base, pi.qty_base
-            FROM purchase_items pi
-            JOIN products pr ON pr.id = pi.product_id
-            WHERE pi.purchase_id IN %s
-            ORDER BY pi.id
-        """, (ids,))
-        for d in detail:
-            detail_map.setdefault(d['purchase_id'], []).append(d)
+    # --- 3. Build Excel ---
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Laporan Administrasi"
 
-    info_list = []
-    for r in rows:
-        info_list.append({
-            "id": r["id"],
-            "tglfaktur": r["tglfaktur"],
-            "nofaktur": r["nofaktur"],
-            "status": r["status"],
-            "nama_supplier": r["nama_supplier"],
-            "alamat": r["alamat"],
-            "tlp": r["tlp"],
-            "performa_belanja": r["performa_belanja"],
-            "total_bayar": r["total_bayar"],
-            "outstanding": r["outstanding"],
-            "tanggal_pembayaran_terakhir": r["tanggal_pembayaran_terakhir"],
-            "metode_terakhir": r["metode_terakhir"],
-            "keterangan_terakhir": r["keterangan_terakhir"],
-            "detail_items": detail_map.get(r["id"], [])
-        })
-    # Auto Width
-    for i, col_title in enumerate(headers, 1):
-        column_letter = get_column_letter(i)
-        ws.column_dimensions[column_letter].width = 18
+    # Definisi Header sesuai permintaan Anda
+    headers = ["No", "Tgl Faktur", "No Faktur", "Supplier", "Jml Total", "Tgl Pembayaran", "Keterangan", "Status"]
+    
+    # Tulis Header ke Baris 1
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
 
-    # --- 7. Output ---
+    # --- 4. Isi Data Body ---
+    for index, r in enumerate(rows, 1):
+        ws.append([
+            index,                  # No
+            r["tglfaktur"],         # Tgl Faktur
+            r["nofaktur"],          # No Faktur
+            r["nama_supplier"],     # Supplier
+            r["jml_total"],         # Jml Total
+            r["tgl_bayar"] or "-",  # Tgl Pembayaran
+            r["keterangan"] or "-", # Keterangan
+            r["status"]             # Status
+        ])
+
+    # --- 5. Styling & Formatting ---
+    last_row = ws.max_row
+    
+    # Format Ribuan untuk kolom Jml Total (Kolom E / 5)
+    for row in range(2, last_row + 1):
+        ws.cell(row=row, column=5).number_format = '#,##0'
+        # Alignment No dan Tanggal di tengah
+        ws.cell(row=row, column=1).alignment = Alignment(horizontal="center")
+        ws.cell(row=row, column=2).alignment = Alignment(horizontal="center")
+
+    # Auto Width Kolom
+    col_widths = [5, 15, 20, 30, 15, 18, 30, 12]
+    for i, width in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = width
+
+    # --- 6. Return File ---
     bio = io.BytesIO()
     wb.save(bio)
     bio.seek(0)
 
     t1 = time.perf_counter()
-    log.info(f"[EXPORT] Excel generated in {t1-t0:.3f}s")
+    log.info(f"[EXPORT] Administrasi Excel generated in {t1-t0:.3f}s")
 
     return send_file(
         bio,
         as_attachment=True,
-        download_name=f"Laporan_Keuangan_{int(time.time())}.xlsx",
+        download_name=f"Laporan_Administrasi_{int(time.time())}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    
+    )  
 @app.route('/admin/administrasi/edit/id', methods=['PUT'])
 @jwt_required()
 def edit_administrasi():

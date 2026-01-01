@@ -32,11 +32,15 @@
 
 <div class="container-fluid">
   <div class="card">
-  
+	  <div class="card-header border-bottom">
+      <h4 class="mb-0">Filter:</h4>
+    </div>
     <div class="card-body">
-      <h4 class="mb-3">Filter:</h4>
-      <div class="row g-2">
-        <div class="col-sm-3">
+      <div class="row col-12 "> 
+        <div class="col-12 col-md-10">
+          <div class="row g-2">
+            
+            <div class="col-12 col-sm-6 col-lg-3">
           <select class="form-select select2" id="tahun_data" name="tahun" style="width:100%">
             <option value="">Semua Tahun</option>
             {% for t in list_tahun %}
@@ -47,7 +51,8 @@
           </select>
         </div>
 
-        <div class="col-sm-3">
+        
+        <div class="col-12 col-sm-6 col-lg-3">
           <select class="form-select select2" id="bulan_data" name="bulan" style="width:100%">
             <option value="">Semua Bulan</option>
             {% set bulan_list = [
@@ -63,18 +68,16 @@
           </select>
         </div>
 
-        <div class="col-sm-3">
+        
+        <div class="col-12 col-sm-6 col-lg-3">
           <select class="form-select select2" id="lunas_tidak" name="lunas_tidak" style="width:100%">
             <option value="">Semua Status</option>
             <option value="Lunas" {{ 'selected' if request.args.get('lunas_tidak') == 'Lunas' else '' }}>Lunas</option>
             <option value="Tidak Lunas" {{ 'selected' if request.args.get('lunas_tidak') == 'Tidak Lunas' else '' }}>Tidak Lunas</option>
           </select>
         </div>
-
-        <div class="col-sm-3 mt-2">
-          <button class="btn btn-info" onclick="run()">Submit</button>
-        </div>
-		    <div class="col-sm-3">
+		    
+        <div class="col-12 col-sm-6 col-lg-3">
           <select class="form-select select2" id="sales_data" name="sales" style="width:100%">
             <option value="">Semua Sales</option>
             {% for s in nama_sales %}
@@ -84,14 +87,16 @@
             {% endfor %}
           </select>
         </div>
-        
       </div>
-
+    </div>
+  <div class="col-12 col-md-2 ms-md-auto">
+    <button type="button" class="btn btn-info w-100" onclick="run()">Submit</button>
+  </div>
+  </div>
       {% for h in list_tahun %}
         {% set tahun_req = request.args.get('tahun') %}
         {% if not tahun_req or tahun_req|string == h.tahun|string %}
-          <div id="table_{{ h.tahun }}" class="mt-4">
-            <h4 class="mb-3">Data Performa Sales {{ h.tahun }}</h4>
+          <div id="table_{{ h.tahun }}" class="mt-3">
 
             <div class="table-responsive scroll-table">
               <table id="table_{{ h.tahun }}_data" class="table w-100 table-bordered display ">

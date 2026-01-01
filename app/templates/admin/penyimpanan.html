@@ -137,7 +137,7 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
                   <!-- Apply max-height for Transaksi table -->
                   <div class="table-responsive ">
                     <table id="table__data" class="table table-bordered w-100 table-responsive-stack">
-            <thead class="table-light">
+                    <thead class="table-light">
                       <tr>
                         <th> No</th>
                         <th> Kode Barang</th> 
@@ -161,9 +161,8 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
                                 <td data-label="Status">{{ i.status }}</td>
                                 <td data-label="Aksi">
                                 <!-- <button data-bs-toggle="modal" data-bs-target="#modal-{{ i.product_id }}" class="btn btn-success">Nota</button> -->
-                                  <button onclick="edit({{ i.product_id }}, '{{i.kode_barang}}', '{{i.nama_barang}}', '{{i.unit}}', {{i.sisa_gudang}}, {{i.stok_limit}}, '{{i.status}}' )" class="btn btn-sm btn-warning">Edit</button>
-                                  <button class="btn btn-sm btn-danger" onclick="resetStok({{ i.product_id }}, '{{ i.nama_barang|e }}')">Reset Stok = 0</button>
-								</td>
+                                <button onclick="edit({{ i.product_id }}, '{{i.kode_barang}}', '{{i.nama_barang}}', '{{i.unit}}', {{i.sisa_gudang}}, {{i.stok_limit}}, '{{i.status}}' )" class="btn btn-sm btn-warning">Edit</button>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -209,28 +208,6 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
 			container: '#pjax-container'
 		});
 		}
-async function resetStok(productId, nama) {
-  if (!confirm(`Reset stok "${nama}" menjadi 0?`)) return;
-  try {
-    handleAjax('/admin/penyimpanan', method, data, onSuccess, onError) {
-    const res = await fetch(, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ product_id: productId, new_qty: 0, note: 'Reset to zero' })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Gagal reset stok');
-    alert('Stok berhasil di-reset');
-    // reload / refresh table
-    $.pjax({
-            url: '',
-            container: '#pjax-container'
-			});
-	
-  } catch (e) {
-    alert(e.message);
-  }
-}
 
 	</script>
 {% endblock %}

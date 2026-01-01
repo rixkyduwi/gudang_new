@@ -50,7 +50,25 @@
     </div>
   </div>
 </div>
-<script>
+<script> 
+function formatAngka(angka){
+  angka = angka.toString();
+  let number_string = angka.replace(/[^,\d]/g, "").toString();
+  let split = number_string.split(",");
+  let sisa = split[0].length % 3;
+  let hasil = split[0].substr(0, sisa);
+  let ribuan = split[0].substr(sisa).match(/\d{3}/g);
+  if (ribuan) {
+    let separator = sisa ? "." : "";
+    hasil += separator + ribuan.join(".");
+  }
+  return hasil;
+}
+function formatAngkaInput(el){
+  let angka = (el.value||'').replace(/\./g, "");
+  el.value = formatAngka(angka);
+}
+function bersihkanFormatAngka(s){ return (s||'').toString().replace(/\./g, ''); }
 function loadTargets(){
   const sp = $('#sp').val(), y = $('#year').val();
   const qs = $.param({salesperson_id: sp||'', year: y||''});
@@ -60,7 +78,7 @@ function loadTargets(){
         <td>${r.salesperson_name}</td>
         <td>${r.month}</td>
         <td>${r.year}</td>
-        <td class="text-end">${Number(r.target_amount).toLocaleString()}</td>
+        <td class="text-end">RP ${Number(r.target_amount).toLocaleString()}</td>
         <td>
           <button class="btn btn-sm btn-danger" onclick="delTarget(${r.id})">Hapus</button>
         </td>
@@ -86,13 +104,13 @@ function openCreateSalesTarget(){
     <div class="mb-2"><label class="form-label">Year</label>
       <input id="f_y" type="number" class="form-control" value="${y||''}"></div>
     <div class="mb-2"><label class="form-label">Target Amount</label>
-      <input id="f_amt" type="number" class="form-control" min="0" step="1000"></div>
+      <input id="f_amt" type="text" class="form-control" placeholder="0" oninput="formatAngkaInput(this)"></div>
   `, function(){
     const payload = {
       salesperson_id: Number($('#f_sp').val()),
       month: Number($('#f_m').val()),
       year: Number($('#f_y').val()),
-      target_amount: Number($('#f_amt').val())
+      target_amount: bersihkanFormatAngka($('#f_amt').val())
     };
     $.ajax({
       url:'/admin/sales_targets', method:'POST',
@@ -108,22 +126,22 @@ function openBulk(){
   if(!sp || !y){ alert('Pilih salesperson & year dulu'); return; }
   showModal('Bulk 12 Bulan', `
     <div class="mb-2"><label class="form-label">Base Amount (default tiap bulan)</label>
-      <input id="base" type="number" class="form-control" min="0" step="1000" value="0"></div>
+      <input id="base" type="text" class="form-control" placeholder="0" oninput="formatAngkaInput(this)"></div>
     <div class="row g-2">
       ${Array.from({length:12}).map((_,i)=>`
         <div class="col-6">
           <label class="form-label mb-1">Bulan ${i+1}</label>
-          <input type="number" class="form-control" id="m${i+1}" min="0" step="1000">
+          <input type="text" class="form-control" id="m${i+1}" placeholder="0" oninput="formatAngkaInput(this)">
         </div>`).join('')}
     </div>
     <small class="text-muted">Kalau kolom bulan kosong, akan dipakai Base Amount.</small>
   `, function(){
     const months = {};
     for(let i=1;i<=12;i++){
-      const v = Number(document.getElementById('m'+i).value||NaN);
+      const v = bersihkanFormatAngka(document.getElementById('m'+i).value||NaN);
       if(!Number.isNaN(v)) months[i]=v;
     }
-    const payload = { salesperson_id:Number(sp), year:Number(y), base_amount:Number($('#base').val()||0), months };
+    const payload = { salesperson_id:Number(sp), year:Number(y), base_amount:bersihkanFormatAngka($('#base').val()||0), months };
     $.ajax({
       url:'/admin/sales_targets/bulk', method:'POST',
       contentType:'application/json', data: JSON.stringify(payload),
