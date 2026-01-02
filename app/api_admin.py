@@ -129,10 +129,19 @@ def format_0_date(value):
 def format_0_number(value):
     if value == "000-000-000-000":
         return "-"
+    if value == "0000-00-00":
+        return "-"
     if value == 1:
         return "Aktif"
     else :
         return value
+@app.template_filter('format_lunas')
+def format_lunas(value):
+    print(value)
+    if value == "PAID":
+        return "Lunas"
+    else:
+        return "Tidak Lunas"
 @app.template_filter('format_date')
 def format_date(value):
     if not value:
@@ -274,8 +283,8 @@ def parse_decimal(x, default=Decimal('0')):
 @app.route('/admin/penerimaan-tambah', methods=['GET'])
 @jwt_required()
 def admin_penerimaan_tambah():
-    data_barang = fetch("SELECT id, code, name, unit, stock_min FROM products WHERE is_active=1 ORDER BY name")
-    data_supplier = fetch("SELECT id, name, address, phone FROM suppliers ORDER BY name")
+    data_barang = fetch("SELECT id, code, name, unit, stock_min FROM products WHERE is_active=1 ORDER BY id")
+    data_supplier = fetch("SELECT id, name, address, phone FROM suppliers ORDER BY id")
     return render_pjax(
         "admin/tambah_penerimaan.html",
         data_supplier=data_supplier,
@@ -379,8 +388,9 @@ def tambah_penerimaan():
     d = request.get_json() or {}
     supplier_id = d.get('supplier_id') or d.get('id_supplier')
     invoice_no  = d.get('invoice_no')  or d.get('nofaktur')
-    invoice_date= d.get('invoice_date')or d.get('tglfaktur')
+    invoice_date= d.get('invoice_date') or d.get('tglfaktur')
     due_date    = d.get('due_date') or d.get('jthtempo')
+    payment_term= d.get('pembayaran')
     items       = d.get('items') or []
 
     if not supplier_id or not invoice_no or not invoice_date or not items:
@@ -393,9 +403,9 @@ def tambah_penerimaan():
     try:
         # Header
         g.con.execute("""
-            INSERT INTO purchases (supplier_id, invoice_no, invoice_date, due_date, status)
-            VALUES (%s,%s,%s,%s,'POSTED')
-        """, (supplier_id, invoice_no, invoice_date, due_date))
+            INSERT INTO purchases (supplier_id, invoice_no, invoice_date, due_date, payment_term, status)
+            VALUES (%s,%s,%s,%s,%s,'POSTED')
+        """, (supplier_id, invoice_no, invoice_date, due_date,payment_term))     
         purchase_id = g.con.lastrowid
 
         # Detail
@@ -461,8 +471,8 @@ def penerimaan_detail(id):
         WHERE pi.purchase_id=%s
         ORDER BY pi.id
     """, (id,))
-    data_supplier = fetch("SELECT id, name FROM suppliers ORDER BY name")
-    data_barang   = fetch("SELECT id, code, name, unit FROM products WHERE is_active=1 ORDER BY name")
+    data_supplier = fetch("SELECT id, name, address, phone FROM suppliers ORDER BY id")
+    data_barang   = fetch("SELECT id, code, name, unit FROM products WHERE is_active=1 ORDER BY id")
     return render_pjax("admin/edit_penerimaan.html",
                            purchase=hdr[0], items=items,
                            data_supplier=data_supplier, data_barang=data_barang,
@@ -538,7 +548,7 @@ def penerimaan_delete(id):
         # hapus header
         g.con.execute("DELETE FROM purchases WHERE id=%s", (id,))
         g.con.connection.commit()
-        return jsonify({"msg":"BERHASIL DIHAPUS"})
+        return jsonify({"msg":"SUKSES"})
     except Exception as e:
         g.con.connection.rollback()
         return jsonify({"error": str(e)}), 500
@@ -751,12 +761,10 @@ def tambah_pengeluaran():
         FROM products p
         LEFT JOIN v_product_stock v ON v.product_id = p.id
         WHERE p.is_active=1
-        ORDER BY p.name
     """)
     # Sales & Customer
     data_sales = fetch("SELECT id, name FROM salespersons WHERE is_active=1 ORDER BY name")
     data_pengirim = fetch("SELECT id, name FROM senders WHERE is_active=1 ORDER BY name")
-    data_customers = fetch("SELECT id, name, address FROM customers ORDER BY name")
     print(data_pengirim)
     # tanggal & jth tempo default
     today = time_zone_wib().date()
@@ -766,7 +774,6 @@ def tambah_pengeluaran():
     return render_pjax("admin/tambah_pengeluaran.html",
         data_sales=data_sales,
         data_pengirim=data_pengirim,
-        data_customers=data_customers,
         data_barang=data_barang,
         tanggal=today.strftime("%Y-%m-%d"),
         nofaktur=nofaktur,
@@ -1022,9 +1029,11 @@ def penjualan_detail(id):
     # Menghubungkan sales_invoices dengan customers (asumsi ada tabel customers)
     hdr = fetch("""
         SELECT 
-            si.id, si.invoice_no, si.invoice_date, si.due_date, 
+            si.id, si.invoice_no, si.invoice_date, si.due_date, si.salesperson_id,
             si.payment_term, si.status, si.tax_flag, si.tax_rate,
+            c.id AS id_outlet,
             c.name AS nama_outlet,
+            sp.id AS id_sales,
             sp.name AS nama_sales,
             s.name AS nama_pengirim,
             c.address AS alamat_outlet
@@ -1032,8 +1041,7 @@ def penjualan_detail(id):
         LEFT JOIN customers c ON c.id = si.customer_id
         LEFT JOIN salespersons sp ON sp.id = si.salesperson_id
         LEFT JOIN senders s ON s.id = si.sender_id
-        WHERE si.id = %s
-    """, (id,))
+        WHERE si.id = %s """, (id,))
 
     if not hdr:
         return "Invoice Penjualan tidak ditemukan", 404
@@ -1042,18 +1050,37 @@ def penjualan_detail(id):
     items = fetch("""
         SELECT 
             si.id, si.product_id, p.code, p.name, p.unit,
-            si.qty, si.unit_price, si.total_amount, si.discount_percent,
+            si.qty, si.batch_no, si.expired_date,
+            
+            -- Pemisahan Unit Price
+            FLOOR(si.unit_price) AS unit_price_decimal,
+            ROUND((si.unit_price - FLOOR(si.unit_price)) * 100) AS unit_price_decimal_koma,
+            
+            -- Pemisahan Total Amount
+            FLOOR(si.total_amount) AS total_amount_decimal,
+            ROUND((si.total_amount - FLOOR(si.total_amount)) * 100) AS total_amount_decimal_koma,
+            
+            -- Pemisahan Discount Percent
+            FLOOR(si.discount_percent) AS discount_percent_decimal,
+            ROUND((si.discount_percent - FLOOR(si.discount_percent)) * 100) AS discount_percent_decimal_koma,
+            
             si.unit_label, si.qty_uom, si.unit_price_uom
+            
         FROM sales_items si
         JOIN products p ON p.id = si.product_id
         WHERE si.sales_invoice_id = %s
-        ORDER BY si.id
-    """, (id,))
+        ORDER BY si.id """, (id,))
 
     # 3. Data Pendukung untuk Dropdown (Edit Mode)
-    data_customer = fetch("SELECT id, name FROM customers ORDER BY name")
-    data_sales = fetch("SELECT id, name FROM salespersons ORDER BY name")
-    data_barang = fetch("SELECT id, code, name, unit, stock_min FROM products WHERE is_active=1 ORDER BY name")
+    data_customer = fetch("SELECT id, name FROM customers WHERE is_active=1 ORDER BY id")
+    data_sales = fetch("SELECT id, name FROM salespersons WHERE is_active=1 ORDER BY id")
+    data_pengirim = fetch("SELECT id, name FROM senders WHERE is_active=1 ORDER BY id")
+    data_barang = fetch("""
+        SELECT p.id, p.code, p.name, p.unit, COALESCE(v.qty_on_hand,0) AS qty_on_hand, p.stock_min
+        FROM products p
+        LEFT JOIN v_product_stock v ON v.product_id = p.id
+        WHERE p.is_active=1
+    """)
     
     return render_pjax("admin/edit_pengeluaran.html",
                         barang_keluar=hdr[0], 
@@ -1061,67 +1088,68 @@ def penjualan_detail(id):
                         data_outlet=data_customer, 
                         data_barang=data_barang,
                         data_sales =data_sales,
+                        data_pengirim =data_pengirim,
                         tanggal=time_zone_wib().date())
 @app.route('/admin/pengeluaran/<int:id>', methods=['PUT'])
 @jwt_required()
 def pengeluaran_edit(id):
     d = request.get_json() or {}
-    sp_id   = d.get('salesperson_id')
-    cust_id = d.get('customer_id')
+    print(f"DEBUG DATA: {d}") # Lihat console terminal Anda
+    sp_id   = d.get('id_sales')
+    cust_id = d.get('id_outlet')
     invoice_no   = d.get('invoice_no')
     invoice_date = d.get('invoice_date')
     due_date     = d.get('due_date')
+    if due_date and 'undefined' in due_date:
+        # Mengambil 10 karakter terakhir (asumsi format YYYY-MM-DD di akhir string)
+        due_date = due_date.split('-')[-3:] # Ambil 3 bagian terakhir
+        due_date = '-'.join(due_date)
+    payment_term = d.get('pembayaran')
+    tax_flag     = d.get('pajak')
     items = d.get('items') or []
     if not (sp_id and invoice_no and invoice_date and items):
         return jsonify({"error":"salesperson_id, invoice_no, invoice_date, items wajib"}), 400
-    try:
+    g.con.execute("""
+        UPDATE sales_invoices
+        SET salesperson_id=%s, customer_id=%s, invoice_no=%s, invoice_date=%s, due_date=%s, tax_flag = %s, payment_term = %s
+        WHERE id=%s
+    """, (sp_id, cust_id, invoice_no, invoice_date, due_date,tax_flag,payment_term, id))
+    g.con.execute("DELETE FROM stock_moves WHERE ref_type='SALE' AND ref_id=%s", (id,))
+    g.con.execute("DELETE FROM sales_items WHERE sales_invoice_id=%s", (id,))
+    total_hdr = Decimal('0')
+    for it in items:
+        product_id  = it.get('id_barang')
+        qty         = int(it.get('jmlpermintaan') or 0)
+        unit_price  = parse_decimal(it.get('harga_satuan'))
+        disc_pct    = parse_decimal(it.get('diskon') or 0)
+        total_amount= parse_decimal(it.get('harga_total') or unit_price*qty - (unit_price*qty*disc_pct/Decimal('100')))
+        unit_label = it.get('unit_label')
+        factor     = parse_decimal(it.get('uom_factor_to_base') or (1 if not unit_label else 1))
+        qty_uom    = parse_decimal(it.get('qty_uom') or (qty if not unit_label else 0))
+        qty_base   = parse_decimal(it.get('qty_base') or (qty_uom * factor if unit_label else qty))
+        avail = one("SELECT COALESCE(v.qty_on_hand,0) FROM v_product_stock v WHERE v.product_id=%s", (product_id,))
+        available = int(avail[0]) if avail else 0
+        if int(qty_base) > available:
+            return jsonify({"error": f"Stok {product_id} kurang. Tersedia {available}, diminta {int(qty_base)}"}), 400
+        ed = it.get('ed')
+        if ed and 'undefined' in ed:
+            # Mengambil 10 karakter terakhir (asumsi format YYYY-MM-DD di akhir string)
+            ed = ed.split('-')[-3:] # Ambil 3 bagian terakhir
+            ed = '-'.join(ed)
         g.con.execute("""
-            UPDATE sales_invoices
-            SET salesperson_id=%s, customer_id=%s, invoice_no=%s, invoice_date=%s, due_date=%s
-            WHERE id=%s
-        """, (sp_id, cust_id, invoice_no, invoice_date, due_date, id))
-
-        g.con.execute("DELETE FROM stock_moves WHERE ref_type='SALE' AND ref_id=%s", (id,))
-        g.con.execute("DELETE FROM sales_items WHERE sales_invoice_id=%s", (id,))
-
-        total_hdr = Decimal('0')
-        for it in items:
-            product_id  = it.get('product_id')
-            qty         = int(it.get('qty') or 0)
-            unit_price  = parse_decimal(it.get('unit_price'))
-            disc_pct    = parse_decimal(it.get('discount_percent') or 0)
-            total_amount= parse_decimal(it.get('total_amount') or unit_price*qty - (unit_price*qty*disc_pct/Decimal('100')))
-
-            unit_label = it.get('unit_label')
-            factor     = parse_decimal(it.get('uom_factor_to_base') or (1 if not unit_label else 1))
-            qty_uom    = parse_decimal(it.get('qty_uom') or (qty if not unit_label else 0))
-            qty_base   = parse_decimal(it.get('qty_base') or (qty_uom * factor if unit_label else qty))
-
-            avail = one("SELECT COALESCE(v.qty_on_hand,0) FROM v_product_stock v WHERE v.product_id=%s", (product_id,))
-            available = int(avail[0]) if avail else 0
-            if int(qty_base) > available:
-                return jsonify({"error": f"Stok {product_id} kurang. Tersedia {available}, diminta {int(qty_base)}"}), 400
-
-            g.con.execute("""
-                INSERT INTO sales_items
-                (sales_invoice_id, product_id, qty, unit_price, discount_percent, total_amount,
-                 unit_label, uom_factor_to_base, qty_uom, qty_base)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (id, product_id, qty, unit_price, disc_pct, total_amount,
-                  unit_label, factor, qty_uom, qty_base))
-
-            g.con.execute("""
-                INSERT INTO stock_moves (product_id, ref_type, ref_id, qty_out, note)
-                VALUES (%s,'SALE',%s,%s,%s)
-            """, (product_id, id, int(qty_base), f"Edit Invoice {invoice_no}"))
-
-            total_hdr += total_amount
-
-        g.con.connection.commit()
-        return jsonify({"msg":"SUKSES","total":str(total_hdr)})
-    except Exception as e:
-        g.con.connection.rollback()
-        return jsonify({"error": str(e)}), 500
+            INSERT INTO sales_items
+            (sales_invoice_id, product_id, qty, unit_price, discount_percent, total_amount,
+             unit_label, uom_factor_to_base, qty_uom, qty_base, batch_no, expired_date)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (id, product_id, qty, unit_price, disc_pct, total_amount,
+              unit_label, factor, qty_uom, qty_base, it.get('batch_no'), ed))
+        g.con.execute("""
+            INSERT INTO stock_moves (product_id, ref_type, ref_id, qty_out, note)
+            VALUES (%s,'SALE',%s,%s,%s)
+        """, (product_id, id, int(qty_base), f"Edit Invoice {invoice_no}"))
+        total_hdr += total_amount
+    g.con.connection.commit()
+    return jsonify({"msg":"SUKSES","total":str(total_hdr)})
 
 @app.route('/admin/pengeluaran/<int:id>', methods=['DELETE'])
 @jwt_required()
@@ -1131,7 +1159,7 @@ def pengeluaran_delete(id):
         g.con.execute("DELETE FROM sales_items WHERE sales_invoice_id=%s", (id,))
         g.con.execute("DELETE FROM sales_invoices WHERE id=%s", (id,))
         g.con.connection.commit()
-        return jsonify({"msg":"BERHASIL DIHAPUS"})
+        return jsonify({"msg":"SUKSES"})
     except Exception as e:
         g.con.connection.rollback()
         return jsonify({"error": str(e)}), 500
@@ -1149,7 +1177,6 @@ def awal(pdf, width, height, barang_keluar, ada_diskon, ada_batch, ada_ed, cash_
     x_margin = 0.75 * cm
     y = height - 1 * cm
     y2 = y
-
     # Header
     pdf.setFont("Helvetica-Bold", 12)
     pdf.drawString(x_margin, y - 0 * cm, "PT. BREGAS SAPORETE MEDIKALINDO")
@@ -1209,28 +1236,18 @@ def awal(pdf, width, height, barang_keluar, ada_diskon, ada_batch, ada_ed, cash_
     # Tabel barang
     pdf.setFont("Helvetica-Bold", 9)
     headers = ["No", "Nama Barang", "Qty"]
-    header_positions = [x_margin, x_margin + 0.6 * cm, x_margin + 9 * cm]
+    header_positions = [x_margin, x_margin + 0.6 * cm, x_margin + 9.8 * cm]
 
     if ada_batch is True:
-        header_positions[2] = x_margin + 7 * cm
         headers.append("Batch")
-        if ada_ed is True:
-            header_positions[2] = x_margin + 6 * cm
-            header_positions.append(x_margin + 7.5 * cm)
-        else:
-            header_positions.append(x_margin + 8 * cm)
+        header_positions.append(x_margin + 6 * cm)
 
     if ada_ed is True:
         headers.append("ED")
-        if ada_batch is True:
-            header_positions.append(x_margin + 9.4 * cm)
-        else:
-            header_positions[2] = x_margin + 7 * cm
-            header_positions.append(x_margin + 8 * cm)
-        x_margin += 4
+        header_positions.append(x_margin + 8.5 * cm)
 
     headers.append("Harga")
-    header_positions.append(x_margin + 11 * cm)
+    header_positions.append(x_margin + 11.5 * cm)
 
     if ada_diskon is True:
         headers.append("Diskon")
@@ -1294,7 +1311,7 @@ def hitung_total(pengirim, pdf, y, x_margin, width, jumlah_total, pajak, page_nu
             pdf.drawString(x_margin + 4.5 * cm, y3 - 0.5 * cm, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, "Expedisi")
             print(pengirim)
-            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 1 * cm, pengirim)
 
         else:
             pdf.setFont("Helvetica-Bold", 10)
@@ -1316,11 +1333,12 @@ def hitung_total(pengirim, pdf, y, x_margin, width, jumlah_total, pajak, page_nu
             pdf.drawRightString(x_margin + 19.6 * cm, y, f"{format_rupiah(jumlah_total)}")
 
             y3 -= 0.5 * cm
+            pdf.setFont("Helvetica-Bold", 8)
             pdf.drawString(x_margin, y3, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3, "Expedisi")
             print(pengirim)
-            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, pengirim)
 
     # Bukan halaman terakhir: cuma footer tanda tangan
     else:
@@ -1331,15 +1349,15 @@ def hitung_total(pengirim, pdf, y, x_margin, width, jumlah_total, pajak, page_nu
             pdf.drawString(x_margin + 4.5 * cm, y3 - 0.5 * cm, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, "Expedisi")
             print(pengirim)
-            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 1 * cm, pengirim)
         else:
-            pdf.setFont("Helvetica-Bold", 10)
+            pdf.setFont("Helvetica-Bold", 8)
             y3 = y - 0.5 * cm
             pdf.drawString(x_margin, y3, "Penerima")
             pdf.drawString(x_margin + 4.5 * cm, y3, "Gudang")
             pdf.drawString(x_margin + 8.5 * cm, y3, "Expedisi")
             print(pengirim)
-            pdf.drawString(x_margin + 8.5 * cm, y3 - 2 * cm, pengirim)
+            pdf.drawString(x_margin + 8.5 * cm, y3 - 0.5 * cm, pengirim)
 
 
 def export_pdf(buffer, pajak):
@@ -1403,7 +1421,7 @@ def export_pdf(buffer, pajak):
         FROM sales_items it
         JOIN products p ON p.id = it.product_id
         WHERE it.sales_invoice_id = %s
-        ORDER BY p.name DESC
+        ORDER BY p.name ASC
     """, (invoice_id,))
 
     # Build data tabel (list of dict) + flag kolom
@@ -1414,7 +1432,7 @@ def export_pdf(buffer, pajak):
     ada_ed = False
 
     for idx, d in enumerate(details, start=1):
-        qty_text = f"{d.get('qty') or 0} {d.get('unit_label') or d.get('unit') or ''}".strip().lower()
+        qty_text = f"{d.get('qty') or 0} {d.get('unit_label') or d.get('unit') or ''}".strip()
         diskon = d.get("discount_percent") or 0
         batch = d.get("batch_no")
         ed = d.get("expired_date")
@@ -1456,15 +1474,12 @@ def export_pdf(buffer, pajak):
     pdf = canvas.Canvas(buffer, pagesize=(21.6 * cm, 14.5 * cm))
     pdf.setTitle("Sistem Gudang - Print Pdf")
     width, height = (21.6 * cm, 14.5 * cm)
-
     cash_tempo = header.get("payment_term") or "-"
     y, x_margin, width, header_positions = awal(
         pdf, width, height, header, ada_diskon, ada_batch, ada_ed, cash_tempo
     )
-
     page_num = 1
     running_total = Decimal("0")
-
     for i in range(total_rows_to_print):
         # ganti halaman tiap 12 baris (kecuali i=0)
         if i > 0 and i % max_rows_per_page == 0:
@@ -1488,7 +1503,7 @@ def export_pdf(buffer, pajak):
 
             running_total += total
 
-            values = [str(i + 1), nama_barang.strip().title(), qty]
+            values = [str(i + 1), nama_barang, qty]
             if ada_batch:
                 values.append(str(batch) if batch else "-")
             if ada_ed:
@@ -1517,10 +1532,10 @@ def export_pdf(buffer, pajak):
         for pos, value in zip(header_positions, values):
             if isinstance(value, str) and value.startswith("satuan"):
                 pdf.drawString(pos, y, "Rp ")
-                pdf.drawRightString(pos + (3.2 * cm), y, value[7:].strip())
+                pdf.drawRightString(pos + (2.6 * cm), y, value[7:].strip())
             elif isinstance(value, str) and value.startswith("total"):
                 pdf.drawString(pos, y, "Rp ")
-                pdf.drawRightString(x_margin + 19.6 * cm, y, value[6:].strip())
+                pdf.drawRightString(pos + (3.6 * cm), y, value[6:].strip())
             else:
                 pdf.drawString(pos, y, str(value))
 
@@ -1613,7 +1628,7 @@ def adminkeuangan():
           si.invoice_date   AS tglfaktur,
           si.invoice_no     AS nomerfaktur,
           si.due_date       AS jatuhtempo,
-          si.status,
+          si.status, si.payment_term,
           s.name            AS nama_sales,
           COALESCE(c.name,'-')    AS nama_outlet,
           COALESCE(c.address,'')  AS alamat_outlet,
@@ -1627,7 +1642,10 @@ def adminkeuangan():
              ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS last_pay_method,
           (SELECT p3.pay_date FROM payments p3
              WHERE p3.ref_type='SALE' AND p3.ref_id=si.id
-             ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS last_pay_date
+             ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS last_pay_date,
+          (SELECT p3.note FROM payments p3
+             WHERE p3.ref_type='SALE' AND p3.ref_id=si.id
+             ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS last_pay_note
         FROM sales_invoices si
         JOIN salespersons s ON s.id = si.salesperson_id
         LEFT JOIN customers  c ON c.id = si.customer_id
@@ -1674,7 +1692,7 @@ def adminkeuangan():
     info_list = []
     for inv in invoices:
         info_list.append({
-            "id_barang_keluar": inv["id"],           # kompatibel dgn template lama
+            "id": inv["id"],           # kompatibel dgn template lama
             "tglfaktur": inv["tglfaktur"],
             "nomerfaktur": inv["nomerfaktur"],
             "jatuhtempo": inv["jatuhtempo"],
@@ -1683,8 +1701,10 @@ def adminkeuangan():
             "alamat_outlet": inv["alamat_outlet"],
             "npwp": inv["npwp"],
             "status": inv["status"],
+            "payment_term": inv["payment_term"],
             "last_pay_method": inv["last_pay_method"] or "-",
-            "last_pay_date": inv["last_pay_date"] or None,
+            "last_pay_date": inv["last_pay_date"] or "-",
+            "last_pay_note": inv["last_pay_note"] or "-",
             "total_invoice": inv["total_invoice"],
             "total_payment": inv["total_payment"],
             "outstanding": inv["outstanding"],
@@ -1856,6 +1876,7 @@ def keuangan_edit():
     d = request.get_json() or {}
     # dukung nama field lama & baru
     sales_id   = d.get('id') or d.get('id_sales') or d.get('id_barang_keluar')
+    print(sales_id)
     invoice_no = d.get('invoice_no') or d.get('nofaktur') or d.get('nomerfaktur')
     pay_date   = d.get('pay_date') or d.get('tanggal_pembayaran')        # 'YYYY-MM-DD'
     method     = d.get('method') or d.get('metode_pembayaran') or d.get('cashtempo')  # 'CASH'/'TRANSFER'/dst
@@ -1865,75 +1886,73 @@ def keuangan_edit():
     lunas_tidak = (d.get('lunas_tidak') or '').strip().lower()
     explicit_status = d.get('status')
     if not explicit_status and lunas_tidak:
-        explicit_status = 'PAID' if 'lunas' in lunas_tidak else 'UNPAID'
+        explicit_status = 'PAID' if 'Lunas' in lunas_tidak else 'UNPAID'
 
     if not sales_id:
         return jsonify({"error": "id (sales invoice) wajib"}), 400
 
-    try:
-        g.con.execute("START TRANSACTION")
-
-        # pastikan invoice ada
-        g.con.execute("SELECT id FROM sales_invoices WHERE id=%s", (sales_id,))
-        if not g.con.fetchone():
-            g.con.execute("ROLLBACK")
-            return jsonify({"error": "Sales invoice tidak ditemukan"}), 404
-
-        # update nomor faktur jika ada
-        if invoice_no:
-            g.con.execute("UPDATE sales_invoices SET invoice_no=%s WHERE id=%s",
-                          (invoice_no, sales_id))
-
-        # tambah pembayaran jika diberikan tanggal & amount
-        if pay_date and amount not in (None, '',):
-            try:
-                amt = Decimal(str(amount))
-            except (InvalidOperation, ValueError, TypeError):
-                g.con.execute("ROLLBACK")
-                return jsonify({"error": "amount tidak valid"}), 400
-
-            g.con.execute("""
-                INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
-                VALUES ('SALE', %s, %s, %s, %s, %s)
-            """, (sales_id, pay_date, (method or 'CASH'), amt, note))
-
-        # set status eksplisit jika dikirim
-        if explicit_status:
-            g.con.execute("UPDATE sales_invoices SET status=%s WHERE id=%s",
-                          (explicit_status.upper(), sales_id))
-
-        # jika tidak ada status eksplisit, hitung otomatis dari total vs pembayaran
-        if not explicit_status:
-            # total invoice
-            g.con.execute("""
-                SELECT COALESCE(SUM(total_amount),0) FROM sales_items
-                WHERE sales_invoice_id=%s
-            """, (sales_id,))
-            total_inv = g.con.fetchone()[0] or 0
-
-            # total pembayaran
-            g.con.execute("""
-                SELECT COALESCE(SUM(amount),0) FROM payments
-                WHERE ref_type='SALE' AND ref_id=%s
-            """, (sales_id,))
-            total_pay = g.con.fetchone()[0] or 0
-
-            new_status = 'UNPAID'
-            if total_pay <= 0:
-                new_status = 'UNPAID'
-            elif total_pay < total_inv:
-                new_status = 'PARTIAL'
-            else:
-                new_status = 'PAID'
-
-            g.con.execute("UPDATE sales_invoices SET status=%s WHERE id=%s",
-                          (new_status, sales_id))
-
-        g.con.execute("COMMIT")
-        return jsonify({"msg": "SUKSES"})
-    except Exception as e:
+    g.con.execute("START TRANSACTION")
+    # pastikan invoice ada
+    g.con.execute("SELECT id FROM sales_invoices WHERE id=%s", (sales_id,))
+    if not g.con.fetchone():
         g.con.execute("ROLLBACK")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Sales invoice tidak ditemukan"}), 404
+    # update nomor faktur jika ada
+    if invoice_no:
+        g.con.execute("UPDATE sales_invoices SET invoice_no=%s WHERE id=%s",
+                      (invoice_no, sales_id))
+    # tambah pembayaran jika diberikan tanggal & amount
+    if pay_date and amount not in (None, '',):
+        try:
+            amt = Decimal(str(amount))
+        except (InvalidOperation, ValueError, TypeError):
+            g.con.execute("ROLLBACK")
+            return jsonify({"error": "amount tidak valid"}), 400
+        if status == "Lunas":
+            cek = fetch(""" SELECT id from payments WHERE ref_type=%s, ref_id=%s """,('SALE', sales_id,))
+            if len(cek)>0:
+                g.con.execute("""
+                    INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
+                    VALUES ('PURCHASE', %s, %s, %s, %s, %s)
+                """, (sales_id, pay_date, note, amount, note or ''))
+        elif status == "Tidak Lunas":
+            g.con.execute("""
+                UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s, ref_id=%s 
+            """, ( pay_date, note, note, 'SALE',sales_id,))
+    # set status eksplisit jika dikirim
+    if explicit_status:
+        g.con.execute("UPDATE sales_invoices SET status=%s WHERE id=%s",
+                      (explicit_status.upper(), sales_id))
+        if explicit_status == "Tidak Lunas":
+            g.con.execute("DELETE from payments WHERE ref_type=%s, ref_id=%s",
+                      ('SALE', sales_id))
+        
+
+    # jika tidak ada status eksplisit, hitung otomatis dari total vs pembayaran
+    if not explicit_status:
+        # total invoice
+        g.con.execute("""
+            SELECT COALESCE(SUM(total_amount),0) FROM sales_items
+            WHERE sales_invoice_id=%s
+        """, (sales_id,))
+        total_inv = g.con.fetchone()[0] or 0
+        # total pembayaran
+        g.con.execute("""
+            SELECT COALESCE(SUM(amount),0) FROM payments
+            WHERE ref_type='SALE' AND ref_id=%s
+        """, (sales_id,))
+        total_pay = g.con.fetchone()[0] or 0
+        new_status = 'UNPAID'
+        if total_pay <= 0:
+            new_status = 'UNPAID'
+        elif total_pay < total_inv:
+            new_status = 'PARTIAL'
+        else:
+            new_status = 'PAID'
+        g.con.execute("UPDATE sales_invoices SET status=%s WHERE id=%s",
+                      (new_status, sales_id))
+    g.con.execute("COMMIT")
+    return jsonify({"msg": "SUKSES"})
 @app.route('/api/payments/sale/<int:ref_id>')
 @jwt_required()
 def get_payments(ref_id):
@@ -2021,7 +2040,7 @@ def adminadministrasi():
              ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS metode_terakhir,
           (SELECT p4.note FROM payments p4
              WHERE p4.ref_type='PURCHASE' AND p4.ref_id=p.id
-             ORDER BY p4.pay_date DESC, p4.id DESC LIMIT 1) AS keterangan_terakhir
+             ORDER BY p4.pay_date DESC, p4.id DESC LIMIT 1) AS keterangan_pembayaran
         FROM purchases p
         JOIN suppliers s ON s.id = p.supplier_id
         LEFT JOIN (
@@ -2073,7 +2092,7 @@ def adminadministrasi():
             "outstanding": r["outstanding"],
             "tanggal_pembayaran_terakhir": r["tanggal_pembayaran_terakhir"],
             "metode_terakhir": r["metode_terakhir"],
-            "keterangan_terakhir": r["keterangan_terakhir"],
+            "keterangan_pembayaran": r["keterangan_pembayaran"],
             "detail_items": detail_map.get(r["id"], [])
         })
 
@@ -2205,11 +2224,12 @@ def report_administrasi():
 @jwt_required()
 def edit_administrasi():
     d = request.get_json() or {}
+    print(d)
     purchase_id = d.get('id_purchase') or d.get('id') or d.get('id_barang_masuk')
     if not purchase_id:
         return jsonify({"error":"id_purchase wajib"}), 400
 
-    status = d.get('status')  # optional: 'POSTED'/'PAID'/'PARTIAL' dll.
+    status   = d.get('lunas_tidak')  # optional: 'POSTED'/'PAID'/'PARTIAL' dll.
     pay_date = d.get('pay_date') or d.get('tanggal_pembayaran')  # YYYY-MM-DD (opsional)
     method   = d.get('method') or d.get('metode_pembayaran')     # 'TRANSFER'/'CASH'/dst (opsional)
     amount   = d.get('amount')
@@ -2220,14 +2240,33 @@ def edit_administrasi():
 
         # update status jika ada
         if status:
-            g.con.execute("UPDATE purchases SET status=%s WHERE id=%s", (status, purchase_id,))
+            if status == "Lunas":
+                status = 'PAID'
+            elif status == "Tidak Lunas":
+                g.con.execute("DELETE from payments WHERE ref_type=%s, ref_id=%s ", ('PURCHASE', purchase_id,))
+                status = 'UNPAID'
+            print(status)
+            g.con.execute("UPDATE purchases SET status=%s WHERE id=%s ", (status, purchase_id,))
+            g.con.connection.commit()
 
         # tambah pembayaran jika ada fieldnya
         if pay_date and amount is not None:
-            g.con.execute("""
-                INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
-                VALUES ('PURCHASE', %s, %s, %s, %s, %s)
-            """, (purchase_id, pay_date, method or 'TRANSFER', D(amount), note or ''))
+            if status == "Lunas":
+                cek = fetch(""" SELECT id from payments WHERE ref_type=%s, ref_id=%s """,('PURCHASE', purchase_id,))
+                if len(cek)==0:
+                    g.con.execute("""
+                        INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
+                        VALUES ('PURCHASE', %s, %s, %s, %s, %s)
+                    """, (purchase_id, pay_date, note, amount, note or ''))
+                else:
+                    # Jika sudah ada, mungkin lebih baik UPDATE data yang sudah ada tersebut
+                    g.con.execute("""
+                        UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s, ref_id=%s 
+                    """, ( pay_date, note, note, 'PURCHASE',purchase_id,))
+            elif status == "Tidak Lunas":
+                g.con.execute("""
+                    UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s, ref_id=%s 
+                """, ( pay_date, note, note, 'PURCHASE',purchase_id,))
 
         g.con.connection.commit()
         return jsonify({"msg":"SUKSES"})

@@ -26,16 +26,18 @@
       let formatted = angka.match(/.{1,3}/g)?.join('-') || ''; // Memisahkan setiap 3 angka dengan tanda -
       input.value = formatted;
     }
-  function handleAjax(url, method, data, onSuccess, onError) {
-    $.ajax({
-      url: url,
-      method: method,
-      data: JSON.stringify(data),
-      contentType: 'application/json',
-      headers: { 'X-CSRF-TOKEN': getCookie('csrf_access_token') },
-      success: onSuccess,
-      error: onError
-    });
+    function convertToISO(str) {
+    if (!str || str.trim() === "") return null; // Jika kosong, kirim null, jangan diproses
+    
+    let p = str.split('/');
+    if (p.length !== 3) return null; // Jika format bukan dd/mm/yyyy, jangan diproses
+    
+    // Pastikan tidak ada bagian yang undefined
+    let day = p[0];
+    let month = p[1];
+    let year = p[2];
+    
+    return `${year}-${month}-${day}`;
   }
   function showModal(title, body, onSubmit) {
     document.getElementById('modal-title').innerText = title;
@@ -44,52 +46,34 @@
     $('#generic-modal').modal('show');
   }
 
-  function edit(id, tanggalfaktur, nofaktur, suplaier, alamatsuplaier,telpon ,  barang ,  harga ,  pembayaran ,  jatohtempo , tglpembayaran ,  keterangan ,  lunastidak ) {
+  function edit(id, performa_belanja, tampil_performa_belanja, tanggal_pembayaran, keterangan_pembayaran, lunas_tidak ) {
     $("#modal-submit").show()
     showModal(
         `Edit Data `,
-        `<div class="form-group"> <label for="tanggalfaktur">Tanggal Faktur</label> <input  type="date" id="tanggalfaktur" class="form-control" value="${tanggalfaktur}"> </div>
-  <div class="form-group"> <label for="nofaktur">Nomor Faktur </label> <input  type="text" id="nofaktur" class="form-control" value="${ nofaktur}"> </div>
-  <div class="form-group"> <label for="suplaier">Nama Supplier  </label> <input disabled type="text" id="suplaier" class="form-control" value="${ suplaier}"> </div>
-  <div class="form-group"> <label for="alamatsuplaier">Alamat Supplier</label> <input disabled type="text" id="alamatsuplaier" class="form-control" value="${ alamatsuplaier}"> </div>
-  <div class="form-group"> 
-    <label for="telpon">Nomor Telephone </label> 
-    <input disabled type="text" id="telpon" class="form-control" value="${ telpon }" oninput="formatNomorTelepon(this)"> 
-  </div>
-  <div class="form-group"> <label for="barang">Nama Barang </label> <input disabled type="text" id="barang" class="form-control" value="${ barang}"> </div>
-  <div class="form-group"> <label for="harga">Harga Satuan </label> <input type="number" id="harga" class="form-control" value="${ harga}"> </div>
-  <div class="form-group">
-    <label for="pembayaran">Metode Pembayaran</label>
-    <select id="pembayaran" class="form-control form-select">
-	  <option value="" > Pilih Metode </option
-      <option value="Cash" ${pembayaran === 'cash' ? 'selected' : ''}>Cash</option>
-      <option value="Tempo" ${pembayaran === 'tempo' ? 'selected' : ''}>Tempo</option>
-    </select>
-  </div>
-  <div class="form-group"> <label for="jatohtempo">Jatuh Tempo </label> <input type="date" id="jatohtempo" class="form-control" value="${ jatohtempo}"> </div>
-  <div class="form-group"> <label for="tglpembayaran">Tanggal Pembayaran </label> <input type="date" id="tglpembayaran" class="form-control" value="${ tglpembayaran}"> </div> 
-  <div class="form-group"> <label for="keterangan">Keterangan Pembayaran </label> <input type="text" id="keterangan" class="form-control" value="${ keterangan}"> </div>  
-  <div class="form-group">
-    <label for="lunastidak">Status Kelunasan</label>
-    <select id="lunastidak" class="form-control form-select">
-      <option value="">Pilih Status</option>
-      <option value="Lunas" ${lunastidak === 'Lunas' ? 'selected' : ''}>Lunas</option>
-      <option value="Tidak Lunas" ${lunastidak === 'Tidak Lunas' ? 'selected' : ''}>Tidak Lunas</option>
-    </select>
-  </div>
+        `
+									  <div class="form-group "> <label for="total">Total </label>
+									  <input disabled class="form-control" type="text" name="total" value="Rp ${tampil_performa_belanja}"></div>
+									  <div class="form-group"> <label for="tanggal_pembayaran">Tanggal Pembayaran </label>
+                    <div class="input-group"> <input type="text" name="tanggal_pembayaran" class="complex-colorpicker form-control" value="${ tanggal_pembayaran }" placeholder="dd/mm/yyyy"> 
+                    <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+									  <div class="form-group"> <label for="keterangan_pembayaran">keterangan Pembayaran</label>
+									  <input type="text"class="form-control" name="keterangan_pembayaran" value="${keterangan_pembayaran}"></div>
+									  <div class="form-group "> <label for="lunas_tidak">Lunas / Tidak Lunas </label>
+									  <select class="form-select form-control" name="lunas_tidak">
+									  <option class="form-control" value="" >Pilih Status </option>
+									  <option class="form-control" value="Lunas" ${lunas_tidak === 'Lunas' ? 'selected' : ''}>Lunas</option>
+									  <option class="form-control" value="Tidak Lunas"  ${lunas_tidak === 'Tidak Lunas' ? 'selected' : ''} >Tidak Lunas</option>
+									  </select>
+									  </div>
   `,
         function() {
-           var data = {
-                id:id,
-                tanggalfaktur: $("#tanggalfaktur").val(),  
-                nofaktur   : $("#nofaktur").val(),  
-                harga   : $("#harga").val(),  
-                pembayaran   : $("#pembayaran").val(),  
-                jatohtempo  : $("#jatohtempo").val(), 
-                tglpembayaran : $("#tglpembayaran").val(),  
-                keterangan   : $("#keterangan").val(),  
-                lunastidak: $("#lunastidak").val()
-            };
+          var data = {
+              id_barang_masuk: id,
+              amount: performa_belanja,
+              tanggal_pembayaran: convertToISO($("[name='tanggal_pembayaran']").val()),
+              keterangan_pembayaran: $("[name='keterangan_pembayaran']").val(),
+              lunas_tidak: $("[name='lunas_tidak']").val()
+          };
         handleAjax(
           '/admin/administrasi/edit/id',
           'PUT',
@@ -246,60 +230,20 @@
                                             <div>{{ i.performa_belanja | format_performa_sales }}</div>
                                         </div>
                               </td>
-                                <td data-label="Tanggal Pembayaran">{{ i.tanggal_pembayaran or "-" }}
+                                <td data-label="Tanggal Pembayaran">{{ i.tanggal_pembayaran_terakhir or "-" }}
                                 </td>
 
                                 <td data-label="Keterangan Pembayaran">{{ i.keterangan_pembayaran or "-" }}
                                 </td>
 
-                                <td data-label="Lunas / Tidak">{{ i.lunas_tidak or "-" }}
+                                <td data-label="Lunas / Tidak">{{ i.status|format_lunas }}
                                 </td>
                               <td  data-label="Aksi">
                                   <!-- <button data-bs-toggle="modal" data-bs-target="#modal-{{ i.id }}"
                                   class="btn btn-success">Nota</button> -->
-                                  <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#generic-modal-edit-{{i.id}}">Edit</button>
+                                  <button class="btn btn-sm btn-warning" onclick="edit({{i.id}}, {{i.performa_belanja}}, '{{i.performa_belanja|format_performa_sales}}', '{{i.tanggal_pembayaran_terakhir|default('-')|format_date}}', '{{i.keterangan_pembayaran|default('-')}}', '{{i.status|format_lunas }}')">Edit</button>
                               </td>
                           </tr>
-							<!-- Modal Edit -->
-								<div class="modal fade"
-                        tabindex="-1"
-                        aria-labelledby="generic-modal-edit-{{i.id}}"
-                        aria-hidden="true" id="generic-modal-edit-{{i.id}}" tabindex="-1" aria-hidden="true">
-								  <div class="modal-dialog modal-xl">
-									<div class="modal-content">
-									  <div class="modal-header d-flex align-items-center">
-										<h4 class="modal-title" id="modal-title">EDIT DATA</h4>
-										<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-									  </div>
-									  <div class="modal-body" >
-                               
-									  <input type="hidden" name="id-{{i.id}}" value="{{i.id}}">
-									  <div class="form-group "> <label for="total-{{i.id}}">Total </label>
-									  <input disabled class="form-control" type="text" name="total-{{i.id}}" value="Rp {{i.performa_belanja|format_performa_sales}}"></div>
-                    
-									  <div class="form-group"> <label for="tanggal_pembayaran-{{i.id}}">Tanggal Pembayaran </label>
-                    <div class="input-group"> <input type="text" name="tanggal_pembayaran-{{i.id}}" class="complex-colorpicker form-control" value="{{ i.tanggal_pembayaran|default('-')|format_date }}" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
-									  <div class="form-group"> <label for="keterangan_pembayaran-{{i.id}}">keterangan Pembayaran</label>
-									  <input type="text"class="form-control" name="keterangan_pembayaran-{{i.id}}" value="{{i.keterangan_pembayaran|default('-')}}"></div>
-									  <div class="form-groiup "> <label for="lunas_tidak-{{i.id}}">Lunas / Tidak Lunas </label>
-									  <select class="form-select form-control" name="lunas_tidak-{{i.id}}">
-									  <option class="form-control" value="" >Pilih Status </option>
-									  <option class="form-control" value="Lunas" {% if i.lunas_tidak =="Lunas"%} selected  {% endif %}>Lunas</option>
-									  <option class="form-control" value="Tidak Lunas" {% if i.lunas_tidak =="Tidak Lunas"%} selected {% endif %} >Tidak Lunas</option>
-									  </select>
-									  </div>
-
-									  </div>
-									  <div class="modal-footer">
-										<div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
-										 <a id="modal-submit-{{ i.id }}" class="btn btn-info d-flex align-items-center ms-2"
-										   onclick="submitEdit('{{ i.id }}')">Submit</a>
-											</div>
-										<button type="button" class="btn btn-light-danger text-danger font-weight-medium waves-effect text-start" data-bs-dismiss="modal">Close</button>
-									  </div>
-									</div>
-								  </div>
-								</div>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -405,38 +349,6 @@ function convertToISO(dateStr) {
   // dari "dd/mm/yyyy" ke "yyyy-mm-dd"
   let parts = dateStr.split("/");
   return `${parts[2]}-${parts[1]}-${parts[0]}`;
-}
-function submitEdit(idBarangMasuk) {
-  var modal = document.querySelector(`#generic-modal-edit-${idBarangMasuk}`);
-  var inputs = modal.querySelectorAll('input, select');
-  var id_barang_masuk = document.querySelector(`[name="id-${idBarangMasuk}"]`).value;
-  var tanggal_pembayaran = convertToISO(document.querySelector(`[name="tanggal_pembayaran-${idBarangMasuk}"]`).value);
-  var keterangan_pembayaran = document.querySelector(`[name="keterangan_pembayaran-${idBarangMasuk}"]`).value;
-  var lunas_tidak = document.querySelector(`[name="lunas_tidak-${idBarangMasuk}"]`).value;
-
-  var itemMap = {};
-
-  var payload = {
-    id_barang_masuk: id_barang_masuk,
-    tanggal_pembayaran: tanggal_pembayaran,
-    keterangan_pembayaran: keterangan_pembayaran ,
-    lunas_tidak: lunas_tidak,
-  };
-
-  console.log("Payload JSON:", payload);
-
-  $.ajax({
-    url: '/admin/administrasi/edit/id',
-    method: 'PUT',
-    data: JSON.stringify(payload),
-    contentType: 'application/json',
-    success: function (res) {
-	  handleResponse(res, "Terkirim", "/admin/administrasi")
-    },
-    error: function (err) {
-	  handleResponse(err, "Terkirim", "/admin/administrasi")
-    }
-  });
 }
 function run() {
 	var tahun = document.getElementById('tahun_data').value;

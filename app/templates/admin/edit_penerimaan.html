@@ -250,10 +250,18 @@
 	    format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
 	    language: "id"          // opsional, kalau kamu include file locale id
 	  });
-    function convertToISO(dateStr) {
-        // dari "dd/mm/yyyy" ke "yyyy-mm-dd"
-        var parts = dateStr.split("/");
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      function convertToISO(str) {
+        if (!str || str.trim() === "" || str.includes('undefined')) return null;
+
+        // Jika sudah format ISO (YYYY-MM-DD), langsung kembalikan
+        if (str.includes('-') && str.split('-')[0].length === 4) return str;
+
+        // Jika format Indonesia (DD/MM/YYYY)
+        if (str.includes('/')) {
+            let p = str.split('/');
+            if (p.length === 3) return `${p[2]}-${p[1]}-${p[0]}`;
+        }
+        return str;
     }
     function formatKoma(val) {
         val = val.replace(/[^\d,]/g, '');
@@ -303,43 +311,40 @@
 
         return hasil;
     }
-    $("#supplier").change(function () {
-        console.log("Event change pada #supplier dipicu");
-
-        try {
-            if (!'{{ data_supplier | tojson | safe }}') {
-                console.warn("Data pabrik is undefined or null.");
-                return;
-            }
-            var data_supplier = JSON.parse('{{ data_supplier | tojson | safe }}');
-            var id_pabrik = $('#supplier').val();
-
-            var found = false; // Untuk melacak apakah pabrik ditemukan
-            for (var key in data_supplier) {
-                var id = data_supplier[key].id;
-
-                if (id == id_pabrik) {
-                    $('#alamatpabrik').val(data_supplier[key].address);
-                    $('#tlppabrik').val(data_supplier[key].phone);
-                    found = true;
-                    break; // Keluar dari loop jika pabrik ditemukan
+    
+    $("#supplier").change(function() {
+            console.log("Event change pada #supplier dipicu");
+            try {
+                if (!'{{ data_supplier | tojson | safe }}') {
+                    console.warn("Data pabrik is undefined or null.");
+                    return;
                 }
+                var data_supplier = JSON.parse('{{ data_supplier | tojson | safe }}');
+                var nama_pabrik = $('#supplier').val();
+                var found = false; // Untuk melacak apakah pabrik ditemukan
+                for (var key in data_supplier) {
+                    var nama = data_supplier[key].id;
+                    if (nama == nama_pabrik) {
+                        $('#alamatpabrik').val(data_supplier[key].address);
+                        $('#tlppabrik').val(data_supplier[key].phone);
+                        found = true;
+                        break; // Keluar dari loop jika pabrik ditemukan
+                    }
+                }
+                if (!found) {
+                    console.warn("pabrik tidak ditemukan. Mengosongkan alamat dan tlp pabrik.");
+                    $('#alamatpabrik').val("");
+                    $('#tlppabrik').val("");
+                }
+            } catch (error) {
+                console.error("Error saat memproses perubahan nama pabrik:", error);
             }
+        });
 
-            if (!found) {
-                console.warn("pabrik tidak ditemukan. Mengosongkan alamat dan tlp pabrik.");
-                $('#alamatpabrik').val("");
-                $('#tlppabrik').val("");
-            }
-        } catch (error) {
-            console.error("Error saat memproses perubahan nama pabrik:", error);
-        }
-    });
-
-    setInterval(function () {
-        $(".jmlpenerimaan, .hargasatuan").trigger("input");
-        $(".hpp").trigger("input");
-    }, 3000);
+        setInterval(function() {
+            $(".jmlpenerimaan, .hargasatuan").trigger("input");
+            $(".hpp").trigger("input");
+        }, 3000);
 
     $(document).on("change", ".nmbarang", function () {
         if (!'{{ data_barang | tojson | safe }}') {
@@ -412,32 +417,30 @@
     $("#modal-submit-Edit").click(function () {
         // Siapkan data untuk dikirim berdasarkan kategori
         const data = {
-            tglfaktur: convertToISO($("#tglfaktur").val()),
-            nofaktur: $("#nofaktur").val(),
-            id_supplier: $("#supplier").val(),
-			jthtempo: convertToISO($("#jthtempo").val()) || "",
-            pembayaran: $("#pembayaran").val(),
+            invoice_date: convertToISO($("#tglfaktur").val()),
+            invoice_no: $("#nofaktur").val(),
+            supplier_id: $("#supplier").val(),
+			due_date: convertToISO($("#jthtempo").val()) || "",
+            payment_term: $("#pembayaran").val(),
             items: [] // Array untuk menyimpan data dari repeater
         };
         // Iterasi melalui elemen repeater untuk mengumpulkan data
         $("[data-repeater-item]").each(function () {
             const item = {
-                id_barang: $(this)
+                product_id: $(this)
                     .find("#nmbarang")
                     .val() || "",
-                jml_menerima: $(this)
+                qty: $(this)
                     .find("#jmlpenerimaan")
                     .val() || "",
                 harga_satuan: bersihkanFormatAngka($(this).find(".hargasatuan").val()),
                 harga_total: bersihkanFormatAngka($(this).find(".hargatotal").val()),
-                method: $(this)
-                    .find("#pembayaran")
-                    .val() || "",
             };
             data
                 .items
                 .push(item); // Editkan item ke array
         });
+        console.log(data)
         $.ajax({
             url: "/admin/penerimaan/{{ purchase['id'] }}",
             method: 'PUT',

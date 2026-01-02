@@ -50,7 +50,7 @@ function formatToMMDDYYY(datestr){
   function hapus(id) {
     if (confirm(`Anda yakin menghapus data ini ?`)) {
       handleAjax(
-        '/admin/penerimaan/hapus/id',
+        '/admin/penerimaan/'+id,
         'DELETE',
         { id: id },
         function(data) {
@@ -168,8 +168,8 @@ function formatToMMDDYYY(datestr){
       <th>Principle /Supplier</th>
       <th>Nama Barang</th>
       <th>Kode Barang</th>
-      <th>Quantity</th>
       <th>Jumlah</th>
+      <th>Satuan</th>
       <th>Harga Satuan</th>
       <th>Harga Total</th>
       <th>Performa Belanja</th>
@@ -201,18 +201,18 @@ function formatToMMDDYYY(datestr){
         </div>
       </td>
 
-      <td data-label="Quantity" class="sebaris">
+      <td data-label="Jumlah Penerimaan" class="j-jml-menerima sebaris">
         <div class="multi-line">
         {% for j in i.detail %}
-          <div>{{ j.base_unit }}</div>
+          <div class="j-jml-menerima">{{ j.jml_menerima }}</div>
         {% endfor %}
         </div>
       </td>
 
-      <td data-label="Jumlah Penerimaan" class="sebaris">
+      <td data-label="Quantity" class="sebaris">
         <div class="multi-line">
         {% for j in i.detail %}
-          <div class="j-jml-menerima">{{ j.jml_menerima }}</div>
+          <div>{{ j.base_unit }}</div>
         {% endfor %}
         </div>
       </td>

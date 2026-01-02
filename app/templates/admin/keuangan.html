@@ -9,6 +9,74 @@
 --bs-table-accent-bg:rgba(0,0,0,.05);
 }
 </style>
+<script> 
+function convertToISO(str) {
+  if (!str || str.trim() === "") return null; // Jika kosong, kirim null, jangan diproses
+  
+  let p = str.split('/');
+  if (p.length !== 3) return null; // Jika format bukan dd/mm/yyyy, jangan diproses
+  
+  // Pastikan tidak ada bagian yang undefined
+  let day = p[0];
+  let month = p[1];
+  let year = p[2];
+  
+  return `${year}-${month}-${day}`;
+}
+  function showModal(title, body, onSubmit) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-body').innerHTML = body;
+    document.getElementById('modal-submit').onclick = onSubmit;
+    $('#generic-modal').modal('show');
+  }
+
+  function edit(id, performa_sales, tampil_performa_sales, tanggal_pembayaran, keterangan_pembayaran, lunas_tidak ) {
+    $("#modal-submit").show()
+    console.log(id);
+    showModal(
+        `Edit Data `,
+        `
+									  <div class="form-group "> <label for="total">Total </label>
+									  <input disabled class="form-control" type="text" name="total" value="Rp ${tampil_performa_sales}"></div>
+									  <div class="form-group"> <label for="tanggal_pembayaran">Tanggal Pembayaran </label>
+                    <div class="input-group"> <input type="text" name="tanggal_pembayaran" class="complex-colorpicker form-control" value="${ tanggal_pembayaran }" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
+									  <div class="form-group"> <label for="keterangan_pembayaran">keterangan Pembayaran</label>
+									  <input type="text"class="form-control" name="keterangan_pembayaran" value="${keterangan_pembayaran}"></div>
+									  <div class="form-group "> <label for="lunas_tidak">Lunas / Tidak Lunas </label>
+									  <select class="form-select form-control" name="lunas_tidak">
+									  <option class="form-control" value="" >Pilih Status </option>
+									  <option class="form-control" value="Lunas" ${lunas_tidak === 'Lunas' ? 'selected' : ''}>Lunas</option>
+									  <option class="form-control" value="Tidak Lunas"  ${lunas_tidak === 'Tidak Lunas' ? 'selected' : ''} >Tidak Lunas</option>
+									  </select>
+									  </div>
+  `,
+          function() {
+            var data = {
+                id_barang_keluar: id,
+                amount: performa_sales,
+                tanggal_pembayaran: convertToISO($("[name='tanggal_pembayaran']").val()),
+                keterangan_pembayaran: $("[name='keterangan_pembayaran']").val(),
+                lunas_tidak: $("[name='lunas_tidak']").val()
+            };
+        handleAjax(
+          '/admin/keuangan/edit/id',
+          'PUT',
+          data,
+          function(response) { handleResponse(response,"Edit","/admin/keuangan")},
+          function(xhr, status, error) { console.error("Error:", error);
+			handleResponse(xhr.responseJSON,"Edit","/admin/keuangan");
+		  }
+        );
+      }
+    );
+	 $(".complex-colorpicker").datepicker({
+	    autoclose: true,
+	    todayHighlight: true,
+	    format: "dd/mm/yyyy",   // <-- ini yang bikin format berubah
+	    language: "id"          // opsional, kalau kamu include file locale id
+	  });
+  }
+</script>
 </head>
 <div class="page-titles pb-0">
   <div class="row">
@@ -134,88 +202,29 @@ class="btn btn-info d-flex align-items-center ms-2">
                                 <td data-label="Nomor Faktur">{{ i.nomerfaktur }}</td>
                                 <td data-label="Nama Sales">{{ i.nama_sales }}</td>
                                 <td data-label="Nama Outlet">{{ i.nama_outlet }}</td>
-                                <td data-label="Cash / Tempo">{{ i.cashtempo }}1</td>
+                                <td data-label="Cash / Tempo">{{ i.payment_term }}</td>
 
                                 <td data-label="Jumlah Total">
                                         <div class="justify-content-between d-flex w-100">
                                             <div>Rp</div>
-                                            <div>{{ i.outstanding | format_performa_sales }}</div>
+                                            <div>{{ i.total_invoice | format_performa_sales }}</div>
                                         </div>
                                 </td>
-
-                                <td data-label="Tanggal Pembayaran">{{ i.tanggal_pembayaran or "-" }}
+                                <td data-label="Tanggal Pembayaran">{{ i.last_pay_date or "-" }}
                                 </td>
 
-                                <td data-label="Keterangan Pembayaran">{{ i.keterangan_pembayaran or "-" }}
+                                <td data-label="Keterangan Pembayaran">{{ i.last_pay_note or "-" }}
                                 </td>
 
-                                <td data-label="Lunas / Tidak Lunas">{{ i.lunas_tidak or "-" }}
+                                <td data-label="Lunas / Tidak Lunas">{{ i.status |format_lunas }}
                                 </td>
 
                                 
                                 <td data-label="Aksi">
-                                  <button class="btn btn-sm btn-warning"  data-bs-toggle="modal" data-bs-target="#generic-modal-edit-{{i.id_barang_keluar}}">Edit</button>
+                                  <button class="btn btn-sm btn-warning" onclick="edit({{i.id}}, {{i.total_invoice}}, '{{i.total_invoice|format_performa_sales}}', '{{i.last_pay_date|default('-')|format_date}}', '{{i.last_pay_note|default('-')}}', '{{i.status|format_lunas }}')">Edit</button>
                                 </td>
                             </tr>
-						                <!-- Modal Edit -->
-                            <div
-                                class="modal fade"
-                                tabindex="-1"
-                                aria-labelledby="generic-modal-edit-{{i.id_barang_keluar}}"
-                                aria-hidden="true"
-                                id="generic-modal-edit-{{i.id_barang_keluar}}">
-                                <div class="modal-dialog modal-xl">
-                                    <div class="modal-content">
-                                        <div class="modal-header d-flex align-items-center">
-                                            <h4 class="modal-title" id="modal-title">EDIT DATA</h4>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="form-group">
-                                                <label for="nomerfaktur-{{i.id_barang_keluar}}">Nomer Faktur</label>
-                                                <input class="form-control" type="text" id="nomerfaktur-{{i.id_barang_keluar}}" value="{{i.nomerfaktur}}">
-                                            </div>
-                                            
-                                                    <div class="form-group">
-                                                        <label for="performa_sales-{{i.id_barang_keluar}}">Total</label>
-                                                        <input disabled="disabled" class="form-control" type="text" name="performa_sales-{{i.id_barang_keluar}}" value="RP {{i.outstanding|format_performa_sales}}">
-                                                    </div>
-                                                                 <div class="form-group">
-                                                                        <label for="tanggal_pembayaran">Tanggal Pembayaran </label>
-                                                                        <div class="input-group"> <input type="text" id="tanggal_pembayaran-{{i.id_barang_keluar}}" name="tanggal_pembayaran"  class="complex-colorpicker tgl_byr form-control" value="{{ i.tanggal_pembayaran|format_date }}" placeholder="dd/mm/yyyy">
-																		<span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
-                                                                    </div>
-                                                                    <span class="text-danger">* Jika ingin melakukan Pelunasan Wajib mengisi Tanggal
-                                                                        Pembayaran dan Keterangan Pembayaran</span>
-                                                                    <div class="form-group">
-                                                                        <label for="keterangan_pembayaran">Keterangan Pembayaran </label>
-                                                                        <input type="text" class="form-control ket_byr" id="keterangan_pembayaran-{{i.id_barang_keluar}}" name="keterangan_pembayaran" value="{{i.keterangan_pembayaran}}">
-                                                                    </div>
-                                                         
-                                            <div class="form-group">
-                                              <label for="lunas_tidak">Lunas / Tidak Lunas </label>
-                                              <select class="form-select form-control" id="lunas_tidak-{{i.id_barang_keluar}}" name="lunas_tidak">
-												  <option class="form-control" value="">Pilih Status</option>
-                                                  <option class="form-control" value="Lunas" {% if i.lunas_tidak =="Lunas" %} selected {% endif %}>Lunas</option>
-                                                  <option class="form-control" value="Tidak Lunas" {% if i.lunas_tidak =="Tidak Lunas" %} selected {% endif %}>Tidak Lunas</option>
-                                              </select>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
-                                                <a
-                                                    id="modal-submit-{{ i.id_barang_keluar }}"
-                                                    class="btn btn-info d-flex align-items-center ms-2"
-                                                    onclick="submitEdit('{{ i.id_barang_keluar }}')">Submit</a>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                class="btn btn-light-danger text-danger font-weight-medium waves-effect text-start"
-                                                data-bs-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+						                
                         {% endfor %}
                     </tbody>
                 </table>
@@ -319,71 +328,7 @@ $(document).ready(function(){
 	    language: "id"          // opsional, kalau kamu include file locale id
 	  });
 })
-function convertToISO(dateStr) {
-  // dari "dd/mm/yyyy" ke "yyyy-mm-dd"
-  let parts = dateStr.split("/");
-  return `${parts[2]}-${parts[1]}-${parts[0]}`;
-}
- 
-function submitEdit(idBarangKeluar) {
-  const modal = document.querySelector(`#generic-modal-edit-${idBarangKeluar}`);
-  console.log(idBarangKeluar)
-  const nomerfaktur = document.getElementById(`nomerfaktur-${idBarangKeluar}`).value;
-  const total = document.getElementById(`nomerfaktur-${idBarangKeluar}`).value;
-  const lunas_tidak = document.getElementById(`lunas_tidak-${idBarangKeluar}`).value;
-  const tanggal_pembayaran = convertToISO(document.getElementById(`tanggal_pembayaran-${idBarangKeluar}`).value);
-  const keterangan_pembayaran = document.getElementById(`keterangan_pembayaran-${idBarangKeluar}`).value;
-
-  const payload = {
-    id_barang_keluar: idBarangKeluar,
-    nomerfaktur: nomerfaktur,
-    keterangan_pembayaran: keterangan_pembayaran,
-    tanggal_pembayaran: tanggal_pembayaran,
-    lunas_tidak: lunas_tidak,
-  };
-
-  console.log("Payload JSON:", payload);
-
-  $.ajax({
-    url: '/admin/keuangan/edit/id',
-    method: 'PUT',
-    data: JSON.stringify(payload),
-    contentType: 'application/json',
-    success: function (res) {
-      handleResponse(res, "Edit", "/admin/keuangan");
-    },
-    error: function (err) {
-      handleResponse(err.responseJSON, "Edit", "/admin/keuangan");
-    }
-  });
-}
-
-    function handleAjax(url, method, data, onSuccess, onError) {
-        $.ajax({
-        url: url,
-        method: method,
-        data: JSON.stringify(data),
-        contentType: 'application/json',
-        success: onSuccess,
-        error: onError
-        });
-    }
-    function hapus(id) {
-        if (confirm(`Anda yakin menghapus data ini ?`)) {
-        handleAjax(
-            '/admin/pengeluaran/hapus/id',
-            'DELETE',
-            { id: id },
-            function(data) { handleResponse(data,"Hapus","/admin/keuangan") },
-            function(xhr, status, error) { console.error("Error:", error);
-				handleResponse(xhr.responseJSON,"Hapus","/admin/keuangan");
-			}
-        );
-        } else {
-        alert('Aksi penghapusan dibatalkan.');
-        }
-    }
-        function run() {
+      function run() {
         const tahun = document.getElementById('tahun_data').value;
         const bulan = document.getElementById('bulan_data').value;
         const tanggal = document.getElementById('tanggal_data').value;

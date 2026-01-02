@@ -74,8 +74,8 @@
               <label for="pembayaran">Metode Pembayaran</label>
               <select id="pembayaran" class="form-select">
                 <option value="">Pilih</option>
-                <option value="Cash">Cash</option>
-                <option value="Tempo">Tempo</option>
+                <option value="CASH">Cash</option>
+                <option value="TEMPO">Tempo</option>
               </select>
             </div>
 
@@ -134,7 +134,7 @@
                           data-kode="{{ b.code }}"
                           data-qty="{{ b.unit }}"
                           data-stok="{{ b.qty_on_hand }}"
-                          data-limit="{{ b.stok_min }}"
+                          data-limit="{{ b.stock_min }}"
                         >{{b.name}}</option>
                       {% endfor %}
                     </select>
@@ -178,33 +178,47 @@
                     </div>
                   </div>
 
-                  <div class="form-group">
-                    <label>HPP</label>
-                    <div class="input-group">
-                      <span class="input-group-text">Rp</span>
-                      <input type="text" class="hpp form-control" placeholder="0" oninput="formatAngkaInput(this)">
-                      <input type="text" class="hpp-koma form-control" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)">
+                  <div class="p-3 mt-3 mb-3 rounded-3" style="background-color: #f8f9fa; border: 1px dashed #dee2e6;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="mb-0 fw-bold text-primary">Simulasi Profit <small class="text-danger fw-italic" style="font-size: 0.75rem;">(data ini tidak disimpan)</small></h6>
+                      <small></small>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label class="small fw-bold">HPP Satuan</label>
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" class="hpp form-control" placeholder="0" oninput="formatAngkaInput(this)">
+                            <input type="text" class="hpp-koma form-control" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" style="max-width: 60px;">
+                          </div>
+                        </div>
+                      </div>
+                  
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label class="small fw-bold">Total HPP</label>
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" class="totalhpp form-control" placeholder="0" disabled>
+                            <input type="text" class="totalhpp-koma form-control" maxlength="3" placeholder=",00" disabled style="max-width: 60px;">
+                          </div>
+                        </div>
+                      </div>
+                  
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label class="small fw-bold">Estimasi Profit</label>
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-success text-white">Rp</span>
+                            <input type="text" class="profit form-control fw-bold text-success" placeholder="0" disabled>
+                            <input type="text" class="profit-koma form-control fw-bold text-success" maxlength="3" placeholder=",00" disabled style="max-width: 60px;">
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div class="form-group">
-                    <label>Total HPP</label>
-                    <div class="input-group">
-                      <span class="input-group-text">Rp</span>
-                      <input type="text" class="totalhpp form-control" placeholder="0" disabled>
-                      <input type="text" class="totalhpp-koma form-control" maxlength="3" placeholder=",00" disabled>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label>Profit</label>
-                    <div class="input-group">
-                      <span class="input-group-text">Rp</span>
-                      <input type="text" class="profit form-control" placeholder="0" disabled>
-                      <input type="text" class="profit-koma form-control" maxlength="3" placeholder=",00" disabled>
-                    </div>
-                  </div>
-
                   <div class="form-group">
                     <label>Batch</label>
                     <input type="text" id="batch" class="batch form-control">
@@ -258,6 +272,7 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
       if (confirm("Hapus item ini?")) $(this).slideUp(remove);
     },
   });
+  $(".select2").select2();
 
   // Datepicker dd/mm/yyyy
   $(".complex-colorpicker").datepicker({
@@ -272,9 +287,18 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
     format: "mm/yyyy",
     language: "id"
   });
-  function convertToISO(ddmmyyyy){
-    const [d,m,y] = ddmmyyyy.split('/');
-    return `${y}-${m}-${d}`;
+  function convertToISO(str) {
+    if (!str || str.trim() === "") return null; // Jika kosong, kirim null, jangan diproses
+    
+    let p = str.split('/');
+    if (p.length !== 3) return null; // Jika format bukan dd/mm/yyyy, jangan diproses
+    
+    // Pastikan tidak ada bagian yang undefined
+    let day = p[0];
+    let month = p[1];
+    let year = p[2];
+    
+    return `${year}-${month}-${day}`;
   }
   function convertmmyyyy(ddmmyyyy){
     const [d,m,y] = ddmmyyyy.split('/');
@@ -518,30 +542,24 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
       const jml = parseInt($row.find(".jmlpermintaan").val()||'0',10);
       const found = data_barang.find(b => String(b.id) === String(id_barang));
       if(found){
-        const sisa = (found.sisa_gudang||0) - jml;
-        if (sisa <= (found.stoklimit||0)){
+        const sisa = (found.qty_on_hand||0) - jml;
+        if (sisa <= (found.stok_min||0)){
           if(!confirm("Stok akan melewati limit! Lanjutkan?")) { cancel = true; return false; }
         }
       }
 
       const hs = bersihkanFormatAngka($row.find(".hargasatuan").val()||'0') + '.' + ($row.find(".hargasatuan-koma").val().replace(',','')||'00');
       const ht = bersihkanFormatAngka($row.find(".hargatotal").val()||'0') + '.' + ($row.find(".hargatotal-koma").val().replace(',','')||'00');
-      const hp = bersihkanFormatAngka($row.find(".hpp").val()||'0') + '.' + ($row.find(".hpp-koma").val().replace(',','')||'00');
-      const th = bersihkanFormatAngka($row.find(".totalhpp").val()||'0') + '.' + ($row.find(".totalhpp-koma").val().replace(',','')||'00');
-      const pf = bersihkanFormatAngka($row.find(".profit").val()||'0') + '.' + ($row.find(".profit-koma").val().replace(',','')||'00');
-
+     
       payload.items.push({
         id_barang: id_barang,
-		unit_label: $row.find(".sel-barang")?.dataset?.qty || '',
+		    unit_label: $row.find(".sel-barang")?.dataset?.qty || '',
         jmlpermintaan: $row.find(".jmlpermintaan").val()||"0",
         harga_satuan: hs,
         diskon: $row.find(".diskon").val()||"0",
         harga_total: ht,
-        hpp: hp,
-        totalhpp: th,
         batch_no: $row.find(".batch").val()||"",
         ed: convertmmyyyy($row.find(".ed").val()||""),
-        profit: pf
       });
     });
 
@@ -578,6 +596,12 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
                     childList: true,
                     subtree: true
                 });
+                $(".complex-colorpicker2").datepicker({
+                    autoclose: true,
+                    todayHighlight: true,
+                    format: "mm/yyyy",
+                    language: "id"
+                  });
             }, 1000);
         });
 </script>

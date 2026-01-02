@@ -16,7 +16,7 @@ def fetch(sql, params=()):
 def page_assign_customers():
     # dropdown sales, dropdown customers
     sales = fetch("SELECT id, name FROM salespersons WHERE is_active=1 ORDER BY name")
-    customers = fetch("SELECT id, name, address FROM customers ORDER BY name")
+    customers = fetch("SELECT id, name, address FROM customers ORDER BY id")
     return render_pjax("admin/salespersons_assign.html", sales=sales, customers=customers)
                            
 @admin_sales_bp.route("/salespersons/<int:sp_id>/customers")

@@ -131,7 +131,16 @@
     .j-jml-menerima{
       text-align: center;
     }
+    .j-jml-menerima2{
+      text-align: center;
+    }
 	  @media (max-width: 768px) {
+    .j-jml-menerima::before{
+      text-align: start;
+    }
+    .j-jml-menerima::after{
+      text-align: end;
+    }
     .j-jml-menerima{
       text-align: end;
     }
@@ -318,8 +327,8 @@
 	  }catch(e){
 		alert('⚠ Error: '+e.message);
 	  }finally{
-	   $('#generic-modal').modal('hide'); // tutup modal
-			 $.pjax({
+	    $('#generic-modal').modal('hide'); // tutup modal
+			$.pjax({
 				url: reloadUrl || location.href,
 				container: '#pjax-container'
 			});

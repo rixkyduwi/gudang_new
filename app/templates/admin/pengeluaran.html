@@ -30,7 +30,7 @@
         'DELETE',
         { id: id },
         function(data) { 
-			handleResponse(data, "", "/admin/pengeluaran");
+			handleResponse(data, "Hapus Data", "/admin/pengeluaran");
 		},
         function(xhr, status, error) { 
 			handleResponse(err, "Edit", "/admin/pegeluaran");
@@ -147,15 +147,15 @@
 			        <th> Cash / Tempo</th> 
               <th> Nama Outlet</th>
               <th> Nama Barang</th>
+              <th> Batch</th>
+              <th> Expired Date</th>
               <th> Jumlah</th>
               <th> Satuan</th> 
               <th> Harga Satuan</th>
               <th> Diskon</th>
-              <th style="width:1500px"> Harga Total</th>
+              <th > Harga Total</th>
               <!-- <th> Total Hpp</th>
               <th> Profit</th> -->
-              <th> Batch</th>
-              <th> Expired Date</th>
               <th> Performa Sales</th>
               <th> Terkena Pajak</th>
               <th> Status Pelunasan</th>
@@ -177,15 +177,25 @@
                 {% for j in i.detail %}
                 <div>{{ j.name }} </div>
                 {% endfor %}</div></td>
-                <td data-label="Jumlah" class="sebaris">
+                <td data-label="Batch" class="sebaris ">
                 <div class="multi-line">
-                {% for j in i.detail %}
-                <div style="text-align:center">{{ j.qty }} </div>
+                 {% for j in i.detail %}
+                <div class="">{{ j.batch_no|default('-') }}</div>
                 {% endfor %}</div></td>
-                <td data-label="Satuan" class="sebaris">
+                <td data-label="Expired Date" class="sebaris ">
                 <div class="multi-line">
+                 {% for j in i.detail %}
+                <div class="">{{ j.expired_date|format_0_date }}</div>
+                {% endfor %}</div></td>
+                <td data-label="Jumlah" class="sebaris ">
+                <div class="multi-line ">
                 {% for j in i.detail %}
-                <div>{{ j.unit }} </div>
+                <div class="">{{ j.qty }} </div>
+                {% endfor %}</div></td>
+                <td data-label="Satuan" class="sebaris ">
+                <div class="multi-line ">
+                {% for j in i.detail %}
+                <div class="">{{ j.unit }} </div>
                 {% endfor %}</div></td>
                 <td data-label="Harga Satuan" class="sebaris">
                 <div class="multi-line">
@@ -195,10 +205,10 @@
                   <div class="justify-content-end">{{ j.unit_price | format_rupiah  }}</div>
                 </div>
                 {% endfor %}</div></td>
-                <td data-label="Diskon" class="sebaris">
+                <td data-label="Diskon" class="sebaris ">
                 <div class="multi-line">
                 {% for j in i.detail %}
-                <div style="text-align:center">{{ j.discount_percent|int }}% </div>
+                <div >{{ j.discount_percent|int }}% </div>
                 {% endfor %}</div></td>
                 <td data-label="Harga Total" class="sebaris">
                 <div class="multi-line">
@@ -224,16 +234,6 @@
                   <div class="justify-content-end" >{{ j.profit | format_rupiah  }}</div>
                 </div>
                 {% endfor %}</div></td> #}
-                <td data-label="Batch" class="sebaris">
-                <div class="multi-line">
-                 {% for j in i.detail %}
-                <div style="text-align:center">{{ j.batch_no|default('-') }}</div>
-                {% endfor %}</div></td>
-                <td data-label="Expired Date" class="sebaris">
-                <div class="multi-line">
-                 {% for j in i.detail %}
-                <div style="text-align:center">{{ j.expired_date|format_0_date }}</div>
-                {% endfor %}</div></td>
                 <td data-label="Performa Sales">
                 <div class="justify-content-between d-flex w-100">
                   <div class="justify-content-start"  >Rp </div>
