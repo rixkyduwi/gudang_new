@@ -175,17 +175,17 @@
                 <td data-label="Nama Barang" class="sebaris">
                   <div class="multi-line">
                 {% for j in i.detail %}
-                <div>{{ j.name }} </div>
+                <div class="text-nowrap">{{ j.name }} </div>
                 {% endfor %}</div></td>
                 <td data-label="Batch" class="sebaris ">
                 <div class="multi-line">
                  {% for j in i.detail %}
-                <div class="">{{ j.batch_no|default('-') }}</div>
+                <div class="text-nowrap">{{ j.batch_no|default('-') }}</div>
                 {% endfor %}</div></td>
                 <td data-label="Expired Date" class="sebaris ">
                 <div class="multi-line">
                  {% for j in i.detail %}
-                <div class="">{{ j.expired_date|format_0_date }}</div>
+                <div class="text-nowrap">{{ j.expired_date|format_0_date }}</div>
                 {% endfor %}</div></td>
                 <td data-label="Jumlah" class="sebaris ">
                 <div class="multi-line ">
