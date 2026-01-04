@@ -220,9 +220,9 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <label>Batch</label>
-                    <input type="text" id="batch" class="batch form-control">
-                  </div>
+				  <label>Batch</label>
+				  <input type="text" id="batch" class="batch form-control" placeholder="-">
+				</div>
 
                   <div class="form-group">
                     <label>Expired Date (ED)</label>
@@ -508,30 +508,50 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
   $("#modal-submit-tambah").on("click", function(){
     let cancel = false;
 
-    const payload = {
-		tglfaktur: convertToISO($("#tglfaktur").val()),
-		jthtempo: convertToISO($("#jthtempo").val()),
-		nofaktur: $("#nofaktur").val(),
-		
-		// Sales & Pengirim (Sudah diperbaiki)
-		nama_sales: $('#namasales option:selected').data('name') || '',
-		id_sales: $("#idsales").val() || null,
-		nama_pengirim: $('#namapengirim option:selected').data('name') || '',
-		id_sender: $("#namapengirim").val() || null,
+	// Ganti bagian ini di dalam $("#modal-submit-tambah").on("click", function(){ ... })
+	const payload = {
+	  tglfaktur: convertToISO($("#tglfaktur").val()),
+	  jthtempo: convertToISO($("#jthtempo").val()),
+	  nofaktur: $("#nofaktur").val(),
+	  
+	  // Data Sales & Pengirim
+	  nama_sales: $('#namasales option:selected').data('name') || '',
+	  id_sales: $("#idsales").val() || null,
+	  nama_pengirim: $('#namapengirim option:selected').data('name') || '',
+	  id_sender: $("#namapengirim").val() || null,
 
-		// OUTLET (Gunakan nama_customer agar sesuai dengan tabel Anda)
-		id_outlet: $("#idoutlet").val() || null,
-		id_customer: $("#idoutlet").val() || null, // Kirim dua-duanya agar aman
-		nama_outlet: $('#namaoutlet option:selected').text() || '',
-		nama_customer: $('#namaoutlet option:selected').text() || '', // Tambahkan ini
-		
-		pembayaran: $("#pembayaran").val(),
-		pajak: $("#pajak").val(),
-		items: []
+	  // DATA OUTLET (Kirim semua variasi kunci agar pasti terbaca backend)
+	  id_outlet: $("#idoutlet").val() || null,
+	  id_customer: $("#idoutlet").val() || null, 
+	  nama_outlet: $('#namaoutlet option:selected').text().trim() || '',
+	  nama_customer: $('#namaoutlet option:selected').text().trim() || '',
+	  
+	  pembayaran: $("#pembayaran").val(),
+	  pajak: $("#pajak").val(),
+	  items: []
 	};
 
-	// TAMBAHKAN INI UNTUK DEBUG:
-	console.log("Data yang akan dikirim:", payload);
+	// VALIDASI TAMBAHAN: Cegah submit jika outlet kosong
+	if (!payload.id_outlet || payload.nama_outlet === "Pilih Outlet") {
+		alert("Harap pilih Outlet terlebih dahulu!");
+		return;
+	}
+	
+	// Cari bagian ini (sekitar baris 253) dan pastikan isinya seperti ini:
+	$("#namaoutlet").on("change", function(){
+		const $opt = $(this).find('option:selected');
+		const idValue = $opt.val();
+		const textValue = $opt.text();
+		
+		// Set ke hidden input
+		$("#idoutlet").val(idValue || '');
+		$("#alamatoutlet").val($opt.data('address') || '');
+		
+		console.log("ID Outlet terpilih:", idValue);
+		console.log("Nama Outlet terpilih:", textValue);
+	});
+
+	console.log("Data dikirim:", payload); // Cek ini di pencet F12 > Console
 
     // Validasi dasar
     if(!payload.id_sales || !payload.id_outlet){
@@ -576,19 +596,6 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
 		});
     });
 	
-	$("#namaoutlet").on("change", function(){
-		const $opt = $(this).find('option:selected');
-		const id = $opt.val();
-		const text = $opt.text();
-		
-		$("#idoutlet").val(id || '');
-		$("#alamatoutlet").val($opt.data('address') || '');
-		
-		// Jika "Pilih Outlet" yang terpilih, kosongkan saja
-		if (text === "Pilih Outlet") {
-			$("#idoutlet").val('');
-		}
-	});
 
     if(cancel) return;
 
