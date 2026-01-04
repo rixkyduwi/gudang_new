@@ -927,7 +927,7 @@ def tambah_pengeluaran_action():
     sp_id = sp[0]
     # resolve sender
     sender = one("SELECT id FROM senders WHERE name=%s", (sender_name,))
-    if not sp: return jsonify({"error": "Sender not found"}), 404
+    if not sender: return jsonify({"error": "Sender not found"}), 404
     sender_id = sender[0]
     cust_id = None
     if customer_name:
