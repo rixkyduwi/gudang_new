@@ -509,19 +509,29 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
     let cancel = false;
 
     const payload = {
-      tglfaktur: convertToISO($("#tglfaktur").val()),
-      jthtempo: convertToISO($("#jthtempo").val()),
-      nofaktur: $("#nofaktur").val(),
-      // tetap kirim nama (kompatibel backend lama) + id (skema baru)
-      nama_sales: $('#namasales option:selected').data('name') || '',
-      nama_pengirim: $('#namasales option:selected').data('name') || '',
-      id_sales: $("#idsales").val() || null,
-      nama_outlet: $('#namaoutlet option:selected').text() || '',
-      id_outlet: $("#idoutlet").val() || null,
-      pembayaran: $("#pembayaran").val(),
-      pajak: $("#pajak").val(),
-      items: []
-    };
+		tglfaktur: convertToISO($("#tglfaktur").val()),
+		jthtempo: convertToISO($("#jthtempo").val()),
+		nofaktur: $("#nofaktur").val(),
+		
+		// Sales & Pengirim (Sudah diperbaiki)
+		nama_sales: $('#namasales option:selected').data('name') || '',
+		id_sales: $("#idsales").val() || null,
+		nama_pengirim: $('#namapengirim option:selected').data('name') || '',
+		id_sender: $("#namapengirim").val() || null,
+
+		// OUTLET (Gunakan nama_customer agar sesuai dengan tabel Anda)
+		id_outlet: $("#idoutlet").val() || null,
+		id_customer: $("#idoutlet").val() || null, // Kirim dua-duanya agar aman
+		nama_outlet: $('#namaoutlet option:selected').text() || '',
+		nama_customer: $('#namaoutlet option:selected').text() || '', // Tambahkan ini
+		
+		pembayaran: $("#pembayaran").val(),
+		pajak: $("#pajak").val(),
+		items: []
+	};
+
+	// TAMBAHKAN INI UNTUK DEBUG:
+	console.log("Data yang akan dikirim:", payload);
 
     // Validasi dasar
     if(!payload.id_sales || !payload.id_outlet){
@@ -552,16 +562,33 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
       const ht = bersihkanFormatAngka($row.find(".hargatotal").val()||'0') + '.' + ($row.find(".hargatotal-koma").val().replace(',','')||'00');
      
       payload.items.push({
-        id_barang: id_barang,
-		    unit_label: $row.find(".sel-barang")?.dataset?.qty || '',
-        jmlpermintaan: $row.find(".jmlpermintaan").val()||"0",
-        harga_satuan: hs,
-        diskon: $row.find(".diskon").val()||"0",
-        harga_total: ht,
-        batch_no: $row.find(".batch").val()||"",
-        ed: convertmmyyyy($row.find(".ed").val()||""),
-      });
+			id_barang: id_barang,
+			unit_label: $row.find(".sel-barang")?.dataset?.qty || '',
+			jmlpermintaan: $row.find(".jmlpermintaan").val() || "0",
+			harga_satuan: hs,
+			diskon: $row.find(".diskon").val() || "0",
+			harga_total: ht,
+			
+			// Perbaikan Batch: Jika kosong, otomatis "-"
+			batch_no: ($row.find(".batch").val() || "").trim() || "-",
+			
+			ed: convertmmyyyy($row.find(".ed").val() || ""),
+		});
     });
+	
+	$("#namaoutlet").on("change", function(){
+		const $opt = $(this).find('option:selected');
+		const id = $opt.val();
+		const text = $opt.text();
+		
+		$("#idoutlet").val(id || '');
+		$("#alamatoutlet").val($opt.data('address') || '');
+		
+		// Jika "Pilih Outlet" yang terpilih, kosongkan saja
+		if (text === "Pilih Outlet") {
+			$("#idoutlet").val('');
+		}
+	});
 
     if(cancel) return;
 

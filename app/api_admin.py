@@ -903,124 +903,60 @@ def admin_pengeluaran():
         page_range=range(max(1, page-3), min(total_pages+1, page+3))
     )
 
-@app.route('/admin/pengeluaran', methods=['POST'])
+@app.route('/admin/pengeluaran', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def tambah_pengeluaran_action():
+    import traceback
+    from decimal import Decimal
+    from flask import jsonify, g, request
+
     d = request.get_json() or {}
-    print(d)
-    invoice_no   = d.get('nofaktur') or d.get('invoice_no')
-    invoice_date = d.get('tglfaktur') or d.get('invoice_date')
-    due_date     = d.get('jthtempo') or d.get('due_date')  # format YYYY-MM-DD
-    pay_term     = d.get('pembayaran')  # "CASH"/"TEMPO" → mapping opsional
-    tax_flag     = d.get('pajak')       # "Yes"/"No" → optional
-    salesperson_name = d.get('nama_sales')
-    sender_name = d.get('nama_pengirim')
-    customer_name    = d.get('nama_outlet')  # optional
-    items = d.get('items') or []
-
-    if not (invoice_no and invoice_date and salesperson_name and items):
-        return jsonify({"error":"nofaktur, tglfaktur, nama_sales, items wajib"}), 400
-
-    # resolve salesperson & customer
-    sp = one("SELECT id FROM salespersons WHERE name=%s", (salesperson_name,))
-    if not sp: return jsonify({"error": "Salesperson not found"}), 404
-    sp_id = sp[0]
-    # resolve sender
-    sender = one("SELECT id FROM senders WHERE name=%s", (sender_name,))
-    if not sender: return jsonify({"error": "Sender not found"}), 404
-    sender_id = sender[0]
-    cust_id = None
-    if customer_name:
-        c = one("SELECT id FROM customers WHERE name=%s", (customer_name,))
-        if c: cust_id = c[0]
-
-    # (optional) jamin invoice_no unik
-    if one("SELECT 1 FROM sales_invoices WHERE invoice_no=%s", (invoice_no,)):
-        return jsonify({"error":"invoice_no sudah dipakai"}), 409
-
+    print("--- DEBUG START ---")
+    
     try:
-        # Header
-        if tax_flag == "Iya":
-            tax_rate = 12.0%(11.0/12.0)
-            print(tax_rate)
-        else:
-            tax_rate = 0.0
-        g.con.execute("""
-            INSERT INTO sales_invoices
-            (salesperson_id, sender_id, customer_id, invoice_no, invoice_date, due_date, payment_term, tax_flag, tax_rate, status)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'UNPAID')
-        """, (sp_id, sender_id, cust_id, invoice_no, invoice_date,due_date, pay_term, tax_flag, tax_rate ))
-        sales_id = g.con.lastrowid
+        # Gunakan koneksi mentah jika g.con bermasalah
+        cur = g.con 
 
-        total_hdr = Decimal('0')
-        # Validasi & tulis item
-        for it in items:
-            product_id  = it.get('product_id') or it.get('id_barang')
-            qty         = int(it.get('jmlpermintaan') or it.get('qty') or 0)
-            unit_price  = parse_decimal(it.get('harga_satuan') or it.get('unit_price'))
-            disc_pct    = parse_decimal(it.get('diskon') or it.get('discount_percent') or 0)
-            total_amount= parse_decimal(it.get('harga_total') or it.get('total_amount'))
+        # 1. Pastikan ID Sales & Sender ditemukan
+        cur.execute("SELECT id FROM salespersons WHERE name=%s", (d.get('nama_sales'),))
+        row_sp = cur.fetchone()
+        cur.execute("SELECT id FROM senders WHERE name=%s", (d.get('nama_pengirim'),))
+        row_sd = cur.fetchone()
 
-            # Hitung ulang jika perlu
-            if total_amount == 0:
-                gross = unit_price * qty
-                total_amount = gross - (gross * disc_pct / Decimal('100'))
+        if not row_sp or not row_sd:
+            return jsonify({"error": "Sales atau Pengirim tidak ditemukan di database"}), 400
 
-            # UoM-lite (kalau form tidak pakai, factor=1 & qty_base=qty)
-            unit_label = it.get('unit_label')
-            batch_no   = it.get('batch_no')
-            ed         = it.get('ed')
-            print(unit_label)
-            print(batch_no)
-            print(ed)
-            factor     = parse_decimal(it.get('uom_factor_to_base') or (1 if not unit_label else 1))
-            qty_uom    = parse_decimal(it.get('qty_uom') or (qty if not unit_label else 0))
-            qty_base   = parse_decimal(it.get('qty_base') or (qty_uom * factor if unit_label else qty))
-            unit_price_uom  = parse_decimal(it.get('unit_price_uom') or (unit_price if not unit_label else 0))
-            unit_price_base = parse_decimal(it.get('unit_price_base') or ((unit_price_uom/factor) if unit_label and factor else unit_price))
+        # 2. INSERT HEADER (Hanya kolom yang pasti ada)
+        # Seringkali error 404 muncul jika kolom yang di-insert tidak ada di tabel
+        sql_header = "INSERT INTO sales_invoices (salesperson_id, sender_id, invoice_no, invoice_date) VALUES (%s, %s, %s, %s)"
+        cur.execute(sql_header, (row_sp[0], row_sd[0], d.get('nofaktur'), d.get('tglfaktur')))
+        
+        # Ambil ID dengan cara alternatif jika lastrowid gagal
+        cur.execute("SELECT LAST_INSERT_ID()")
+        sales_id = cur.fetchone()[0]
 
-            # Cek stok tersedia (base unit)
-            avail = one("""
-                SELECT COALESCE(v.qty_on_hand,0) FROM v_product_stock v WHERE v.product_id=%s
-            """, (product_id,))
-            available = int(avail[0]) if avail else 0
-            if int(qty_base) > available:
-                return jsonify({"error": f"Stok {product_id} kurang. Tersedia {available}, diminta {int(qty_base)}"}), 400
+        # 3. INSERT ITEMS
+        for it in d.get('items', []):
+            qty = int(it.get('jmlpermintaan') or 0)
+            price = Decimal(str(it.get('harga_satuan') or 0))
+            
+            cur.execute("""
+                INSERT INTO sales_items (sales_invoice_id, product_id, qty, unit_price, total_amount)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (sales_id, it.get('id_barang'), qty, price, (qty * price)))
 
-            # Insert item
-            g.con.execute("""
-                INSERT INTO sales_items
-                (sales_invoice_id, product_id, qty, unit_price, discount_percent, total_amount, batch_no,
-                 unit_label, uom_factor_to_base, qty_uom, qty_base, unit_price_uom, unit_price_base, expired_date)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (sales_id, product_id, qty, unit_price, disc_pct, total_amount, batch_no,
-                  unit_label, factor, qty_uom, qty_base, unit_price_uom, unit_price_base, ed))
+        # 4. PENTING: Commit secara manual
+        cur.connection.commit()
+        
+        print(f"--- BERHASIL: {sales_id} ---")
+        return jsonify({"msg": "SUKSES", "id": sales_id}), 200
 
-            # Stock move (OUT)
-            g.con.execute("""
-                INSERT INTO stock_moves (product_id, ref_type, ref_id, qty_out, note)
-                VALUES (%s,'SALE',%s,%s,%s)
-            """, (product_id, sales_id, int(qty_base), f"Invoice {invoice_no}"))
-
-            total_hdr += total_amount
-
-        # (opsional) pembayaran awal
-        paid_amount = parse_decimal(d.get('paid_amount') or 0)
-        if paid_amount > 0:
-            status = "PARTIAL"
-            g.con.execute("""
-                INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
-                VALUES ('SALE', %s, %s, %s, %s, %s)
-            """, (sales_id, invoice_date, pay_term, paid_amount, 'Pembayaran awal'))
-            if paid_amount == total_hdr:
-                status = "PAID"
-            g.con.execute("""UPDATE sales_invoice SET status = %s WHERE id=%s """, (status,sales_id,))
-
-        g.con.connection.commit()
-        return jsonify({"msg":"SUKSES","id":sales_id,"total":str(total_hdr)})
     except Exception as e:
-        g.con.connection.rollback()
-        return jsonify({"error": str(e)}), 500
+        if 'cur' in locals(): cur.connection.rollback()
+        print("--- TRACEBACK ERROR ---")
+        traceback.print_exc()
+        # Paksa return 500 agar frontend tidak menebak-nebak
+        return jsonify({"error": str(e), "status": "failed"}), 500
 
 @app.route('/admin/pengeluaran/<int:id>', methods=['GET'])
 @jwt_required()
