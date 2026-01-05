@@ -138,6 +138,8 @@ def format_master(value):
         return "-"
     if value == "":
         return "-"
+    if value == "None":
+        return "-"
     if value == 1:
         return "Aktif"
     else :
@@ -823,7 +825,7 @@ def admin_pengeluaran():
     tanggal = request.args.get('tanggal', type=int)
     salesperson = request.args.get('nama_sales', type=str)   # boleh ID atau nama
     customer    = request.args.get('nama_outlet', type=str)  # boleh ID atau nama
-    page = request.args.get('page', type=int)
+    page     = request.args.get('page', default=1, type=int)
     per_page = request.args.get('per_page', default=10, type=int)
     
 
@@ -853,16 +855,7 @@ def admin_pengeluaran():
     """, tuple(params))
     total_records = cnt[0] if cnt else 0
 
-    total_pages = max(1, (total_records + per_page - 1) // per_page)
-
-    if not page or page < 1:
-        page = total_pages
-
-    if page > total_pages:
-        page = total_pages
-
-    offset = max(0, (page - 1) * per_page)
-
+    offset = (page-1)*per_page
 
     rows = fetch(f"""
         SELECT si.id,
@@ -1390,8 +1383,8 @@ def export_pdf(buffer, pajak):
     for idx, d in enumerate(details, start=1):
         qty_text = f"{d.get('qty') or 0} {d.get('unit_label') or d.get('unit') or ''}".strip()
         diskon = d.get("discount_percent") or 0
-        batch = d.get("batch_no")
-        ed = d.get("expired_date")
+        batch = format_master(d.get("batch_no"))
+        ed = format_master(d.get("expired_date"))
 
         total_amount = Decimal(str(d.get("total_amount") or 0))
         unit_price = Decimal(str(d.get("unit_price") or 0))
@@ -1403,12 +1396,11 @@ def export_pdf(buffer, pajak):
             "HargaSatuan": unit_price,
             "Total": total_amount,
             "Diskon": diskon,
-            "Batch": format_master(batch),
-            "ED": format_master(ed),
+            "Batch": batch,
+            "ED": ed,
         })
 
         jumlah_total += total_amount
-        print(format_master(ed))
         if diskon not in (None, "", 0, 0.0):
             ada_diskon = True
         if batch not in (None, "","-", 0):
@@ -1592,30 +1584,13 @@ def adminkeuangan():
           COALESCE(si_amt.total_invoice, 0) AS total_invoice,
           COALESCE(pay_amt.total_payment, 0) AS total_payment,
           COALESCE(si_amt.total_invoice, 0) - COALESCE(pay_amt.total_payment, 0) AS outstanding,
-          -- metode bayar terakhir (opsional, meniru cashtempo lama)
-          (SELECT p2.method FROM payments p2
-             WHERE p2.ref_type='SALE' AND p2.ref_id=si.id
-             ORDER BY p2.pay_date DESC, p2.id DESC LIMIT 1) AS last_pay_method,
-          (SELECT p3.pay_date FROM payments p3
-             WHERE p3.ref_type='SALE' AND p3.ref_id=si.id
-             ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS last_pay_date,
-          (SELECT p3.note FROM payments p3
-             WHERE p3.ref_type='SALE' AND p3.ref_id=si.id
-             ORDER BY p3.pay_date DESC, p3.id DESC LIMIT 1) AS last_pay_note
+          pay.method,
+          pay.pay_date,
+          pay.note
         FROM sales_invoices si
         JOIN salespersons s ON s.id = si.salesperson_id
         LEFT JOIN customers  c ON c.id = si.customer_id
-        LEFT JOIN (
-            SELECT sales_invoice_id, SUM(total_amount) AS total_invoice
-            FROM sales_items
-            GROUP BY sales_invoice_id
-        ) si_amt ON si_amt.sales_invoice_id = si.id
-        LEFT JOIN (
-            SELECT ref_id, SUM(amount) AS total_payment
-            FROM payments
-            WHERE ref_type='SALE'
-            GROUP BY ref_id
-        ) pay_amt ON pay_amt.ref_id = si.id
+        LEFT JOIN payments pay on pay.ref_id = si.id and pay.ref_type = 'SALE'
         {where_clause}
         ORDER BY si.id DESC
         LIMIT %s OFFSET %s
@@ -1647,6 +1622,7 @@ def adminkeuangan():
     # --- Susun payload untuk template ---
     info_list = []
     for inv in invoices:
+        print(inv)
         info_list.append({
             "id": inv["id"],           # kompatibel dgn template lama
             "tglfaktur": inv["tglfaktur"],
@@ -1830,6 +1806,7 @@ def report_keuangan():
 @jwt_required()
 def keuangan_edit():
     d = request.get_json() or {}
+    print(d)
     # dukung nama field lama & baru
     sales_id   = d.get('id') or d.get('id_sales') or d.get('id_barang_keluar')
     print(sales_id)
@@ -1839,10 +1816,9 @@ def keuangan_edit():
     amount     = d.get('amount')  # nominal pembayaran (Decimal/str/number)
     note       = d.get('note') or d.get('keterangan_pembayaran') or ''
     # map Lunas/Tidak Lunas lama -> status baru (opsional)
-    lunas_tidak = (d.get('lunas_tidak') or '').strip().lower()
-    explicit_status = d.get('status')
-    if not explicit_status and lunas_tidak:
-        explicit_status = 'PAID' if 'Lunas' in lunas_tidak else 'UNPAID'
+    lunas_tidak = (d.get('lunas_tidak') or 'Tidak Lunas')
+    explicit_status = 'PAID' if 'Lunas' in lunas_tidak else 'UNPAID'
+    print(explicit_status)
 
     if not sales_id:
         return jsonify({"error": "id (sales invoice) wajib"}), 400
@@ -1864,49 +1840,24 @@ def keuangan_edit():
         except (InvalidOperation, ValueError, TypeError):
             g.con.execute("ROLLBACK")
             return jsonify({"error": "amount tidak valid"}), 400
-        if status == "Lunas":
-            cek = fetch(""" SELECT id from payments WHERE ref_type=%s, ref_id=%s """,('SALE', sales_id,))
-            if len(cek)>0:
+        if lunas_tidak == "Lunas":
+            cek = fetch(""" SELECT id from payments WHERE ref_type=%s and ref_id=%s """,('SALE', sales_id,))
+            if len(cek)==0:
                 g.con.execute("""
                     INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
                     VALUES ('PURCHASE', %s, %s, %s, %s, %s)
                 """, (sales_id, pay_date, note, amount, note or ''))
-        elif status == "Tidak Lunas":
+        elif lunas_tidak == "Tidak Lunas":
             g.con.execute("""
-                UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s, ref_id=%s 
+                UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s and ref_id=%s 
             """, ( pay_date, note, note, 'SALE',sales_id,))
     # set status eksplisit jika dikirim
     if explicit_status:
         g.con.execute("UPDATE sales_invoices SET status=%s WHERE id=%s",
                       (explicit_status.upper(), sales_id))
-        if explicit_status == "Tidak Lunas":
-            g.con.execute("DELETE from payments WHERE ref_type=%s, ref_id=%s",
+        if explicit_status == "UNPAID":
+            g.con.execute("DELETE from payments WHERE ref_type=%s and ref_id=%s",
                       ('SALE', sales_id))
-        
-
-    # jika tidak ada status eksplisit, hitung otomatis dari total vs pembayaran
-    if not explicit_status:
-        # total invoice
-        g.con.execute("""
-            SELECT COALESCE(SUM(total_amount),0) FROM sales_items
-            WHERE sales_invoice_id=%s
-        """, (sales_id,))
-        total_inv = g.con.fetchone()[0] or 0
-        # total pembayaran
-        g.con.execute("""
-            SELECT COALESCE(SUM(amount),0) FROM payments
-            WHERE ref_type='SALE' AND ref_id=%s
-        """, (sales_id,))
-        total_pay = g.con.fetchone()[0] or 0
-        new_status = 'UNPAID'
-        if total_pay <= 0:
-            new_status = 'UNPAID'
-        elif total_pay < total_inv:
-            new_status = 'PARTIAL'
-        else:
-            new_status = 'PAID'
-        g.con.execute("UPDATE sales_invoices SET status=%s WHERE id=%s",
-                      (new_status, sales_id))
     g.con.execute("COMMIT")
     return jsonify({"msg": "SUKSES"})
 @app.route('/api/payments/sale/<int:ref_id>')
@@ -2199,7 +2150,7 @@ def edit_administrasi():
             if status == "Lunas":
                 status = 'PAID'
             elif status == "Tidak Lunas":
-                g.con.execute("DELETE from payments WHERE ref_type=%s, ref_id=%s ", ('PURCHASE', purchase_id,))
+                g.con.execute("DELETE from payments WHERE ref_type=%s and ref_id=%s ", ('PURCHASE', purchase_id,))
                 status = 'UNPAID'
             print(status)
             g.con.execute("UPDATE purchases SET status=%s WHERE id=%s ", (status, purchase_id,))
@@ -2208,7 +2159,7 @@ def edit_administrasi():
         # tambah pembayaran jika ada fieldnya
         if pay_date and amount is not None:
             if status == "Lunas":
-                cek = fetch(""" SELECT id from payments WHERE ref_type=%s, ref_id=%s """,('PURCHASE', purchase_id,))
+                cek = fetch(""" SELECT id from payments WHERE ref_type=%s and ref_id=%s """,('PURCHASE', purchase_id,))
                 if len(cek)==0:
                     g.con.execute("""
                         INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
@@ -2217,11 +2168,11 @@ def edit_administrasi():
                 else:
                     # Jika sudah ada, mungkin lebih baik UPDATE data yang sudah ada tersebut
                     g.con.execute("""
-                        UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s, ref_id=%s 
+                        UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s and ref_id=%s 
                     """, ( pay_date, note, note, 'PURCHASE',purchase_id,))
             elif status == "Tidak Lunas":
                 g.con.execute("""
-                    UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s, ref_id=%s 
+                    UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s and ref_id=%s 
                 """, ( pay_date, note, note, 'PURCHASE',purchase_id,))
 
         g.con.connection.commit()
