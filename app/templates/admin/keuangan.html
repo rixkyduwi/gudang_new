@@ -155,7 +155,7 @@ class="btn btn-info d-flex align-items-center ms-2">
               style="width: 100%; height: 36px" id="sales_data" name="sales_data">
                 <option value="" >Nama Sales</option>
                 {% for i in nama_sales %}
-                <option value="{{ i.nama_sales }}" {% if request.args.get('nama_sales') == i.nama_sales %} selected {% endif %} >{{ i.nama_sales }}</option>
+                <option value="{{ i.name }}" {% if request.args.get('nama_sales') == i.name %} selected {% endif %} >{{ i.name }}</option>
                 {% endfor %}
               </select>
               </div>
@@ -164,8 +164,8 @@ class="btn btn-info d-flex align-items-center ms-2">
               <select class="form-select select2" 
               style="width: 100%; height: 36px" id="outlet_data" name="outlet_data">
                 <option value="" >Nama Outlet</option>
-                {% for i in nama_outlet %}
-                <option value="{{ i.nama_outlet }}" {% if request.args.get('nama_outlet') == i.nama_outlet %} selected {% endif %} >{{ i.nama_outlet }}</option>
+                {% for i in nama_customer %}
+                <option value="{{ i.name }}" {% if request.args.get('nama_outlet') == i.name %} selected {% endif %} >{{ i.name }}</option>
                 {% endfor %}
               </select>
               </div>

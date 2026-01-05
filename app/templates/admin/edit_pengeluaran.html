@@ -566,9 +566,16 @@ function bersihkanFormatAngka(s) {
           if(!confirm("Stok akan melewati limit! Lanjutkan?")) { cancel = true; return false; }
         }
       }
+      const hs = Number(
+          bersihkanFormatAngka($row.find(".hargasatuan").val() || 0) + '.' +
+          ($row.find(".hargasatuan-koma").val() || '00')
+      );
 
-      const hs = bersihkanFormatAngka($row.find(".hargasatuan").val()||'0') + '.' + ($row.find(".hargasatuan-koma").val().replace(',','')||'00');
-      const ht = bersihkanFormatAngka($row.find(".hargatotal").val()||'0') + '.' + ($row.find(".hargatotal-koma").val().replace(',','')||'00');
+      const ht = Number(
+          bersihkanFormatAngka($row.find(".hargatotal").val() || 0) + '.' +
+          ($row.find(".hargatotal-koma").val() || '00')
+      );
+
      
       payload.items.push({
         id_barang: id_barang,

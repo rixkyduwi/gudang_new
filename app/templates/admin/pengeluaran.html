@@ -114,7 +114,7 @@
                   <select class="form-select select2 " style="width: 100%; height: 36px" id="nama_sales">
                     <option value="" >Semua Nama Sales</option>
                     {% for i in nama_sales %}
-                    <option value="{{ i.nama_sales }}" {% if request.args.get('nama_sales') == i.nama_sales %} selected {% endif %} >{{ i.nama_sales }}</option>
+                    <option value="{{ i.name }}" {% if request.args.get('nama_sales') == i.name %} selected {% endif %} >{{ i.name }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -122,8 +122,8 @@
                 <div class="col-12 col-sm-6 col-lg-4">
                   <select class="form-select select2" style="width: 100%; height: 36px" id="nama_outlet">
                     <option value="" >Semua Nama Outlet</option>
-                    {% for i in nama_outlet %}
-                    <option value="{{ i.nama_outlet }}" {% if request.args.get('nama_outlet') == i.nama_outlet %} selected {% endif %} >{{ i.nama_outlet }}</option>
+                    {% for i in nama_customer %}
+                    <option value="{{ i.name }}" {% if request.args.get('nama_outlet') == i.name %} selected {% endif %} >{{ i.name }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -140,26 +140,26 @@
 				
                   <tr>
               <th  class="ps-1 pe-1" > No</th>
-              <th> Tanggal Faktur</th> 
-              <th> Nomor Faktur</th> 
-              <th> Nama Sales</th> 
-              <th> Nama Pengirim</th> 
-			        <th> Cash / Tempo</th> 
-              <th> Nama Outlet</th>
-              <th> Nama Barang</th>
-              <th> Batch</th>
-              <th> Expired Date</th>
-              <th> Jumlah</th>
-              <th> Satuan</th> 
-              <th> Harga Satuan</th>
-              <th> Diskon</th>
-              <th > Harga Total</th>
+              <th class="j-jml-menerima"> Tanggal Faktur</th> 
+              <th class="j-jml-menerima"> Nomor Faktur</th> 
+              <th class="j-jml-menerima"> Nama Sales</th> 
+              <th class="j-jml-menerima"> Nama Pengirim</th> 
+			        <th class="j-jml-menerima"> Cash / Tempo</th> 
+              <th class="j-jml-menerima"> Nama Outlet</th>
+              <th class="j-jml-menerima"> Nama Barang</th>
+              <th class="j-jml-menerima"> Batch</th>
+              <th class="j-jml-menerima"> Expired Date</th>
+              <th class="j-jml-menerima"> Jumlah</th>
+              <th class="j-jml-menerima"> Satuan</th> 
+              <th class="j-jml-menerima"> Harga Satuan</th>
+              <th class="j-jml-menerima"> Diskon</th>
+              <th class="j-jml-menerima"> Harga Total</th>
               <!-- <th> Total Hpp</th>
               <th> Profit</th> -->
-              <th> Performa Sales</th>
-              <th> Terkena Pajak</th>
-              <th> Status Pelunasan</th>
-              <th> Aksi</th>
+              <th class="j-jml-menerima"> Performa Sales</th>
+              <th class="j-jml-menerima"> Terkena Pajak</th>
+              <th class="j-jml-menerima"> Status Pelunasan</th>
+              <th class="j-jml-menerima"> Aksi</th>
                   </tr>
                 </thead>
                  <tbody>
@@ -180,12 +180,12 @@
                 <td data-label="Batch" class="sebaris ">
                 <div class="multi-line">
                  {% for j in i.detail %}
-                <div class="text-nowrap">{{ j.batch_no|default('-') }}</div>
+                <div class="text-nowrap">{{ j.batch_no|default('-')|format_master }}</div>
                 {% endfor %}</div></td>
                 <td data-label="Expired Date" class="sebaris ">
                 <div class="multi-line">
                  {% for j in i.detail %}
-                <div class="text-nowrap">{{ j.expired_date|format_0_date }}</div>
+                <div class="text-nowrap">{{ j.expired_date|format_master }}</div>
                 {% endfor %}</div></td>
                 <td data-label="Jumlah" class="sebaris ">
                 <div class="multi-line ">

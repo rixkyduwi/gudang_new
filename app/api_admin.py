@@ -18,6 +18,7 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, Alignment
 from flask import (
+    abort,
     render_template,
     request,
     jsonify,
@@ -126,10 +127,16 @@ def format_0_date(value):
     else :
         return value
 @app.template_filter('format_master')
-def format_0_number(value):
+def format_master(value):
     if value == "000-000-000-000":
         return "-"
     if value == "0000-00-00":
+        return "-"
+    if value == "undefin":
+        return "-"
+    if value == "0000-00-00":
+        return "-"
+    if value == "":
         return "-"
     if value == 1:
         return "Aktif"
@@ -816,8 +823,9 @@ def admin_pengeluaran():
     tanggal = request.args.get('tanggal', type=int)
     salesperson = request.args.get('nama_sales', type=str)   # boleh ID atau nama
     customer    = request.args.get('nama_outlet', type=str)  # boleh ID atau nama
-    page     = request.args.get('page', default=1, type=int)
+    page = request.args.get('page', type=int)
     per_page = request.args.get('per_page', default=10, type=int)
+    
 
     filters, params = [], []
     clause, prms = build_date_range(year=tahun, month=bulan, day=tanggal, alias="si", col="invoice_date")
@@ -845,7 +853,17 @@ def admin_pengeluaran():
     """, tuple(params))
     total_records = cnt[0] if cnt else 0
 
-    offset = (page-1)*per_page
+    total_pages = max(1, (total_records + per_page - 1) // per_page)
+
+    if not page or page < 1:
+        page = total_pages
+
+    if page > total_pages:
+        page = total_pages
+
+    offset = max(0, (page - 1) * per_page)
+
+
     rows = fetch(f"""
         SELECT si.id,
                si.invoice_no,
@@ -892,10 +910,12 @@ def admin_pengeluaran():
     # dropdown filter
     nama_sales = fetch("SELECT name FROM salespersons WHERE is_active=1 ORDER BY name")
     nama_customer = fetch("SELECT name FROM customers ORDER BY name")
+    list_tahun = fetch("SELECT YEAR(invoice_date) AS tahun FROM sales_invoices GROUP BY tahun")
 
     total_pages = (total_records + per_page - 1) // per_page
     return render_pjax("admin/pengeluaran.html",
         info_list=rows,
+        list_tahun = list_tahun,
         tahun=tahun, bulan=bulan, tanggal=tanggal,
         nama_sales=nama_sales, nama_customer=nama_customer,
         page=page, per_page=per_page, total_pages=total_pages, total_records=total_records,
@@ -1383,17 +1403,17 @@ def export_pdf(buffer, pajak):
             "HargaSatuan": unit_price,
             "Total": total_amount,
             "Diskon": diskon,
-            "Batch": batch,
-            "ED": ed,
+            "Batch": format_master(batch),
+            "ED": format_master(ed),
         })
 
         jumlah_total += total_amount
-
+        print(format_master(ed))
         if diskon not in (None, "", 0, 0.0):
             ada_diskon = True
-        if batch not in (None, "", 0):
+        if batch not in (None, "","-", 0):
             ada_batch = True
-        if ed not in (None, "", 0):
+        if ed not in (None, "","-", 0):
             ada_ed = True
 
     # Pagination: isi penuh per halaman (tanpa mengurangi logika layout tabel)
@@ -1677,7 +1697,7 @@ def adminkeuangan():
         list_tahun=fetch("SELECT DISTINCT YEAR(invoice_date) AS tahun FROM sales_invoices ORDER BY tahun DESC"),
         data_sales=data_sales,
         data_outlet=data_outlet,
-        nama_outlet=fetch("SELECT DISTINCT name FROM customers ORDER BY name"),
+        nama_customer=fetch("SELECT DISTINCT name FROM customers ORDER BY name"),
         nama_sales=fetch("SELECT DISTINCT name FROM salespersons WHERE is_active=1 ORDER BY name"),
         tanggal_pengeluaran=tanggal_pengeluaran,
         # quick-add helpers
