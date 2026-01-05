@@ -1431,7 +1431,7 @@ def export_pdf(buffer, pajak):
     for i in range(total_rows_to_print):
         # ganti halaman tiap 12 baris (kecuali i=0)
         if i > 0 and i % max_rows_per_page == 0:
-            hitung_total(pdf, y, x_margin, width, running_total, pajak, page_num, total_pages, ada_diskon)
+            hitung_total(header.get("nama_pengirim"), pdf, y, x_margin, width, running_total, pajak, page_num, total_pages, ada_diskon)
             pdf.showPage()
             page_num += 1
             y, x_margin, width, header_positions = awal(
@@ -1590,7 +1590,17 @@ def adminkeuangan():
         FROM sales_invoices si
         JOIN salespersons s ON s.id = si.salesperson_id
         LEFT JOIN customers  c ON c.id = si.customer_id
-        LEFT JOIN payments pay on pay.ref_id = si.id and pay.ref_type = 'SALE'
+        LEFT JOIN payments pay on pay.ref_id = si.id and pay.ref_type = 'SALE' LEFT JOIN (
+            SELECT sales_invoice_id, SUM(total_amount) AS total_invoice
+            FROM sales_items
+            GROUP BY sales_invoice_id
+        ) si_amt ON si_amt.sales_invoice_id = si.id
+        LEFT JOIN (
+            SELECT ref_id, SUM(amount) AS total_payment
+            FROM payments
+            WHERE ref_type='SALE'
+            GROUP BY ref_id
+        ) pay_amt ON pay_amt.ref_id = si.id
         {where_clause}
         ORDER BY si.id DESC
         LIMIT %s OFFSET %s
@@ -1634,9 +1644,9 @@ def adminkeuangan():
             "npwp": inv["npwp"],
             "status": inv["status"],
             "payment_term": inv["payment_term"],
-            "last_pay_method": inv["last_pay_method"] or "-",
-            "last_pay_date": inv["last_pay_date"] or "-",
-            "last_pay_note": inv["last_pay_note"] or "-",
+            "last_pay_method": inv["method"] or "-",
+            "last_pay_date": inv["pay_date"] or "-",
+            "last_pay_note": inv["note"] or "-",
             "total_invoice": inv["total_invoice"],
             "total_payment": inv["total_payment"],
             "outstanding": inv["outstanding"],
@@ -1845,12 +1855,12 @@ def keuangan_edit():
             if len(cek)==0:
                 g.con.execute("""
                     INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
-                    VALUES ('PURCHASE', %s, %s, %s, %s, %s)
+                    VALUES ('SALE', %s, %s, %s, %s, %s)
                 """, (sales_id, pay_date, note, amount, note or ''))
         elif lunas_tidak == "Tidak Lunas":
             g.con.execute("""
                 UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s and ref_id=%s 
-            """, ( pay_date, note, note, 'SALE',sales_id,))
+            """, ( pay_date, note, note, 'SALE', sales_id,))
     # set status eksplisit jika dikirim
     if explicit_status:
         g.con.execute("UPDATE sales_invoices SET status=%s WHERE id=%s",

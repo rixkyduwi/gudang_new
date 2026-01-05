@@ -198,7 +198,7 @@ class="btn btn-info d-flex align-items-center ms-2">
                         {% for i in info_list %}
                             <tr class="data-utama">
                                 <td data-label="No">{{ (page - 1) * per_page + loop.index }}</td>
-                                <td data-label="Tanggal Faktur">{{ i.tglfaktur }} {{i}}</td>
+                                <td data-label="Tanggal Faktur">{{ i.tglfaktur }}</td>
                                 <td data-label="Nomor Faktur">{{ i.nomerfaktur }}</td>
                                 <td data-label="Nama Sales">{{ i.nama_sales }}</td>
                                 <td data-label="Nama Outlet">{{ i.nama_outlet }}</td>
