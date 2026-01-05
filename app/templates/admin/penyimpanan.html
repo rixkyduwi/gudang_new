@@ -140,18 +140,18 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
                     <thead class="table-light">
                       <tr>
                         <th> No</th>
-                        <th> Kode Barang</th> 
-                        <th> Nama Barang</th> 
-                        <th> Sisa Stok</th>
-                        <th> Satuan</th>
-                        <th> Stok Limit</th>
-                        <th> Status</th> 
-                        <th> Aksi </th>
+                        <th class="j-jml-menerima"> Kode Barang</th> 
+                        <th class="j-jml-menerima"> Nama Barang</th> 
+                        <th class="j-jml-menerima"> Sisa Stok</th>
+                        <th class="j-jml-menerima"> Satuan</th>
+                        <th class="j-jml-menerima"> Stok Limit</th>
+                        <th class="j-jml-menerima"> Status</th> 
+                        <th class="j-jml-menerima"> Aksi </th>
                       </tr>
                     </thead>
                     <tbody>
                         {% for i in info_list %}
-                            <tr class="data-utama">
+                            <tr class="data-utama" >
                                 <td data-label="No">{{ (page - 1) * per_page + loop.index }}</td>
                                 <td data-label="Kode Barang">{{ i.kode_barang }}</td>
                                 <td data-label="Nama Barang">{{ i.nama_barang }}</td>
