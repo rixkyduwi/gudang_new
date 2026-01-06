@@ -2159,12 +2159,12 @@ def edit_administrasi():
         # update status jika ada
         if status:
             if status == "Lunas":
-                status = 'PAID'
+                status_db = 'PAID'
             elif status == "Tidak Lunas":
                 g.con.execute("DELETE from payments WHERE ref_type=%s and ref_id=%s ", ('PURCHASE', purchase_id,))
-                status = 'UNPAID'
-            print(status)
-            g.con.execute("UPDATE purchases SET status=%s WHERE id=%s ", (status, purchase_id,))
+                status_db = 'UNPAID'
+            print(status_db)
+            g.con.execute("UPDATE purchases SET status=%s WHERE id=%s ", (status_db, purchase_id,))
             g.con.connection.commit()
 
         # tambah pembayaran jika ada fieldnya
