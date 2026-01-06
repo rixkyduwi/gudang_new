@@ -942,8 +942,28 @@ def tambah_pengeluaran_action():
 
         # 2. INSERT HEADER (Hanya kolom yang pasti ada)
         # Seringkali error 404 muncul jika kolom yang di-insert tidak ada di tabel
+        tglfaktur = d.get('tglfaktur')
+        # Memanggil fungsi route
+        resp_obj = api_sales_invoice_no(tglfaktur) 
+
+        # Mengambil status code (200, 400, dll)
+        status_code = resp_obj.status_code 
+        # Mengambil isi JSON
+        resp_data = resp_obj.get_json()
+
+        print(resp_data)
+
+        if status_code != 200 or 'error' in resp_data:
+            # Jika gagal, ambil dari data input 'd' (fallback)
+            jthtempo = d.get('jthtempo')
+            nofaktur = d.get('nofaktur') # Perbaikan typo: nofaktu -> nofaktur
+        else:
+            # Jika sukses
+            jthtempo = resp_data['jatuh_tempo']
+            nofaktur = resp_data['nofaktur']
+
         sql_header = "INSERT INTO sales_invoices (salesperson_id, sender_id, invoice_no, invoice_date, customer_id, due_date, payment_term, tax_flag) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cur.execute(sql_header, (row_sp[0], row_sd[0], d.get('nofaktur'), d.get('tglfaktur'), d.get('id_customer'), d.get('jthtempo'), d.get('pembayaran'), d.get('pajak')))
+        cur.execute(sql_header, (row_sp[0], row_sd[0], nofaktur, d.get('tglfaktur'), d.get('id_customer'), jthtempo, d.get('pembayaran'), d.get('pajak')))
         
         # Ambil ID dengan cara alternatif jika lastrowid gagal
         cur.execute("SELECT LAST_INSERT_ID()")
