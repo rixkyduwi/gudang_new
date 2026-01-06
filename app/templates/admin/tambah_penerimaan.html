@@ -292,7 +292,29 @@
             $row.find('.hargatotal').val(formatAngka(angka));
             $row.find('.hargatotal-koma').val(',' + koma);
         });
-
+        function handleResponse2(data, crud, reloadUrl){
+            console.log(data)
+            try{
+                if (data && data.msg === "SUKSES"){
+                alert(`✅ Sukses ${crud}`);
+                $.pjax({
+                	url: reloadUrl || location.href,
+                	container: '#pjax-container'
+                });
+                } else {
+                alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
+                if (data.error.includes("401")){location.href="/login"};
+                }
+            }catch(e){
+                alert('⚠ Error: '+e.message);
+            }finally{
+                $('#generic-modal').modal('hide'); // tutup modal
+                    //$.pjax({
+                    //	url: reloadUrl || location.href,
+                    //	container: '#pjax-container'
+                    //});
+            }
+        }
         $("#modal-submit-tambah").click(function() {
             // Siapkan data untuk dikirim berdasarkan kategori
             const data = {
@@ -319,7 +341,7 @@
                 data: JSON.stringify(data),
                 contentType: 'application/json',
                 success: function(response) {
-                    handleResponse(response,"Tambah Data Penerimaan","/admin/penerimaan");
+                    handleResponse2(response,"Tambah Data Penerimaan","/admin/penerimaan");
                 },
                 error: function(xhr, status, error) {
                     console.error("Error:", error);
@@ -350,6 +372,12 @@
                     childList: true,
                     subtree: true
                 });
+                $(".complex-colorpicker2").datepicker({
+                    autoclose: true,
+                    todayHighlight: true,
+                    format: "mm/yyyy",
+                    language: "id"
+                  });
             }, 1000);
         });
     </script>
