@@ -8,11 +8,11 @@ from urllib import response
 import uuid
 import calendar
 import time
+import traceback
 from datetime import datetime, date, timedelta
 from typing import Tuple, List, Optional
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
-
 # Import library pihak ketiga
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
@@ -919,10 +919,6 @@ def admin_pengeluaran():
 @app.route('/admin/pengeluaran', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def tambah_pengeluaran_action():
-    import traceback
-    from decimal import Decimal
-    from flask import jsonify, g, request
-
     d = request.get_json() or {}
     print("--- DEBUG START ---")
     print(d)
@@ -961,9 +957,11 @@ def tambah_pengeluaran_action():
             # Jika sukses
             jthtempo = resp_data['jatuh_tempo']
             nofaktur = resp_data['nofaktur']
-
-        sql_header = "INSERT INTO sales_invoices (salesperson_id, sender_id, invoice_no, invoice_date, customer_id, due_date, payment_term, tax_flag) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cur.execute(sql_header, (row_sp[0], row_sd[0], nofaktur, d.get('tglfaktur'), d.get('id_customer'), jthtempo, d.get('pembayaran'), d.get('pajak')))
+        tax_rate = (Decimal(11) / Decimal(12)) * Decimal(12) if d.get('pajak') == 'Iya' else Decimal(0)
+        payment_term_days = 30 if d.get('pembayaran') == 'TEMPO' else None
+        sql_header = """INSERT INTO sales_invoices (salesperson_id, sender_id, invoice_no, invoice_date, customer_id, due_date, payment_term,payment_term_days, tax_flag, tax_rate)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        cur.execute(sql_header, (row_sp[0], row_sd[0], nofaktur, d.get('tglfaktur'), d.get('id_customer'), jthtempo, d.get('pembayaran'),payment_term_days, d.get('pajak'), tax_rate))
         
         # Ambil ID dengan cara alternatif jika lastrowid gagal
         cur.execute("SELECT LAST_INSERT_ID()")

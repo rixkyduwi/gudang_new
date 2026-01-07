@@ -22,7 +22,7 @@
       .table-responsive::-webkit-scrollbar { height: 15px; }
       .table-responsive::-webkit-scrollbar-thumb { background-color: #888; border-radius: 10px; }
       .table-responsive::-webkit-scrollbar-track { background-color: #f1f1f1; }
-      .table-responsive { scrollbar-color: #888 #f1f1f1; scrollbar-width: thick; max-height: 700px;}
+      .table-responsive { scrollbar-color: #888 #f1f1f1; scrollbar-width: thick; max-height: 425px; }
       .table {margin-bottom: 0px;} 
       .shrink-logo {max-width: 70px !important;}
       /* Default size for larger screens */
@@ -30,188 +30,187 @@
         width: auto ; /* Keep the image responsive */
         height: 50px;    /* Maintain aspect ratio */
 		  }
-	  .main-loader {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100vw;
-		height: 100vh;
-		background: white;
-		z-index: 9999;
+      .main-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: white;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      }
 
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	  }
+      .main-loader::after {
+      content: "";
+      width: 50px;
+      height: 50px;
+      border: 5px solid #ccc;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      }
 
-	  .main-loader::after {
-		content: "";
-		width: 50px;
-		height: 50px;
-		border: 5px solid #ccc;
-		border-top-color: #333;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	  }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .clickable-row { cursor: pointer; transition: background-color 0.3s ease; }
+      .hidden-row { display: none; }
+      .clickable-row:hover { text-decoration: underline; background-color: #b0b0b0; }
+      .data-utama { background-color: #e6f7ff; /* Biru muda lembut */ 
+        color: #000;
+        content-visibility: auto;
+        contain-intrinsic-size: 50px; /* Perkiraan tinggi satu baris */
+      }
+      .sub-detail { background-color: #d9f7be; /* Hijau muda lembut */ color: #000; /* Warna teks hitam */ }
+      .sub-rab { background-color: #fffbe6; /* Kuning pastel lembut */ color: #000; /* Warna teks hitam */ }
+      .head-sub-rab { background-color: #bae7ff; /* Biru sedikit lebih gelap dari data utama */ color: #000; /* Warna teks hitam */ }
+      .jumlah{ background-color: #e7e9f0; /* Biru sedikit lebih gelap dari data utama */ color: #000; /* Warna teks hitam */ }
+      .scroll-table {
+        max-height: 900px;
+      }
+      
+      #sales-overview {
+        max-width: 100%; /* Membatasi lebar maksimum sesuai dengan ukuran container */
+        height: 300px; /* Sesuaikan tinggi grafik sesuai kebutuhan */
+      }
+      .card.bg-primary ::selection {
+        background: rgba(255, 255, 255, 0.4); 
+        color: #000;
+      }
+      @media (min-width: 768px) {   
+        .saless{
+          max-height: 700px !important;
+        }
+        .performa{
+          height: 100px;
+        }
+        .cash-flow{
+          height: 130px;
+        }
+        .download{
+          height: 130px;
+        }
+        .buttons-report{
+            justify-content: space-between !important;
+            display: flex !important;
+        }
+      }
+      @media (max-width: 1541px) {  
+        .download{
+          height: auto !important;
+        } 
+      }
+      @media (max-width: 900px) {   
+        .buttons-report{
+            justify-content: none !important;
+            display: block !important;
+        }
+      } 
+      .dataTables_wrapper .dataTables_filter { float: left; text-align: left; margin-right: 10px; } 
 
-	  @keyframes spin {
-		to {
-		  transform: rotate(360deg);
-		}
-	  }
-	  .clickable-row { cursor: pointer; transition: background-color 0.3s ease; }
-	  .hidden-row { display: none; }
-	  .clickable-row:hover { text-decoration: underline; background-color: #b0b0b0; }
-	  .data-utama { background-color: #e6f7ff; /* Biru muda lembut */ color: #000; /* Warna teks hitam */ }
-	  .sub-detail { background-color: #d9f7be; /* Hijau muda lembut */ color: #000; /* Warna teks hitam */ }
-	  .sub-rab { background-color: #fffbe6; /* Kuning pastel lembut */ color: #000; /* Warna teks hitam */ }
-	  .head-sub-rab { background-color: #bae7ff; /* Biru sedikit lebih gelap dari data utama */ color: #000; /* Warna teks hitam */ }
-	  .jumlah{ background-color: #e7e9f0; /* Biru sedikit lebih gelap dari data utama */ color: #000; /* Warna teks hitam */ }
-	  .scroll-table {
-	  max-height: 900px;
-	  }
-	  
-	  #sales-overview {
-		max-width: 100%; /* Membatasi lebar maksimum sesuai dengan ukuran container */
-		height: 300px; /* Sesuaikan tinggi grafik sesuai kebutuhan */
-	  }
-	  .card.bg-primary ::selection {
-		background: rgba(255, 255, 255, 0.4); 
-		color: #000;
-	  }
-	  @media (min-width: 768px) {   
-		.saless{
-		  max-height: 700px !important;
-		}
-		.performa{
-		  height: 100px;
-		}
-		.performa_a{
-		}
-		.cash-flow{
-		  height: 130px;
-		}
-		.download{
-		  height: 130px;
-		}
-		.buttons-report{
-			  justify-content: space-between !important;
-			  display: flex !important;
-		}
-	  }
-	   @media (max-width: 1541px) {  
-		.download{
-		  height: auto !important;
-		} 
-	   }
-	   @media (max-width: 900px) {   
-	  .buttons-report{
-			  justify-content: none !important;
-			  display: block !important;
-		}
-	   } 
-	  .dataTables_wrapper .dataTables_filter { float: left; text-align: left; margin-right: 10px; } 
+      /* sembunyikan dulu, lalu fade-in */
+      .fx-fade { opacity: 0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; }
+      .fx-show { opacity: 1 !important; transform: none !important; }
 
-	  /* sembunyikan dulu, lalu fade-in */
-	  .fx-fade { opacity: 0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; }
-	  .fx-show { opacity: 1 !important; transform: none !important; }
+      /* hindari "kedip": kita render chart offscreen lalu tampilkan bareng */
+      #sales-overview { min-height: 260px; }
+      .text-wrap{
+        white-space:normal;
+        word-wrap:break-word;
+        overflow-wrap:break-word;
+      }
+      .text-ellipsis{
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:elipsis;
+      }
+      .j-jml-menerima{
+        text-align: center;
+      }
+      .j-jml-menerima2{
+        text-align: center;
+      }
+      @media (max-width: 768px) {
+        .j-jml-menerima::before{
+          text-align: start;
+        }
+        .j-jml-menerima::after{
+          text-align: end;
+        }
+        .j-jml-menerima{
+          text-align: end;
+        }
+        table.table-responsive-stack thead {
+          display: none; /* header hilang di mobile */
+        }
 
-	  /* hindari "kedip": kita render chart offscreen lalu tampilkan bareng */
-	  #sales-overview { min-height: 260px; }
-	  .text-wrap{
-	  white-space:normal;
-	  word-wrap:break-word;
-	  overflow-wrap:break-word;
-	  }
-	  .text-ellipsis{
-	  white-space:nowrap;
-	  overflow:hidden;
-	  text-overflow:elipsis;
-	  }
-    .j-jml-menerima{
-      text-align: center;
-    }
-    .j-jml-menerima2{
-      text-align: center;
-    }
-	  @media (max-width: 768px) {
-    .j-jml-menerima::before{
-      text-align: start;
-    }
-    .j-jml-menerima::after{
-      text-align: end;
-    }
-    .j-jml-menerima{
-      text-align: end;
-    }
-  table.table-responsive-stack thead {
-    display: none; /* header hilang di mobile */
-  }
+        table.table-responsive-stack,
+        table.table-responsive-stack tbody,
+        table.table-responsive-stack tr,
+        table.table-responsive-stack td {
+          display: block;
+          width: 100%;
+        }
 
-  table.table-responsive-stack,
-  table.table-responsive-stack tbody,
-  table.table-responsive-stack tr,
-  table.table-responsive-stack td {
-    display: block;
-    width: 100%;
-  }
+        table.table-responsive-stack tr {
+          border: 1px solid rgba(0,0,0,.125);
+          border-radius: 10px;
+          margin-bottom: 12px;
+          padding: 10px;
+        }
 
-  table.table-responsive-stack tr {
-    border: 1px solid rgba(0,0,0,.125);
-    border-radius: 10px;
-    margin-bottom: 12px;
-    padding: 10px;
-  }
+        table.table-responsive-stack td {
+          border: 0 !important;
+          padding: 6px 0;
+          display: flex;
+          gap: 10px;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
 
-  table.table-responsive-stack td {
-    border: 0 !important;
-    padding: 6px 0;
-    display: flex;
-    gap: 10px;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
+        table.table-responsive-stack td::before {
+          content: attr(data-label);
+          font-weight: 600;
+          opacity: .75;
+          flex: 0 0 45%;
+          max-width: 45%;
+        }
 
-  table.table-responsive-stack td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    opacity: .75;
-    flex: 0 0 45%;
-    max-width: 45%;
-  }
+        table.table-responsive-stack td > * {
+          flex: 1;
+          min-width: 0;
+        }
+        /* pengecualian: kolom nama barang */
+        table.table-responsive-stack td.sebaris{
+          display: block;              /* matiin flex biar isi normal */
+        }
 
-  table.table-responsive-stack td > * {
-    flex: 1;
-    min-width: 0;
-  }
-  /* pengecualian: kolom nama barang */
-  table.table-responsive-stack td.sebaris{
-    display: block;              /* matiin flex biar isi normal */
-  }
+        table.table-responsive-stack td.sebaris::before{
+          display: block;              /* label tetap di atas */
+          margin-bottom: 4px;
+          flex: none;
+          max-width: none;
+        }
 
-  table.table-responsive-stack td.sebaris::before{
-    display: block;              /* label tetap di atas */
-    margin-bottom: 4px;
-    flex: none;
-    max-width: none;
-  }
+        table.table-responsive-stack td.sebaris{
+          white-space: normal;         /* pastikan bisa wrap */
+          word-break: break-word;      /* kalau ada kata panjang */
+        }
+        .multi-line > div { margin-bottom: 2px; }
+        .multi-line > div:last-child { margin-bottom: 0; }
 
-  table.table-responsive-stack td.sebaris{
-    white-space: normal;         /* pastikan bisa wrap */
-    word-break: break-word;      /* kalau ada kata panjang */
-  }
-  .multi-line > div { margin-bottom: 2px; }
-  .multi-line > div:last-child { margin-bottom: 0; }
-
-}
-.sidebar-toggler {
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-	</style>
- 
+      }
+      .sidebar-toggler {
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+	  </style>
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -234,24 +233,24 @@
   
   	<!-- JSON-LD Schema.org -->
   	<script type="application/ld+json">
-  	{
-  	  "@context": "https://schema.org",
-  	  "@type": "Organization",
-  	  "name": "PT. Bregas Saporete Medikalindo",
-  	  "url": "https://bregassaporetemedikalindo.blogspot.com/",
-  	  "logo": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhLdVYF6ZCvuavJJ8IcrujLNynWSbw5BZG8eTX7e3Dv8RSIlvvgEdy0m10m4sOsuUbhRMTHsmylbZ9EpN_AHdoMlOJoouH8I96vZtGgxwxJ1UKb13XdV5RdTNctnfDRXP2I9tfwHVXrTbU5/s1600/LOGO+PT1.png",
-  	  "contactPoint": {
-  		"@type": "ContactPoint",
-  		"telephone": "+6281318654328",
-  		"contactType": "customer service",
-  		"areaServed": "ID",
-  		"availableLanguage": "id"
-  	  },
-  	  "sameAs": [
-  		"https://www.facebook.com/bregas.saporete.medikalindo",
-  		"https://www.instagram.com/bregas.saporete.medikalindo"
-  	  ]
-  	}
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "PT. Bregas Saporete Medikalindo",
+        "url": "https://bregassaporetemedikalindo.blogspot.com/",
+        "logo": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhLdVYF6ZCvuavJJ8IcrujLNynWSbw5BZG8eTX7e3Dv8RSIlvvgEdy0m10m4sOsuUbhRMTHsmylbZ9EpN_AHdoMlOJoouH8I96vZtGgxwxJ1UKb13XdV5RdTNctnfDRXP2I9tfwHVXrTbU5/s1600/LOGO+PT1.png",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+6281318654328",
+          "contactType": "customer service",
+          "areaServed": "ID",
+          "availableLanguage": "id"
+        },
+        "sameAs": [
+          "https://www.facebook.com/bregas.saporete.medikalindo",
+          "https://www.instagram.com/bregas.saporete.medikalindo"
+        ]
+      }
   	</script> 
   
     <!-- App Scripts -->
@@ -263,105 +262,105 @@
     <script src="/static/assets/extra-libs/datatables.net/js/jquery.dataTables.min.js"></script>
     <!-- PJAX -->
     <script src="/static/js/jquery.pjax.min.js"></script>
-	<!-- complex datepicker with color -->
-	<link rel="stylesheet" type="text/css" href="/static/assets/libs/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css"/>
-	<script src="/static/assets/libs/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+    <!-- complex datepicker with color -->
+    <link rel="stylesheet" type="text/css" href="/static/assets/libs/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css"/>
+    <script src="/static/assets/libs/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
 	
-	<!-- ApexChart -->
-	 <link
+	  <!-- ApexChart -->
+	  <link
       rel="stylesheet"
       href="/static/assets/libs/apexcharts/dist/apexcharts.css"
     />
     <script src="/static/assets/libs/apexcharts/dist/apexcharts.min.js"></script>
-	<!--Wave Effects -->
+	  <!--Wave Effects -->
     <script src="/static/dist/js/waves.js"></script>
     <!--Custom JavaScript -->
     <script src="/static/dist/js/feather.min.js"></script>
     <script src="/static/dist/js/custom.min.js"></script>
-	<!-- CountUP -->
-	<script src="/static/js/countUp.umd.js"></script>
-	<!-- Select2 -->
+    <!-- CountUP -->
+    <script src="/static/js/countUp.umd.js"></script>
+    <!-- Select2 -->
     <script src="/static/assets/libs/select2/dist/js/select2.full.min.js"></script>
     <script src="/static/assets/libs/select2/dist/js/select2.min.js"></script>
-	<style>	
-	  .select2-results__option .sub { display:block; font-size:12px; color:#6c757d; }
-	  .select2-selection_choice_display .sub { display:block; font-size:12px; color:#6c757d; }
-	</style>
+    <style>	
+      .select2-results__option .sub { display:block; font-size:12px; color:#6c757d; }
+      .select2-selection_choice_display .sub { display:block; font-size:12px; color:#6c757d; }
+    </style>
     <!-- form repeater js-->
-	<script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
-	<script>
-	// ambil cookie helper
-	function readCookie(name) {
-	  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-	  return v ? decodeURIComponent(v.pop()) : null;
-	}
+    <script src="/static/assets/libs/jquery.repeater/jquery.repeater.min.js"></script>
+    <script>
+    // ambil cookie helper
+    function readCookie(name) {
+      const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return v ? decodeURIComponent(v.pop()) : null;
+    }
 
-	// cari CSRF token (coba access, kalau nggak ada coba refresh)
-	function getCsrfToken() {
-	  // library flask-jwt-extended biasanya menaruh token CSRF di cookie bernama:
-	  // 'csrf_access_token' (atau 'csrf_refresh_token' kalau hanya refresh yang di-set)
-	  return readCookie('csrf_access_token') || readCookie('csrf_refresh_token') || '';
-	}
+    // cari CSRF token (coba access, kalau nggak ada coba refresh)
+    function getCsrfToken() {
+      // library flask-jwt-extended biasanya menaruh token CSRF di cookie bernama:
+      // 'csrf_access_token' (atau 'csrf_refresh_token' kalau hanya refresh yang di-set)
+      return readCookie('csrf_access_token') || readCookie('csrf_refresh_token') || '';
+    }
 
-	// global ajax setup (opsional, supaya semua $.ajax otomatis pakai CSRF)
-	$.ajaxSetup({
-	  beforeSend: function(xhr, settings) {
-		const csrf = getCsrfToken();
-		if (csrf) {
-		  xhr.setRequestHeader('X-CSRF-TOKEN', csrf);
-		}
-		// optional helpful header
-		xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-	  }
-	});
+    // global ajax setup (opsional, supaya semua $.ajax otomatis pakai CSRF)
+    $.ajaxSetup({
+      beforeSend: function(xhr, settings) {
+      const csrf = getCsrfToken();
+      if (csrf) {
+        xhr.setRequestHeader('X-CSRF-TOKEN', csrf);
+      }
+      // optional helpful header
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      }
+    });
 
-	function handleResponse(data, crud, reloadUrl){
-	console.log(data)
-	  try{
-		if (data && data.msg === "SUKSES"){
-		  alert(`✅ Sukses ${crud}`);
-		} else {
-		  alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
-		  if (data.error.includes("401")){location.href="/login"};
-		}
-	  }catch(e){
-		alert('⚠ Error: '+e.message);
-	  }finally{
-	    $('#generic-modal').modal('hide'); // tutup modal
-			$.pjax({
-				url: reloadUrl || location.href,
-				container: '#pjax-container'
-			});
-	  }
-	}
-	// generic helper (ganti handleAjax lama dengan ini)
-	function handleAjax(url, method, data, onSuccess, onError) {
-	  $.ajax({
-		url: url,
-		method: method,
-		data: JSON.stringify(data),
-		contentType: 'application/json',
-		// Authorization header REMOVED (no session jwt_token)
-		success: onSuccess,
-		error: onError
-	  });
-	}
-	function logout(){
-		$.ajax({
-		url: "/logout", 
-		method: "POST", 
-		data: JSON.stringify({}),
-		contentType: 'application/json',
-		success: function(data){
-			location.href="/";
-		},
-		error: function(xhr, status, err){
-		  const payload = xhr.responseJSON || {error: xhr.responseText || err || 'Unknown error'};
-		  onError(payload, status, err);
-		}
-	  });
-	}
-	</script>
+    function handleResponse(data, crud, reloadUrl){
+    console.log(data)
+      try{
+      if (data && data.msg === "SUKSES"){
+        alert(`✅ Sukses ${crud}`);
+      } else {
+        alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
+        if (data.error.includes("401")){location.href="/login"};
+      }
+      }catch(e){
+      alert('⚠ Error: '+e.message);
+      }finally{
+        $('#generic-modal').modal('hide'); // tutup modal
+        $.pjax({
+          url: reloadUrl || location.href,
+          container: '#pjax-container'
+        });
+      }
+    }
+    // generic helper (ganti handleAjax lama dengan ini)
+    function handleAjax(url, method, data, onSuccess, onError) {
+      $.ajax({
+      url: url,
+      method: method,
+      data: JSON.stringify(data),
+      contentType: 'application/json',
+      // Authorization header REMOVED (no session jwt_token)
+      success: onSuccess,
+      error: onError
+      });
+    }
+    function logout(){
+      $.ajax({
+      url: "/logout", 
+      method: "POST", 
+      data: JSON.stringify({}),
+      contentType: 'application/json',
+      success: function(data){
+        location.href="/";
+      },
+      error: function(xhr, status, err){
+        const payload = xhr.responseJSON || {error: xhr.responseText || err || 'Unknown error'};
+        onError(payload, status, err);
+      }
+      });
+    }
+    </script>
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -449,8 +448,7 @@
                   <ul class="list-style-none">
                     <li class="p-30 pt-0">
                       <div class="mt-4">
-                        <button
-						  onclick="logout()"
+                        <button onclick="logout()"
                           class="btn btn-info text-white"
                         >
                           Logout
