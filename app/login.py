@@ -15,7 +15,7 @@ def homepahe():
 #
 #Full JWT via cookie HttpOnly + refresh token + CSRF di cookie (recommended untuk JWT di cookie).
 #
-#
+# .\env\Scripts\activate
 #
 #Di bawah ini contoh refactor rapi pakai Flask-JWT-Extended dengan:
 #
@@ -41,7 +41,7 @@ from datetime import timedelta
 app.config.update(
     JWT_SECRET_KEY="qwdu92y17dqsu81",
     JWT_TOKEN_LOCATION=["cookies"],                 # JWT di cookie
-    JWT_COOKIE_SECURE=True,                         # True di production (HTTPS)
+    JWT_COOKIE_SECURE= False,                         # True di production (HTTPS)
     JWT_COOKIE_SAMESITE="Lax",                      # atau "Strict" jika cocok
     JWT_COOKIE_CSRF_PROTECT=True,                   # aktifkan CSRF untuk cookie-JWT
     JWT_ACCESS_TOKEN_EXPIRES=timedelta(hours=2), # contoh
