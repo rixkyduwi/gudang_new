@@ -163,7 +163,7 @@
                                                             id="harga_satuan"
                                                             oninput="formatAngkaInput(this)"
                                                             class="hargasatuan form-control"
-                                                            value="{{ detail['unit_price'] }}">
+                                                            value="{{ detail['unit_price_decimal'] }}">
                                                         <div class="input-group-append">
                                                             <input
                                                                 type="text"
@@ -171,7 +171,8 @@
                                                                 placeholder=",00"
                                                                 id="hargasatuan-koma"
                                                                 oninput="this.value = formatKoma(this.value)"
-                                                                class="hargasatuan-koma form-control">
+                                                                class="hargasatuan-koma form-control"
+                                                                value="{{ detail['unit_price_decimal_koma'] }}">
                                                         </div>
                                                     </div>
                                                 </div>
@@ -189,7 +190,7 @@
                                                             placeholder="0"
                                                             id="hargatotal"
                                                             class="hargatotal form-control"
-                                                            value="{{ detail['total_amount'] }}">
+                                                            value="{{ detail['total_amount_decimal_koma'] }}">
                                                         <div class="input-group-append">
                                                             <input
                                                                 type="text"
@@ -197,7 +198,8 @@
                                                                 maxlength="3"
                                                                 id="hargatotal-koma"
                                                                 placeholder=",00"
-                                                                class="hargatotal-koma form-control">
+                                                                class="hargatotal-koma form-control"
+                                                                value="{{ detail['total_amount_decimal_koma'] }}">
                                                         </div>
                                                     </div>
                                                 </div>

@@ -473,7 +473,13 @@ def penerimaan_detail(id):
         return "Not found", 404
     items = fetch("""
         SELECT pi.id, pi.product_id, pr.code, pr.name, pr.unit,
-               pi.qty, pi.unit_price, pi.total_amount,
+               pi.qty, 
+               -- Pemisahan Unit Price
+               FLOOR(pi.unit_price) AS unit_price_decimal,
+               ROUND((pi.unit_price - FLOOR(pi.unit_price)) * 100) AS unit_price_decimal_koma,
+               -- Pemisahan Total Amount
+               FLOOR(pi.total_amount) AS total_amount_decimal,
+               ROUND((pi.total_amount - FLOOR(pi.total_amount)) * 100) AS total_amount_decimal_koma,
                pi.unit_label, pi.uom_factor_to_base, pi.qty_uom, pi.qty_base, pi.unit_price_uom, pi.unit_price_base
         FROM purchase_items pi
         JOIN products pr ON pr.id = pi.product_id
