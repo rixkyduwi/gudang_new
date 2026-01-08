@@ -438,14 +438,6 @@
         // Iterasi melalui elemen repeater untuk mengumpulkan data
         $("[data-repeater-item]").each(function () {
             const $row = $(this);
-            console.log( Number(
-                    bersihkanFormatAngka($row.find(".hargasatuan").val() || 0) + '.' +
-                    ($row.find(".hargasatuan-koma").val() || '00')
-                ))
-                console.log( Number(
-                    bersihkanFormatAngka($row.find(".hargatotal").val() || 0) + '.' +
-                    ($row.find(".hargatotal-koma").val() || '00')
-                ))
             const item = {
                 product_id: $row
                     .find(".nmbarang")

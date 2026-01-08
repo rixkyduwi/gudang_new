@@ -506,6 +506,12 @@ function bersihkanFormatAngka(s) {
                     //});
             }
         }
+        function getFullNumber($elInt, $elKoma) {
+        let depan = bersihkanFormatAngka($elInt.val() || "0");
+        // Ambil hanya angka dari kolom koma (menghilangkan tanda koma itu sendiri)
+        let belakang = ($elKoma.val() || "00").replace(/[^0-9]/g, ""); 
+        return Number(depan + "." + belakang);
+    }
   $("#modal-submit-tambah").on("click", function(){
     let cancel = false;
 
@@ -548,15 +554,8 @@ function bersihkanFormatAngka(s) {
           if(!confirm("Stok akan melewati limit! Lanjutkan?")) { cancel = true; return false; }
         }
       }
-      const hs = Number(
-          bersihkanFormatAngka($row.find(".hargasatuan").val() || 0) + '.' +
-          ($row.find(".hargasatuan-koma").val() || '00')
-      );
-
-      const ht = Number(
-          bersihkanFormatAngka($row.find(".hargatotal").val() || 0) + '.' +
-          ($row.find(".hargatotal-koma").val() || '00')
-      );
+      const hs = getFullNumber($row.find(".hargasatuan"), $row.find(".hargasatuan-koma"))
+      const ht = getFullNumber($row.find(".hargatotal"), $row.find(".hargatotal-koma"))
 
      
       payload.items.push({

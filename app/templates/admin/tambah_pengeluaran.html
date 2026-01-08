@@ -264,9 +264,21 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
     return `${year}-${month}-${day}`;
 }
   
-  function convertmmyyyy(ddmmyyyy){
-    const [d,m,y] = ddmmyyyy.split('/');
-    return `${m}-${d}`;
+  function convertmmyyyy(str) {
+      // 1. Cek jika string kosong, null, atau hanya spasi
+      if (!str || str.trim() === "" || str === "undefined") return null;
+
+      // 2. Pecah string mm/yyyy
+      let p = str.split('/');
+      
+      // 3. Pastikan ada dua bagian (bulan dan tahun)
+      if (p.length !== 2) return null;
+
+      let month = p[0]; // mm
+      let year = p[1];  // yyyy
+
+      // 4. Kembalikan format yyyy-mm agar standar database/ISO
+      return `${year}-${month}`;
   }
 
   // Recalc jatuh tempo + no faktur saat tanggal diubah
@@ -562,7 +574,7 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
 
       const hs = bersihkanFormatAngka($row.find(".hargasatuan").val()||'0') + '.' + ($row.find(".hargasatuan-koma").val().replace(',','')||'00');
       const ht = bersihkanFormatAngka($row.find(".hargatotal").val()||'0') + '.' + ($row.find(".hargatotal-koma").val().replace(',','')||'00');
-     
+      const edValue = $row.find(".ed").val() || "";
       payload.items.push({
 			id_barang: id_barang,
 			unit_label: $row.find(".sel-barang")?.dataset?.qty || '',
@@ -574,7 +586,7 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
 			// Perbaikan Batch: Jika kosong, otomatis "-"
 			batch_no: ($row.find(".batch").val() || "").trim() || "-",
 			
-			ed: convertmmyyyy($row.find(".ed").val() || ""),
+			ed: convertmmyyyy(edValue),
 		});
     });
 	
