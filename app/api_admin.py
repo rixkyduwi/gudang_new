@@ -1562,6 +1562,7 @@ def adminkeuangan():
     tahun        = request.args.get('tahun', type=int)
     bulan        = request.args.get('bulan', type=int)
     tanggal      = request.args.get('tanggal', type=int)
+    status_q     = request.args.get('status', '', type=str)
     nama_sales_q = request.args.get('nama_sales', '', type=str)     # di UI boleh isi nama
     nama_cust_q  = request.args.get('nama_outlet', '', type=str)    # di UI boleh isi nama
     page         = request.args.get('page', default=1, type=int)
@@ -1579,6 +1580,8 @@ def adminkeuangan():
         filters.append("s.name = %s"); params.append(nama_sales_q); count_params.append(nama_sales_q)
     if nama_cust_q:
         filters.append("c.name = %s"); params.append(nama_cust_q); count_params.append(nama_cust_q)
+    if status_q:
+        filters.append("si.status = %s"); params.append(status_q); count_params.append(status_q)
 
     where_clause = (" WHERE " + " AND ".join(filters)) if filters else ""
 
@@ -1932,6 +1935,7 @@ def adminadministrasi():
     tahun   = request.args.get('tahun', type=int)
     bulan   = request.args.get('bulan', type=int)
     tanggal = request.args.get('tanggal', type=int)
+    status_q     = request.args.get('status', '', type=str)
     supplier_name = request.args.get('nama_principle', type=str)
     page     = request.args.get('page', default=1, type=int)
     per_page = request.args.get('per_page', default=10, type=int)
@@ -1946,6 +1950,8 @@ def adminadministrasi():
         filters.append(clause); params += prms; count_params += prms
     if supplier_name:
         filters.append("s.name = %s"); params.append(supplier_name); count_params.append(supplier_name)
+    if status_q:
+        filters.append("p.status = %s"); params.append(status_q); count_params.append(status_q)
 
     where_clause = (" WHERE " + " AND ".join(filters)) if filters else ""
 

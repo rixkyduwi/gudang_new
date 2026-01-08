@@ -193,7 +193,15 @@
                     <option value="{{ i.nama_supplier }}" {% if request.args.get('nama_principle') == i.nama_supplier %} selected {% endif %} >{{ i.nama_supplier }}</option>
                     {% endfor %}
                 </select>
-                </div>
+              </div>
+              <div class="col-12 col-sm-6 col-lg-4">
+                <select class="form-select select2" 
+                style="width: 100%; height: 36px" id="status_data" name="status_data">
+                  <option value="" >Semua Status</option>
+                  <option value="PAID" {% if request.args.get('status_q') == 'PAID' %} selected {% endif %} >Lunas</option>
+                  <option value="UNPAID" {% if request.args.get('satus_q') == 'UNPAID' %} selected {% endif %} >Tidak Lunas</option>  
+                </select>
+              </div>
             </div>
           </div>
         <div class="col-12 col-md-2 ms-md-auto">
@@ -355,12 +363,14 @@ function run() {
 	var bulan = document.getElementById('bulan_data').value;
 	var tanggal = document.getElementById('tanggal_data').value;
 	var nama_principle = document.getElementById('nama_principle').value;
+	var status = document.getElementById('status_data').value;
 	
 	var queryParams = new URLSearchParams();
 	if (tahun !== "tahun") queryParams.append("tahun", tahun);
 	if (bulan !== "bulan") queryParams.append("bulan", bulan);
 	if (tanggal !== "tanggal") queryParams.append("tanggal", tanggal);
 	if (nama_principle !== "nama_principle") queryParams.append("nama_principle", nama_principle);
+	if (status !== "status") queryParams.append("status", status);
 	url = `?${queryParams.toString()}`
 		$.pjax({
 			url: url,
