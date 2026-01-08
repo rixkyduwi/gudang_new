@@ -1840,7 +1840,7 @@ def report_keuangan():
     return send_file(
         bio,
         as_attachment=True,
-        download_name=f"Laporan_Keuangan_{int(time.time())}.xlsx",
+        download_name=f"Laporan_Keuangan.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 @app.route('/admin/keuangan/edit/id', methods=['PUT'])
@@ -2168,7 +2168,7 @@ def report_administrasi():
     return send_file(
         bio,
         as_attachment=True,
-        download_name=f"Laporan_Administrasi_{int(time.time())}.xlsx",
+        download_name=f"Laporan_Administrasi.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )  
 @app.route('/admin/administrasi/edit/id', methods=['PUT'])
