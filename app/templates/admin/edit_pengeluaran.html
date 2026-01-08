@@ -178,47 +178,6 @@
                     </div>
                   </div>
 
-                  <div class="p-3 mt-3 mb-3 rounded-3" style="background-color: #f8f9fa; border: 1px dashed #dee2e6;">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                      <h6 class="mb-0 fw-bold text-primary">Simulasi Profit <small class="text-danger fw-italic" style="font-size: 0.75rem;">(data ini tidak disimpan)</small></h6>
-                      <small></small>
-                    </div>
-                    
-                    <div class="row">
-                      <div class="col-md-4">
-                        <div class="form-group">
-                          <label class="small fw-bold">HPP Satuan</label>
-                          <div class="input-group input-group-sm">
-                            <span class="input-group-text">Rp</span>
-                            <input type="text" class="hpp form-control" placeholder="0" oninput="formatAngkaInput(this)">
-                            <input type="text" class="hpp-koma form-control" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" style="max-width: 60px;">
-                          </div>
-                        </div>
-                      </div>
-                  
-                      <div class="col-md-4">
-                        <div class="form-group">
-                          <label class="small fw-bold">Total HPP</label>
-                          <div class="input-group input-group-sm">
-                            <span class="input-group-text">Rp</span>
-                            <input type="text" class="totalhpp form-control" placeholder="0" disabled>
-                            <input type="text" class="totalhpp-koma form-control" maxlength="3" placeholder=",00" disabled style="max-width: 60px;">
-                          </div>
-                        </div>
-                      </div>
-                  
-                      <div class="col-md-4">
-                        <div class="form-group">
-                          <label class="small fw-bold">Estimasi Profit</label>
-                          <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-success text-white">Rp</span>
-                            <input type="text" class="profit form-control fw-bold text-success" placeholder="0" disabled>
-                            <input type="text" class="profit-koma form-control fw-bold text-success" maxlength="3" placeholder=",00" disabled style="max-width: 60px;">
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                   <div class="form-group">
                     <label>Batch</label>
                     <input type="text" id="batch" value="{{detail.batch_no}}" class="batch form-control">
@@ -523,7 +482,30 @@ function bersihkanFormatAngka(s) {
     $(".jmlpermintaan, .hargasatuan, .diskon, .hpp").trigger("input");
   }, 2500);
 
-  // Submit
+  // 
+  function handleResponse2(data, crud, reloadUrl){
+            console.log(data)
+            try{
+                if (data && data.msg === "SUKSES"){
+                alert(`✅ Sukses ${crud}`);
+                $.pjax({
+                	url: reloadUrl || location.href,
+                	container: '#pjax-container'
+                });
+                } else {
+                alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
+                if (data.error.includes("401")){location.href="/login"};
+                }
+            }catch(e){
+                alert('⚠ Error: '+e.message);
+            }finally{
+                $('#generic-modal').modal('hide'); // tutup modal
+                    //$.pjax({
+                    //	url: reloadUrl || location.href,
+                    //	container: '#pjax-container'
+                    //});
+            }
+        }
   $("#modal-submit-tambah").on("click", function(){
     let cancel = false;
 
@@ -597,10 +579,10 @@ function bersihkanFormatAngka(s) {
       data: JSON.stringify(payload),
 	  contentType: 'application/json',
 	  success: function(data){
-		handleResponse(data,'Edit Data Pengeluaran',"/admin/pengeluaran")
+		handleResponse2(data,'Edit Data Pengeluaran',"/admin/pengeluaran")
       },
       error: function(xhr){
-		handleResponse(xhr,'Edit Data Pengeluaran',"/admin/pengeluaran")
+		handleResponse2(xhr,'Edit Data Pengeluaran',"/admin/pengeluaran")
 		
       }
     });

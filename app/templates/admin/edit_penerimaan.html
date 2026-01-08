@@ -160,6 +160,7 @@
                                                         <input
                                                             type="text"
                                                             placeholder="0"
+                                                            id="harga_satuan"
                                                             oninput="formatAngkaInput(this)"
                                                             class="hargasatuan form-control"
                                                             value="{{ detail['unit_price'] }}">
@@ -168,6 +169,7 @@
                                                                 type="text"
                                                                 maxlength="3"
                                                                 placeholder=",00"
+                                                                id="hargasatuan-koma"
                                                                 oninput="this.value = formatKoma(this.value)"
                                                                 class="hargasatuan-koma form-control">
                                                         </div>
@@ -185,6 +187,7 @@
                                                             type="text"
                                                             disabled="disabled"
                                                             placeholder="0"
+                                                            id="hargatotal"
                                                             class="hargatotal form-control"
                                                             value="{{ detail['total_amount'] }}">
                                                         <div class="input-group-append">
@@ -192,6 +195,7 @@
                                                                 type="text"
                                                                 disabled="disabled"
                                                                 maxlength="3"
+                                                                id="hargatotal-koma"
                                                                 placeholder=",00"
                                                                 class="hargatotal-koma form-control">
                                                         </div>
@@ -252,7 +256,7 @@
 	  });
       function convertToISO(str) {
         if (!str || str.trim() === "" || str.includes('undefined')) return null;
-
+        
         // Jika sudah format ISO (YYYY-MM-DD), langsung kembalikan
         if (str.includes('-') && str.split('-')[0].length === 4) return str;
 
@@ -263,52 +267,41 @@
         }
         return str;
     }
-    function formatKoma(val) {
+    function formatKoma(val){
         val = val.replace(/[^\d,]/g, '');
-
-        if (val.length > 0 && val[0] !== ',') {
-            val = ',' + val.replace(',', '');
-        }
-
+        if (val.length > 0 && val[0] !== ',') val = ',' + val.replace(',', '');
         val = val.slice(0, 3);
-        if (!/^,\d{0,2}$/.test(val)) {
-            val = val.slice(0, -1);
-        }
-
+        if (!/^,\d{0,2}$/.test(val)) val = val.slice(0,-1);
         return val;
     }
-
-    function bersihkanFormatAngka(input) {
-        input = input.replace(/\./g, ''); // hapus semua titik
-        return input
+    function splitKomaValue(num){
+        let v = parseFloat(num || 0).toFixed(2);
+        let [depan, belakang] = v.split(".");
+        depan = depan.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return { int: depan, koma: ',' + belakang };
     }
-
-    function formatAngkaInput(el) {
-        var angka = el
-            .value
-            .replace(/\./g, "");
+    function bersihkanFormatAngka(s) {
+        console.log(s)
+        if (!s) return "0";
+        // Menghapus titik ribuan agar menjadi string angka murni
+        return s.toString().replace(/\./g, "");
+    }
+    function formatAngkaInput(el){
+        let angka = (el.value||'').replace(/\./g, "");
         el.value = formatAngka(angka);
     }
 
-    function formatAngka(angka) {
-        angka = angka.toString()
-        var number_string = angka
-            .replace(/[^,\d]/g, "")
-            .toString();
-        var split = number_string.split(",");
-        var sisa = split[0].length % 3;
-        var hasil = split[0].substr(0, sisa);
-        var ribuan = split[0]
-            .substr(sisa)
-            .match(/\d{3}/g);
-
+    function formatAngka(angka){
+        angka = angka.toString();
+        let number_string = angka.replace(/[^,\d]/g, "").toString();
+        let split = number_string.split(",");
+        let sisa = split[0].length % 3;
+        let hasil = split[0].substr(0, sisa);
+        let ribuan = split[0].substr(sisa).match(/\d{3}/g);
         if (ribuan) {
-            var separator = sisa
-                ? "."
-                : "";
-            hasil += separator + ribuan.join(".");
+        let separator = sisa ? "." : "";
+        hasil += separator + ribuan.join(".");
         }
-
         return hasil;
     }
     
@@ -390,30 +383,46 @@
         ".jmlpenerimaan, .hargasatuan, .hargasatuan-koma",
         function () {
             var $row = $(this).closest("[data-repeater-item]");
-            var jumlah = parseFloat($row.find('.jmlpenerimaan').val()) || 0;
-
-            var satuan_str = bersihkanFormatAngka($row.find('.hargasatuan').val());
-            var koma_str = $row
-                .find('.hargasatuan-koma')
-                .val()
-                .replace(',', '') || '00';
-
-            var harga_satuan = parseFloat(`${satuan_str}.${koma_str}`) || 0;
-            var total = jumlah * harga_satuan;
-
-            // Update nilai harga total
-            var [angka, koma] = total
-                .toFixed(2)
-                .split(".");
-            $row
-                .find('.hargatotal')
-                .val(formatAngka(angka));
-            $row
-                .find('.hargatotal-koma')
-                .val(',' + koma);
+            var jumlah = parseFloat(($row.find('.jmlpenerimaan').val()||'0').replace(',', '.')) || 0;  
+            const hs_int  = bersihkanFormatAngka($row.find('.hargasatuan').val()||'0');
+            const hs_koma = ($row.find('.hargasatuan-koma').val()||',00').replace(',','') || '00';
+            const harga_satuan = parseFloat(`${hs_int}.${hs_koma}`) || 0;
+            let harga_total = jumlah * harga_satuan;
+            const t = splitKomaValue(harga_total);
+            $row.find('.hargatotal').val(t.int);
+            $row.find('.hargatotal-koma').val(t.koma);
         }
     );
-
+    function handleResponse2(data, crud, reloadUrl){
+            console.log(data)
+            try{
+                if (data && data.msg === "SUKSES"){
+                alert(`✅ Sukses ${crud}`);
+                $.pjax({
+                	url: reloadUrl || location.href,
+                	container: '#pjax-container'
+                });
+                } else {
+                alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
+                if (data.error.includes("401")){location.href="/login"};
+                }
+            }catch(e){
+                alert('⚠ Error: '+e.message);
+            }finally{
+                $('#generic-modal').modal('hide'); // tutup modal
+                    //$.pjax({
+                    //	url: reloadUrl || location.href,
+                    //	container: '#pjax-container'
+                    //});
+            }
+        }
+        // Fungsi pembantu untuk mengambil angka gabungan
+    function getFullNumber($elInt, $elKoma) {
+        let depan = bersihkanFormatAngka($elInt.val() || "0");
+        // Ambil hanya angka dari kolom koma (menghilangkan tanda koma itu sendiri)
+        let belakang = ($elKoma.val() || "00").replace(/[^0-9]/g, ""); 
+        return Number(depan + "." + belakang);
+    }
     $("#modal-submit-Edit").click(function () {
         // Siapkan data untuk dikirim berdasarkan kategori
         const data = {
@@ -426,15 +435,24 @@
         };
         // Iterasi melalui elemen repeater untuk mengumpulkan data
         $("[data-repeater-item]").each(function () {
+            const $row = $(this);
+            console.log( Number(
+                    bersihkanFormatAngka($row.find(".hargasatuan").val() || 0) + '.' +
+                    ($row.find(".hargasatuan-koma").val() || '00')
+                ))
+                console.log( Number(
+                    bersihkanFormatAngka($row.find(".hargatotal").val() || 0) + '.' +
+                    ($row.find(".hargatotal-koma").val() || '00')
+                ))
             const item = {
-                product_id: $(this)
-                    .find("#nmbarang")
+                product_id: $row
+                    .find(".nmbarang")
                     .val() || "",
-                qty: $(this)
-                    .find("#jmlpenerimaan")
+                qty: $row
+                    .find(".jmlpenerimaan")
                     .val() || "",
-                harga_satuan: bersihkanFormatAngka($(this).find(".hargasatuan").val()),
-                harga_total: bersihkanFormatAngka($(this).find(".hargatotal").val()),
+                harga_satuan: getFullNumber($row.find(".hargasatuan"), $row.find(".hargasatuan-koma")),
+                harga_total: getFullNumber($row.find(".hargatotal"), $row.find(".hargatotal-koma"))
             };
             data
                 .items
@@ -447,10 +465,10 @@
             data: JSON.stringify(data),
 			contentType: 'application/json',
             success: function (response) {
-				handleResponse(response, "Edit", "/admin/penerimaan")
+				handleResponse2(response, "Edit", "/admin/penerimaan")
             },
             error: function (xhr, status, error) {
-                handleResponse(xhr.responseJSON, "Edit", "/admin/penerimaan/{{ purchase['id'] }}")
+                handleResponse2(xhr.responseJSON, "Edit", "/admin/penerimaan/{{ purchase['id'] }}")
             }
         });
     });
@@ -461,13 +479,13 @@
                 // cek kalau index == last
                 if (index === $("[data-repeater-item]").length - 1) {
                     $(this)
-                        .find("#nmbarang")
+                        .find(".nmbarang")
                         .val("")
                     $(this)
-                        .find("#kdbarang")
+                        .find(".kdbarang")
                         .val("")
                     $(this)
-                        .find("#jmlpenerimaan")
+                        .find(".jmlpenerimaan")
                         .val("")
                     $(this)
                         .find(".hargasatuan")
@@ -476,19 +494,10 @@
                         .find(".hargatotal")
                         .val("")
                     $(this)
-                        .find("#pembayaran")
+                        .find(".hargasatuan-koma")
                         .val("")
                     $(this)
-                        .find("#jthtempo")
-                        .val("")
-                    $(this)
-                        .find("#tglpembayaran")
-                        .val("")
-                    $(this)
-                        .find("#lunas_or_no")
-                        .val("")
-                    $(this)
-                        .find("#ket")
+                        .find(".hargatotal-koma")
                         .val("")
                 }
             });

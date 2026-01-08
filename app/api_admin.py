@@ -491,6 +491,7 @@ def penerimaan_detail(id):
 @jwt_required()
 def penerimaan_update(id):
     d = request.get_json() or {}
+    print(d)
     supplier_id = d.get('supplier_id')
     invoice_no  = d.get('invoice_no')
     invoice_date= d.get('invoice_date')
@@ -515,6 +516,8 @@ def penerimaan_update(id):
             qty         = int(it.get('qty') or it.get('jml_menerima') or 0)
             unit_price  = parse_decimal(it.get('unit_price') or it.get('harga_satuan'))
             total_amount= parse_decimal(it.get('total_amount') or it.get('harga_total'))
+            print(unit_price)
+            print(total_amount)
             if total_amount != unit_price * qty:
                 return jsonify({"error": f"Total item tidak sesuai, seharusnya {unit_price*qty}"}), 400
 
