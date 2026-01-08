@@ -71,11 +71,17 @@
         
         <div class="col-12 col-sm-6 col-lg-3">
           <select class="form-select select2" id="lunas_tidak" name="lunas_tidak" style="width:100%">
-            <option value="">Semua Status</option>
-            <option value="Lunas" {{ 'selected' if request.args.get('lunas_tidak') == 'Lunas' else '' }}>Lunas</option>
-            <option value="Tidak Lunas" {{ 'selected' if request.args.get('lunas_tidak') == 'Tidak Lunas' else '' }}>Tidak Lunas</option>
+              <option value="">Semua Status</option>
+              
+              <option value="PAID" {{ 'selected' if request.args.get('lunas_tidak') == 'PAID' else '' }}>Lunas (Paid)</option>
+              
+              <option value="UNPAID" {{ 'selected' if request.args.get('lunas_tidak') == 'UNPAID' else '' }}>Belum Bayar (Unpaid)</option>
+              
+              <option value="PARTIAL" {{ 'selected' if request.args.get('lunas_tidak') == 'PARTIAL' else '' }}>Bayar Sebagian (Partial)</option>
+              
+              <option value="CANCELLED" {{ 'selected' if request.args.get('lunas_tidak') == 'CANCELLED' else '' }}>Dibatalkan (Cancelled)</option>
           </select>
-        </div>
+      </div>
 		    
         <div class="col-12 col-sm-6 col-lg-3">
           <select class="form-select select2" id="sales_data" name="sales" style="width:100%">
@@ -99,8 +105,8 @@
         {% if not tahun_req or tahun_req|string == h.tahun|string %}
           <div id="table_{{ h.tahun }}" class="mt-3">
 
-            <div class="table-responsive scroll-table">
-              <table id="table_{{ h.tahun }}_data" class="table w-100 table-bordered display ">
+            <div class="scroll-table">
+              <table id="table_{{ h.tahun }}_data" class="table w-100 table-bordered display text-nowrap">
                 <thead class="table-light">
                   <tr>
                     <th>No</th>
@@ -164,6 +170,22 @@
             </div>
 
           </div>
+          <script>
+          $("#table_{{h.tahun}}_data").DataTable({
+            "paging": false,          // Menonaktifkan pagination
+            "info": false,           // Menonaktifkan info jumlah entri
+            "searching": true,       // Mengaktifkan fitur pencarian
+            "lengthChange": false,   // Menonaktifkan pilihan jumlah entri yang ditampilkan
+            "language": {
+                "search": "",          // Kosongkan label pencarian
+                "searchPlaceholder": "Cari..." // Placeholder untuk input pencarian
+            },
+            "dom": '<"search-container"f>rt', // Menempatkan pencarian di dalam div khusus
+            "scrollX": true,            // Mengaktifkan scroll horizontal
+            "scrollY": "800px", // Mengatur tinggi tabel menjadi 200px dengan scrollbar vertikal
+            "scrollCollapse": true, // Scroll hanya muncul jika data melebihi tinggi yang ditentukan
+          })
+          </script>
         {% endif %}
       {% endfor %}
     {% endif %}
@@ -189,6 +211,7 @@
 </div>
 
 <script>
+  
   function run() {
     const tahun = $('#tahun_data').val() || '';
     const bulan = $('#bulan_data').val() || '';

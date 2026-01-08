@@ -2241,41 +2241,57 @@ def hapus_administrasi():
         g.con.connection.rollback()
         return jsonify({"error": str(e)}), 500
 def query_performa(tahun: int | None, bulan: int | None,
-                   sales_name: str | None, lunas_tidak: str | None):
-    where, params = [], []
+                    sales_name: str | None, lunas_tidak: str | None):
+    where_base, params = [], []
 
-    # Filter tanggal berdasarkan header sales_invoices.invoice_date
+    # 1. Filter dasar untuk CTE (Tanggal & Sales)
     date_sql, date_params = build_date_range(
         year=tahun, month=bulan, day=None, alias="si", col="invoice_date"
     )
     if date_sql:
-        where.append(date_sql)
+        where_base.append(date_sql)
         params.extend(date_params)
 
-    # Filter nama sales (case-insensitive)
     if sales_name:
-        where.append("UPPER(TRIM(s.name)) = UPPER(TRIM(%s))")
+        where_base.append("UPPER(TRIM(s.name)) = UPPER(TRIM(%s))")
         params.append(sales_name)
 
-    # Normalisasi status
-    st = (lunas_tidak or '').strip().casefold()
+    # 2. Logika Status (Gunakan status Enum database)
+    # Mapping input user ke Enum Database
+    status_map = {
+        "lunas": "PAID",
+        "tidak lunas": "UNPAID",
+        "tdk lunas": "UNPAID",
+        "belum lunas": "UNPAID",
+        "setengah": "PARTIAL",
+        "batal": "CANCELLED"
+    }
+    
+    input_st = (lunas_tidak or '').strip().casefold()
+    target_status = status_map.get(input_st, input_st.upper()) # Ambil map atau lgsg UPPER
 
-    # Subquery per invoice: total_invoice & total_payment
-    # → aman untuk ONLY_FULL_GROUP_BY
+    # Query Utama
     sql = f"""
     WITH inv AS (
       SELECT
-        si.id                AS id_faktur,
-        s.id                 AS id_sales,
-        s.name               AS nama_sales,
-        COALESCE(c.name,'-') AS nama_outlet,
-        YEAR(si.invoice_date)  AS tahun,
-        MONTH(si.invoice_date) AS bulan,
-        COALESCE(it_sum.total_invoice, 0) AS total_inv,
-        COALESCE(pay_sum.total_payment, 0) AS total_pay
+        si.id                                AS id_faktur,
+        s.id                                 AS id_sales,
+        s.name                               AS nama_sales,
+        COALESCE(c.name,'-')                 AS nama_outlet,
+        YEAR(si.invoice_date)                AS tahun,
+        MONTH(si.invoice_date)               AS bulan,
+        COALESCE(it_sum.total_invoice, 0)    AS total_inv,
+        COALESCE(pay_sum.total_payment, 0)   AS total_pay,
+        -- Menentukan Status secara dinamis untuk difilter nanti
+        CASE 
+            WHEN si.status = 'CANCELLED' THEN 'CANCELLED'
+            WHEN COALESCE(pay_sum.total_payment, 0) <= 0 THEN 'UNPAID'
+            WHEN COALESCE(pay_sum.total_payment, 0) >= COALESCE(it_sum.total_invoice, 0) THEN 'PAID'
+            ELSE 'PARTIAL'
+        END AS status_enum
       FROM sales_invoices si
       JOIN salespersons s ON s.id = si.salesperson_id
-      LEFT JOIN customers  c ON c.id = si.customer_id
+      LEFT JOIN customers c ON c.id = si.customer_id
       LEFT JOIN (
         SELECT sales_invoice_id, SUM(total_amount) AS total_invoice
         FROM sales_items
@@ -2287,33 +2303,20 @@ def query_performa(tahun: int | None, bulan: int | None,
         WHERE ref_type = 'SALE'
         GROUP BY ref_id
       ) pay_sum ON pay_sum.ref_id = si.id
-      {"WHERE " + " AND ".join(where) if where else ""}
+      {"WHERE " + " AND ".join(where_base) if where_base else ""}
     )
     SELECT
-      x.id_sales,
-      x.nama_sales,
-      x.nama_outlet,
-      x.tahun,
-      x.bulan,
-      SUM(x.nilai) AS nilai
-    FROM (
-      SELECT
-        id_faktur,
-        id_sales,
-        nama_sales,
-        nama_outlet,
-        tahun,
-        bulan,
-        CASE
-          { "WHEN total_pay >= total_inv THEN total_inv" if st == "lunas" else
-            "WHEN total_pay  < total_inv THEN total_inv" if st in ("tidak lunas","tdk lunas","belum lunas") else
-            "WHEN 1=1 THEN total_inv" }
-        END AS nilai
-      FROM inv
-    ) x
-    WHERE x.nilai IS NOT NULL
-    GROUP BY x.id_sales, x.nama_sales, x.nama_outlet, x.tahun, x.bulan
-    ORDER BY x.tahun DESC, x.bulan ASC, x.nama_outlet, x.nama_sales;
+      id_sales,
+      nama_sales,
+      nama_outlet,
+      tahun,
+      bulan,
+      SUM(total_inv) AS nilai
+    FROM inv
+    WHERE 1=1
+    {f"AND status_enum = '{target_status}'" if input_st else ""}
+    GROUP BY id_sales, nama_sales, nama_outlet, tahun, bulan
+    ORDER BY tahun DESC, bulan ASC, nama_outlet, nama_sales;
     """
     return fetch(sql, tuple(params))
 
