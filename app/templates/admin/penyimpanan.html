@@ -41,47 +41,6 @@ function showModal(title, body, onSubmit) {
   $('#generic-modal').modal('show');
 }
 
-function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok_limit, status) {
-  $("#modal-submit").show();
-  showModal(
-    `Edit Stok — ${nama_barang} (${kode_barang})`,
-    `
-      <div class="form-group">
-        <label for="sisa_penyimpanan_edit">Stok Baru</label>
-        <input type="number" id="sisa_penyimpanan_edit" class="form-control" min="0" step="1"
-               placeholder="0" value="${Number(sisa_penyimpanan) || 0}">
-        <small class="text-muted">Satuan: ${unit}. Batas aman: ${Number(stok_limit) || 0}</small>
-      </div>
-      <div class="form-group">
-        <label for="note_edit">Catatan</label>
-        <textarea id="note_edit" class="form-control" placeholder="Misal: Stock opname / koreksi input"></textarea>
-      </div>
-    `,
-    function () {
-      const btn = $('#modal-submit');
-      const newQty = Number($('#sisa_penyimpanan_edit').val());
-      const note   = $('#note_edit').val() || 'Manual adjustment';
-      if (Number.isNaN(newQty) || newQty < 0) {
-        alert('Jumlah stok tidak valid'); return;
-      }
-      btn.prop('disabled', true).text('Menyimpan...');
-
-      const payload = { product_id: product_id, new_qty: newQty, note: note };
-
-      handleAjax(
-        '/admin/penyimpanan', 'PUT', payload,
-        function (response) {
-          // sukses
-          handleResponse(response, "Edit", "/admin/penyimpanan");
-        },
-        function (errPayload) {
-		  //gagal
-          handleResponse(errPayload, "Edit", "/admin/penyimpanan");
-        }
-      );
-    }
-  );
-}
 
 </script>
 <div class="page-titles pb-0">
@@ -161,8 +120,17 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
                                 <td data-label="Status">{{ i.status }}</td>
                                 <td data-label="Aksi">
                                 <!-- <button data-bs-toggle="modal" data-bs-target="#modal-{{ i.product_id }}" class="btn btn-success">Nota</button> -->
-                                <button onclick="edit({{ i.product_id }}, '{{i.kode_barang}}', '{{i.nama_barang}}', '{{i.unit}}', {{i.sisa_gudang}}, {{i.stok_limit}}, '{{i.status}}' )" class="btn btn-sm btn-warning">Edit</button>
-                                </td>
+                                <button 
+                                  class="btn btn-sm btn-warning btn-edit" 
+                                  data-id="{{ i.product_id }}"
+                                  data-nama="{{ i.nama_barang }}"
+                                  data-stok="{{ i.sisa_gudang }}"
+                                  data-kode="{{i.kode_barang}}" 
+                                  data-unit="{{i.unit}}"
+                                  data-limit="{{i.stok_limit}}">
+                                  Edit
+                                </button>
+                              </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -196,7 +164,53 @@ function edit(product_id, kode_barang, nama_barang, unit, sisa_penyimpanan, stok
     <!-- This Page JS -->
 	<script>
 		$(document).ready(function(){ 
-			
+			$(document).on('click', '.btn-edit', function() {
+        const product_id= $(this).data('id');
+        const kode_barang= $(this).data('kode');
+        const nama_barang= $(this).data('nama');
+        const unit= $(this).data('unit');
+        const sisa_penyimpanan= $(this).data('stok');
+        const stok_limit= $(this).data('limit');
+        $("#modal-submit").show();
+        showModal(
+          `Edit Stok — ${nama_barang} (${kode_barang})`,
+          `
+            <div class="form-group">
+              <label for="sisa_penyimpanan_edit">Stok Baru</label>
+              <input type="number" id="sisa_penyimpanan_edit" class="form-control" min="0" step="1"
+                    placeholder="0" value="${Number(sisa_penyimpanan) || 0}">
+              <small class="text-muted">Satuan: ${unit}. Batas aman: ${Number(stok_limit) || 0}</small>
+            </div>
+            <div class="form-group">
+              <label for="note_edit">Catatan</label>
+              <textarea id="note_edit" class="form-control" placeholder="Misal: Stock opname / koreksi input"></textarea>
+            </div>
+          `,
+          function () {
+            const btn = $('#modal-submit');
+            const newQty = Number($('#sisa_penyimpanan_edit').val());
+            const note   = $('#note_edit').val() || 'Manual adjustment';
+            if (Number.isNaN(newQty) || newQty < 0) {
+              alert('Jumlah stok tidak valid'); return;
+            }
+            btn.prop('disabled', true).text('Menyimpan...');
+
+            const payload = { product_id: product_id, new_qty: newQty, note: note };
+
+            handleAjax(
+              '/admin/penyimpanan', 'PUT', payload,
+              function (response) {
+                // sukses
+                handleResponse(response, "Edit", "/admin/penyimpanan");
+              },
+              function (errPayload) {
+                //gagal
+                handleResponse(errPayload, "Edit", "/admin/penyimpanan");
+              }
+            );
+          }
+        );
+      });
 		})
 		function run() {
 		const nama_barang = document.getElementById('nama_barang').value;

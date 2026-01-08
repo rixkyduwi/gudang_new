@@ -8,11 +8,11 @@ from urllib import response
 import uuid
 import calendar
 import time
+import traceback
 from datetime import datetime, date, timedelta
 from typing import Tuple, List, Optional
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
-
 # Import library pihak ketiga
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
@@ -919,12 +919,9 @@ def admin_pengeluaran():
 @app.route('/admin/pengeluaran', methods=['POST'], strict_slashes=False)
 @jwt_required()
 def tambah_pengeluaran_action():
-    import traceback
-    from decimal import Decimal
-    from flask import jsonify, g, request
-
     d = request.get_json() or {}
     print("--- DEBUG START ---")
+    print(d)
     
     try:
         # Gunakan koneksi mentah jika g.con bermasalah
@@ -941,8 +938,30 @@ def tambah_pengeluaran_action():
 
         # 2. INSERT HEADER (Hanya kolom yang pasti ada)
         # Seringkali error 404 muncul jika kolom yang di-insert tidak ada di tabel
-        sql_header = "INSERT INTO sales_invoices (salesperson_id, sender_id, invoice_no, invoice_date) VALUES (%s, %s, %s, %s)"
-        cur.execute(sql_header, (row_sp[0], row_sd[0], d.get('nofaktur'), d.get('tglfaktur')))
+        tglfaktur = d.get('tglfaktur')
+        # Memanggil fungsi route
+        resp_obj = api_sales_invoice_no(tglfaktur) 
+
+        # Mengambil status code (200, 400, dll)
+        status_code = resp_obj.status_code 
+        # Mengambil isi JSON
+        resp_data = resp_obj.get_json()
+
+        print(resp_data)
+
+        if status_code != 200 or 'error' in resp_data:
+            # Jika gagal, ambil dari data input 'd' (fallback)
+            jthtempo = d.get('jthtempo')
+            nofaktur = d.get('nofaktur') # Perbaikan typo: nofaktu -> nofaktur
+        else:
+            # Jika sukses
+            jthtempo = resp_data['jatuh_tempo']
+            nofaktur = resp_data['nofaktur']
+        tax_rate = (Decimal(11) / Decimal(12)) * Decimal(12) if d.get('pajak') == 'Iya' else Decimal(0)
+        payment_term_days = 30 if d.get('pembayaran') == 'TEMPO' else None
+        sql_header = """INSERT INTO sales_invoices (salesperson_id, sender_id, invoice_no, invoice_date, customer_id, due_date, payment_term,payment_term_days, tax_flag, tax_rate)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        cur.execute(sql_header, (row_sp[0], row_sd[0], nofaktur, d.get('tglfaktur'), d.get('id_customer'), jthtempo, d.get('pembayaran'),payment_term_days, d.get('pajak'), tax_rate))
         
         # Ambil ID dengan cara alternatif jika lastrowid gagal
         cur.execute("SELECT LAST_INSERT_ID()")
@@ -954,9 +973,9 @@ def tambah_pengeluaran_action():
             price = Decimal(str(it.get('harga_satuan') or 0))
             
             cur.execute("""
-                INSERT INTO sales_items (sales_invoice_id, product_id, qty, unit_price, total_amount)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (sales_id, it.get('id_barang'), qty, price, (qty * price)))
+                INSERT INTO sales_items (sales_invoice_id, product_id, qty, unit_price, total_amount, batch_no, expired_date,unit_label)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (sales_id, it.get('id_barang'), qty, price, (qty * price), it.get('batch_no'), it.get('ed'), it.get('unit_label')))
 
         # 4. PENTING: Commit secara manual
         cur.connection.commit()
@@ -2158,12 +2177,12 @@ def edit_administrasi():
         # update status jika ada
         if status:
             if status == "Lunas":
-                status = 'PAID'
+                status_db = 'PAID'
             elif status == "Tidak Lunas":
                 g.con.execute("DELETE from payments WHERE ref_type=%s and ref_id=%s ", ('PURCHASE', purchase_id,))
-                status = 'UNPAID'
-            print(status)
-            g.con.execute("UPDATE purchases SET status=%s WHERE id=%s ", (status, purchase_id,))
+                status_db = 'UNPAID'
+            print(status_db)
+            g.con.execute("UPDATE purchases SET status=%s WHERE id=%s ", (status_db, purchase_id,))
             g.con.connection.commit()
 
         # tambah pembayaran jika ada fieldnya

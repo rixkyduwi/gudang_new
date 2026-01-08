@@ -58,7 +58,7 @@
       <h1 class="mb-0 fw-bold">Data Pengeluaran Barang</h1>
     </div>
     <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end">
-      <a href="/admin/pengeluaran-tambah" class="btn btn-info d-flex align-items-center ms-2" data-pjax>
+      <a href="/admin/pengeluaran-tambah" class="btn btn-info d-flex align-items-center ms-2">
         <!-- data-bs-toggle="modal"
          data-bs-target="#tambah-modal "> -->
         <i class="ri-add-line me-1"></i> Tambah Data
@@ -180,7 +180,7 @@
                 <td data-label="Batch" class="sebaris ">
                 <div class="multi-line">
                  {% for j in i.detail %}
-                <div class="text-nowrap">{{ j.batch_no|default('-')|format_master }}</div>
+                <div class="text-nowrap">{{ j.batch_no|format_master }}</div>
                 {% endfor %}</div></td>
                 <td data-label="Expired Date" class="sebaris ">
                 <div class="multi-line">
