@@ -245,9 +245,10 @@
                 
                 <td data-label="Aksi">
                   <!--<button class="btn btn-primary"  data-bs-toggle="modal" data-bs-target="#generic-modal-edit-{{i.id}}">Edit</button> -->
-                  <div class="justify-content-between d-flex"><button class="btn btn-sm btn-primary" onclick="window.location.href='/admin/pengeluaran/print?id={{i.id}}'">Print</button>
-                  <button class="btn btn-sm btn-success" onclick="window.location.href='/admin/pengeluaran/print_pajak?id={{i.id}}'">Print+Pajak</button></div>
-                  <div class="justify-content-between d-flex"><button onclick="window.location.href='/admin/pengeluaran/{{i.id}}'" class="btn btn-sm btn-warning"  >Edit</button>
+                  
+                  <div class="justify-content-between d-flex"><a class="btn btn-sm btn-primary" target="_blank" href='/admin/pengeluaran/print?id={{i.id}}'>Print</button>
+                  <a class="btn btn-sm btn-success" target="_blank" href='/admin/pengeluaran/print_pajak?id={{i.id}}'>Print+Pajak</button></div>
+                  <div class="justify-content-between d-flex"><a href='/admin/pengeluaran/{{i.id}}' class="btn btn-sm btn-warning" >Edit</button>
                   <button onclick="hapus({{ i.id |int }})" class="btn btn-sm btn-danger">Hapus</button></div>
                 </td>
                   </tr>
