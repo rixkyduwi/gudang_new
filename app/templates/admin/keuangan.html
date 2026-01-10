@@ -42,6 +42,7 @@ function convertToISO(str) {
                     <div class="input-group"> <input type="text" name="tanggal_pembayaran" class="complex-colorpicker form-control" value="${ tanggal_pembayaran }" placeholder="dd/mm/yyyy"> <span class="input-group-text"> <i data-feather="calendar" class="feather-sm"></i> </span> </div>
 									  <div class="form-group"> <label for="keterangan_pembayaran">keterangan Pembayaran</label>
 									  <input type="text"class="form-control" name="keterangan_pembayaran" value="${keterangan_pembayaran}"></div>
+                    <small class="text-danger">* Apabila Lunas Wajib Mengisi Keterangan Pembayaran</small>
 									  <div class="form-group "> <label for="lunas_tidak">Lunas / Tidak Lunas </label>
 									  <select class="form-select form-control" name="lunas_tidak">
 									  <option class="form-control" value="" >Pilih Status </option>
@@ -54,8 +55,8 @@ function convertToISO(str) {
             var data = {
                 id_barang_keluar: id,
                 amount: performa_sales,
-                tanggal_pembayaran: convertToISO($("[name='tanggal_pembayaran']").val()),
-                keterangan_pembayaran: $("[name='keterangan_pembayaran']").val(),
+                tanggal_pembayaran: convertToISO($("[name='tanggal_pembayaran']").val())||"-",
+                keterangan_pembayaran: $("[name='keterangan_pembayaran']").val()||"-",
                 lunas_tidak: $("[name='lunas_tidak']").val()
             };
         handleAjax(

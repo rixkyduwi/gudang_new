@@ -144,7 +144,7 @@ function formatToMMDDYYY(datestr){
                     <select class="form-select select2 w-100" id="nama_principle" name="nama_principle">
                       <option value="">Semua Nama Principle</option>
                       {% for i in data_supplier %}
-                      <opx  tion value="{{ i.name }}" {% if request.args.get('nama_supplier') == i.name %} selected {% endif %}>
+                      <option  tion value="{{ i.name }}" {% if request.args.get('nama_supplier') == i.name %} selected {% endif %}>
                         {{ i.name }}
                       </option>
                       {% endfor %}

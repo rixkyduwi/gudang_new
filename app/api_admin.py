@@ -1852,7 +1852,7 @@ def keuangan_edit():
     sales_id   = d.get('id') or d.get('id_sales') or d.get('id_barang_keluar')
     print(sales_id)
     invoice_no = d.get('invoice_no') or d.get('nofaktur') or d.get('nomerfaktur')
-    pay_date   = d.get('pay_date') or d.get('tanggal_pembayaran')        # 'YYYY-MM-DD'
+    pay_date   = d.get('pay_date') or d.get('tanggal_pembayaran') or ''      # 'YYYY-MM-DD'
     method     = d.get('method') or d.get('metode_pembayaran') or d.get('cashtempo')  # 'CASH'/'TRANSFER'/dst
     amount     = d.get('amount')  # nominal pembayaran (Decimal/str/number)
     note       = d.get('note') or d.get('keterangan_pembayaran') or ''
@@ -1887,7 +1887,7 @@ def keuangan_edit():
                 g.con.execute("""
                     INSERT INTO payments (ref_type, ref_id, pay_date, method, amount, note)
                     VALUES ('SALE', %s, %s, %s, %s, %s)
-                """, (sales_id, pay_date, note, amount, note or ''))
+                """, (sales_id, pay_date, note, amount, note ))
         elif lunas_tidak == "Tidak Lunas":
             g.con.execute("""
                 UPDATE payments SET pay_date=%s, method=%s, note=%s WHERE ref_type=%s and ref_id=%s 
