@@ -980,11 +980,11 @@ def tambah_pengeluaran_action():
         for it in d.get('items', []):
             qty = int(it.get('jmlpermintaan') or 0)
             price = Decimal(str(it.get('harga_satuan') or 0))
-            
+            disc = Decimal(str(it.get('diskon') or 0))
             cur.execute("""
-                INSERT INTO sales_items (sales_invoice_id, product_id, qty, unit_price, total_amount, batch_no, expired_date,unit_label)
+                INSERT INTO sales_items (sales_invoice_id, product_id, qty, unit_price, total_amount,discount_percent, batch_no, expired_date,unit_label)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (sales_id, it.get('id_barang'), qty, price, (qty * price), it.get('batch_no'), it.get('ed'), it.get('unit_label')))
+            """, (sales_id, it.get('id_barang'), qty, price, (qty * price),disc, it.get('batch_no'), it.get('ed'), it.get('unit_label')))
 
         # 4. PENTING: Commit secara manual
         cur.connection.commit()
