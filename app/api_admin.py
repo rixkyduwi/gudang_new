@@ -1738,6 +1738,7 @@ def report_keuangan():
     tanggal      = request.args.get('tanggal', type=int)
     nama_sales_q = request.args.get('nama_sales', '', type=str)
     nama_cust_q  = request.args.get('nama_outlet', '', type=str)
+    status_q = request.args.get('status', '', type=str)
 
     # --- 2. Build Filter ---
     filters, params = [], []
@@ -1748,6 +1749,8 @@ def report_keuangan():
         filters.append("s.name = %s"); params.append(nama_sales_q)
     if nama_cust_q:
         filters.append("c.name = %s"); params.append(nama_cust_q)
+    if status_q:
+        filters.append("si.status = %s"); params.append(status_q)
 
     where_clause = (" WHERE " + " AND ".join(filters)) if filters else ""
 
