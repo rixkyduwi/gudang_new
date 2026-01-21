@@ -1,224 +1,198 @@
 {% extends 'include/include.html' %}
 {% block pjax_content %}
-<div class="page-titles pb-0">
-  <div class="row">
-    <div class="col-lg-8 col-md-6 col-12 align-self-center">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0 d-flex align-items-center">
-          <li class="breadcrumb-item">
-            <a href="/admin/dashboard" class="link">
-              <i class="ri-home-3-line fs-5"></i>
-            </a>
-          </li>
-          <li class="breadcrumb-item active" aria-current="page">Tambah Data Pengeluaran Barang</li>
-        </ol>
-      </nav>
-      <h1 class="mb-0 fw-bold">Tambah Data Pengeluaran Barang</h1>
+  <div class="page-titles pb-0">
+    <div class="row">
+      <div class="col-lg-8 col-md-6 col-12 align-self-center">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-0 d-flex align-items-center">
+            <li class="breadcrumb-item">
+              <a href="/admin/dashboard" class="link"><i class="ri-home-3-line fs-5"></i></a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Tambah Data Pengeluaran Barang</li>
+          </ol>
+        </nav>
+        <h1 class="mb-0 fw-bold">Tambah Data Pengeluaran Barang</h1>
+      </div>
+      <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end"></div>
     </div>
-    <div class="col-lg-4 col-md-6 d-md-flex align-items-center justify-content-end"></div>
   </div>
-</div>
 
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body">
-
-          <div >
-
-            <!-- Tanggal -->
-            <div class="form-group">
-              <label for="tglfaktur">Tanggal Faktur</label>
-              <div class="input-group">
-                <input type="text" id="tglfaktur" class="complex-colorpicker tglfaktur form-control"
-                       value="{{ tanggal|format_date }}" placeholder="dd/mm/yyyy">
-                <span class="input-group-text">
-                  <i data-feather="calendar" class="feather-sm"></i>
-                </span>
-              </div>
-            </div>
-
-            <!-- Jatuh Tempo (auto by /api/sales/invoice_no) -->
-            <div class="form-group">
-              <label for="jthtempo">Jatuh Tempo</label>
-              <div class="input-group">
-                <input type="text" id="jthtempo" class="form-control" value="{{ jth_tempo|format_date }}" placeholder="dd/mm/yyyy" disabled>
-                <span class="input-group-text">
-                  <i data-feather="calendar" class="feather-sm"></i>
-                </span>
-              </div>
-            </div>
-
-            <!-- Nomor Faktur (auto) -->
-            <div class="form-group">
-              <label for="nofaktur">Nomor Faktur</label>
-              <input type="text" id="nofaktur" value="{{ nofaktur }}" class="form-control" disabled>
-            </div>
-
-            <!-- Salesperson -->
-            <div class="form-group">
-              <label for="namasales">Salesperson</label>
-              <select id="namasales" class="select2 form-control" style="width:100%">
-                <option value="">Pilih Sales</option>
-                {% for s in data_sales %}
-                  <option value="{{ s.id or s.name }}"
-                          data-name="{{ s.name }}">{{ s.name }}</option>
-                {% endfor %}
-              </select>
-              <input type="hidden" id="idsales">  <!-- simpan id sales terpilih -->
-            </div>
-
-            <!-- Metode Pembayaran header (cashtempo) -->
-            <div class="form-group">
-              <label for="pembayaran">Metode Pembayaran</label>
-              <select id="pembayaran" class="form-select">
-                <option value="">Pilih</option>
-                <option value="CASH">Cash</option>
-                <option value="TEMPO">Tempo</option>
-              </select>
-            </div>
-
-            <!-- Outlet (terfilter oleh salesperson) -->
-            <div class="form-group">
-              <label for="namaoutlet">Outlet</label>
-              <select id="namaoutlet" class="form-control select2" style="width:100%">
-                <option value="">Pilih Outlet</option>
-              </select>
-              <small class="text-muted">Cari nama/alamat outlet.</small>
-              <input type="hidden" id="idoutlet">
-            </div>
-
-            <!-- Alamat outlet (readonly) -->
-            <div class="form-group">
-              <label for="alamatoutlet">Alamat Outlet</label>
-              <input type="text" id="alamatoutlet" class="form-control" disabled>
-            </div>
-
-            <!-- Pajak -->
-            <div class="form-group">
-              <label for="pajak">Pajak</label>
-              <select id="pajak" class="form-select">
-                <option value="">Pilih pajak</option>
-                <option value="Iya">Iya</option>
-                <option value="Tidak">Tidak</option>
-              </select>
-            </div>
-
-            <!-- Sender-->
-            <div class="form-group">
-              <label for="namapengirim">Pengirim</label>
-              <select id="namapengirim" class="select2 form-select" style="width:100%">
-                <option value="">Tidak ada Pengirim</option>
-                {% for s in data_pengirim %}
-                  <option value="{{ s.id or s.name }}"
-                          data-name="{{ s.name }}">{{ s.name }}</option>
-                {% endfor %}
-              </select>
-              <input type="hidden" id="idsender">  <!-- simpan id sales terpilih -->
-            </div>
-
-            <!-- REPEATER ITEM -->
-            <div class="email-repeater mb-3">
-              <div data-repeater-list="items">
-                <div data-repeater-item class="row mb-3 bg-light border-top mt-4 p-3 rounded-3">
-
-                  <!-- Barang (value = id_barang, tampil stock & limit) -->
-                  <div class="form-group">
-                    <label>Nama Barang</label>
-                    <select class="form-control select2 sel-barang" style="width:100%">
-                      <option value="">Pilih Barang</option>
-                      {% for b in data_barang %}
-                        <option
-                          value="{{ b.id }}"
-                          data-kode="{{ b.code }}"
-                          data-qty="{{ b.unit }}"
-                          data-stok="{{ b.qty_on_hand }}"
-                          data-limit="{{ b.stock_min }}"
-                        >{{b.name}}</option>
-                      {% endfor %}
-                    </select>
-                    <small class="text-muted d-block">
-                      <span class="hint-stok">Stok: -</span> •
-                      <span class="hint-limit">Limit: -</span>
-                    </small>
-                  </div>
-
-                  <input type="hidden" class="idbarang">
-                  <input type="text" class="qty form-control d-none" disabled>
-
-                  <div class="form-group">
-                    <label>Jumlah Permintaan</label>
-                    <input type="number" min="0" class="jmlpermintaan form-control" placeholder="0">
-                  </div>
-
-                  <div class="form-group">
-                    <label>Harga Satuan</label>
-                    <div class="input-group">
-                      <span class="input-group-text">Rp</span>
-                      <input type="text" class="hargasatuan form-control" placeholder="0" oninput="formatAngkaInput(this)">
-                      <input type="text" class="hargasatuan-koma form-control" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)">
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label>Diskon (%)</label>
-                    <div class="input-group">
-                      <input type="number" class="diskon form-control" min="0" max="100" placeholder="0" oninput="formatDiskon(this)">
-                      <span class="input-group-text">%</span>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label>Harga Total</label>
-                    <div class="input-group">
-                      <span class="input-group-text">Rp</span>
-                      <input type="text" class="hargatotal form-control" placeholder="0" disabled>
-                      <input type="text" class="hargatotal-koma form-control" maxlength="3" placeholder=",00" disabled>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-				  <label>Batch</label>
-				  <input type="text" id="batch" class="batch form-control" placeholder="-">
-				</div>
-
-                  <div class="form-group">
-                    <label>Expired Date (ED)</label>
-                    <div class="input-group">
-                    <input type="text" id="ed" class="complex-colorpicker2 ed form-control"
-                       placeholder="mm/yyyy">
-                    <span class="input-group-text">
-                      <i data-feather="calendar" class="feather-sm"></i>
-                    </span>
-                    </div>
-                  </div>
-
-                  <button data-repeater-delete class="mt-2 btn btn-danger w-100" type="button">
-                    <i data-feather="x-circle" class="feather-sm me-1"></i> Hapus Barang
-                  </button>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div>
+              <!-- Tanggal -->
+              <div class="form-group">
+                <label for="tglfaktur">Tanggal Faktur</label>
+                <div class="input-group">
+                  <input type="text" id="tglfaktur" class="complex-colorpicker tglfaktur form-control" value="{{ tanggal|format_date }}" placeholder="dd/mm/yyyy" />
+                  <span class="input-group-text"><i data-feather="calendar" class="feather-sm"></i></span>
                 </div>
               </div>
 
-              <button type="button" data-repeater-create id="tambah-barang" class="btn btn-info w-100">
-                <i data-feather="plus-circle" class="feather-sm me-1"></i> Tambah Barang
-              </button>
-            </div>
+              <!-- Jatuh Tempo (auto by /api/sales/invoice_no) -->
+              <div class="form-group">
+                <label for="jthtempo">Jatuh Tempo</label>
+                <div class="input-group">
+                  <input type="text" id="jthtempo" class="form-control" value="{{ jth_tempo|format_date }}" placeholder="dd/mm/yyyy" disabled />
+                  <span class="input-group-text"><i data-feather="calendar" class="feather-sm"></i></span>
+                </div>
+              </div>
 
-            <div class="text-end mt-3">
-              <button id="modal-submit-tambah" class="btn btn-info ms-2">Submit</button>
-              <a href="/admin/pengeluaran" class="btn btn-secondary">Back</a>
-            </div>
+              <!-- Nomor Faktur (auto) -->
+              <div class="form-group">
+                <label for="nofaktur">Nomor Faktur</label>
+                <input type="text" id="nofaktur" value="{{ nofaktur }}" class="form-control" disabled />
+              </div>
 
+              <!-- Salesperson -->
+              <div class="form-group">
+                <label for="namasales">Salesperson</label>
+                <select id="namasales" class="select2 form-control" style="width:100%">
+                  <option value="">Pilih Sales</option>
+                  {% for s in data_sales %}
+                    <option value="{{ s.id or s.name }}" data-name="{{ s.name }}">{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" id="idsales" /> <!-- simpan id sales terpilih -->
+              </div>
+
+              <!-- Metode Pembayaran header (cashtempo) -->
+              <div class="form-group">
+                <label for="pembayaran">Metode Pembayaran</label>
+                <select id="pembayaran" class="form-select">
+                  <option value="">Pilih</option>
+                  <option value="CASH">Cash</option>
+                  <option value="TEMPO">Tempo</option>
+                </select>
+              </div>
+
+              <!-- Outlet (terfilter oleh salesperson) -->
+              <div class="form-group">
+                <label for="namaoutlet">Outlet</label>
+                <select id="namaoutlet" class="form-control select2" style="width:100%">
+                  <option value="">Pilih Outlet</option>
+                </select>
+                <small class="text-muted">Cari nama/alamat outlet.</small>
+                <input type="hidden" id="idoutlet" />
+              </div>
+
+              <!-- Alamat outlet (readonly) -->
+              <div class="form-group">
+                <label for="alamatoutlet">Alamat Outlet</label>
+                <input type="text" id="alamatoutlet" class="form-control" disabled />
+              </div>
+
+              <!-- Pajak -->
+              <div class="form-group">
+                <label for="pajak">Pajak</label>
+                <select id="pajak" class="form-select">
+                  <option value="">Pilih pajak</option>
+                  <option value="Iya">Iya</option>
+                  <option value="Tidak">Tidak</option>
+                </select>
+              </div>
+
+              <!-- Sender -->
+              <div class="form-group">
+                <label for="namapengirim">Pengirim</label>
+                <select id="namapengirim" class="select2 form-select" style="width:100%">
+                  <option value="">Tidak ada Pengirim</option>
+                  {% for s in data_pengirim %}
+                    <option value="{{ s.id or s.name }}" data-name="{{ s.name }}">{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" id="idsender" /> <!-- simpan id sales terpilih -->
+              </div>
+
+              <!-- REPEATER ITEM -->
+              <div class="email-repeater mb-3">
+                <div data-repeater-list="items">
+                  <div data-repeater-item class="row mb-3 bg-light border-top mt-4 p-3 rounded-3">
+                    <!-- Barang (value = id_barang, tampil stock & limit) -->
+                    <div class="form-group">
+                      <label>Nama Barang</label>
+                      <select class="form-control select2 sel-barang" style="width:100%">
+                        <option value="">Pilih Barang</option>
+                        {% for b in data_barang %}
+                          <option value="{{ b.id }}" data-kode="{{ b.code }}" data-qty="{{ b.unit }}" data-stok="{{ b.qty_on_hand }}" data-limit="{{ b.stock_min }}">{{ b.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <small class="text-muted d-block">
+                        <span class="hint-stok">Stok: -</span> •
+                        <span class="hint-limit">Limit: -</span>
+                      </small>
+                    </div>
+
+                    <input type="hidden" class="idbarang" />
+                    <input type="text" class="qty form-control d-none" disabled />
+
+                    <div class="form-group">
+                      <label>Jumlah Permintaan</label>
+                      <input type="number" min="0" class="jmlpermintaan form-control" placeholder="0" />
+                    </div>
+
+                    <div class="form-group">
+                      <label>Harga Satuan</label>
+                      <div class="input-group">
+                        <span class="input-group-text">Rp</span>
+                        <input type="text" class="hargasatuan form-control" placeholder="0" oninput="formatAngkaInput(this)" />
+                        <input type="text" class="hargasatuan-koma form-control" maxlength="3" placeholder=",00" oninput="this.value = formatKoma(this.value)" />
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Diskon (%)</label>
+                      <div class="input-group">
+                        <input type="number" class="diskon form-control" min="0" max="100" placeholder="0" oninput="formatDiskon(this)" />
+                        <span class="input-group-text">%</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Harga Total</label>
+                      <div class="input-group">
+                        <span class="input-group-text">Rp</span>
+                        <input type="text" class="hargatotal form-control" placeholder="0" disabled />
+                        <input type="text" class="hargatotal-koma form-control" maxlength="3" placeholder=",00" disabled />
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Batch</label>
+                      <input type="text" id="batch" class="batch form-control" placeholder="-" />
+                    </div>
+
+                    <div class="form-group">
+                      <label>Expired Date (ED)</label>
+                      <div class="input-group">
+                        <input type="text" id="ed" class="complex-colorpicker2 ed form-control" placeholder="mm/yyyy" />
+                        <span class="input-group-text"><i data-feather="calendar" class="feather-sm"></i></span>
+                      </div>
+                    </div>
+
+                    <button data-repeater-delete class="mt-2 btn btn-danger w-100" type="button"><i data-feather="x-circle" class="feather-sm me-1"></i> Hapus Barang</button>
+                  </div>
+                </div>
+
+                <button type="button" data-repeater-create id="tambah-barang" class="btn btn-info w-100"><i data-feather="plus-circle" class="feather-sm me-1"></i> Tambah Barang</button>
+              </div>
+
+              <div class="text-end mt-3">
+                <button id="modal-submit-tambah" class="btn btn-info ms-2">Submit</button>
+                <a href="/admin/pengeluaran" class="btn btn-secondary">Back</a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- JS -->
-<script>
+  <!-- JS -->
+  <script>
   
 $('a[href="/admin/pengeluaran"]').addClass("active");
   // Repeater
@@ -537,25 +511,45 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
 
     // Data barang dari server (untuk cek stok-limit warning)
     const data_barang = {{ data_barang | tojson | safe }};
-    function handleResponse2(data, crud, reloadUrl){
-      console.log(data)
-      try{
-      if (data && data.msg === "SUKSES"){
-        alert(`✅ Sukses ${crud}`);
-      } else {
-        alert(`❌ Gagal ${crud}: ${(data && data.error) || 'unknown'}`);
-        if (data.error.includes("401")){location.href="/login"};
-      }
-      }catch(e){
-      alert('⚠ Error: '+e.message);
-      }finally{
-        $('#generic-modal').modal('hide'); // tutup modal
-        //$.pjax({
-        //	url: reloadUrl || location.href,
-        //	container: '#pjax-container'
-        //});
-      }
+    function handleResponse2(data, crud, reloadUrl) {
+    console.log("Respons Server:", data);
+    
+    try {
+        if (data && (data.msg === "SUKSES" || data.status === "success")) {
+            alert(`✅ Sukses ${crud}`);
+            
+            if (reloadUrl) {
+                console.log("Mengarahkan ke:", reloadUrl);
+                
+                // Cek apakah fungsi pjax tersedia secara global
+                if (typeof $.pjax === 'function') {
+                    $.pjax({
+                        url: reloadUrl,
+                        container: '#pjax-container', // PASTIKAN ID INI BENAR DI HTML ANDA
+                        fragment: '#pjax-container',  // Tambahkan ini agar lebih akurat
+                        timeout: 5000
+                    });
+                } else {
+                    // Jika PJAX tidak ada, paksa redirect biasa
+                    window.location.href = reloadUrl;
+                }
+            }
+        } else {
+            let errorMsg = data.error || (data.responseJSON && data.responseJSON.error) || 'Terjadi kesalahan sistem';
+            alert(`❌ Gagal ${crud}: ${errorMsg}`);
+            
+            if (errorMsg.includes("401")) {
+                window.location.href = "/login";
+            }
+        }
+    } catch (e) {
+        console.error("Error di handleResponse2:", e);
+        alert('⚠ Terjadi kesalahan pada script: ' + e.message);
+    } finally {
+        // Jika submit ada di dalam modal, ini akan menutupnya
+        $('.modal').modal('hide'); 
     }
+}
     $("[data-repeater-item]").each(function(){
       if (cancel) return;
       const $row = $(this);
@@ -594,18 +588,19 @@ $('a[href="/admin/pengeluaran"]').addClass("active");
     if(cancel) return;
 
     $.ajax({
-      url: '/admin/pengeluaran',
-      method: 'POST',
-      data: JSON.stringify(payload),
-	  contentType: 'application/json',
-	  success: function(data){
-		handleResponse2(data,'Tambah Data Pengeluaran',"/admin/pengeluaran")
-      },
-      error: function(xhr){
-		handleResponse2(xhr,'Tambah Data Pengeluaran',"/admin/pengeluaran")
-		
-      }
-    });
+    url: '/admin/pengeluaran',
+    method: 'POST',
+    data: JSON.stringify(payload),
+    contentType: 'application/json',
+    success: function(data){
+        // Berhasil: Tampilkan pesan dan pindah halaman
+        handleResponse2(data, 'Tambah Data Pengeluaran', "/admin/pengeluaran");
+    },
+    error: function(xhr){
+        // Gagal: Tampilkan pesan error SAJA, jangan pindah halaman (hapus parameter ketiga)
+        handleResponse2(xhr, 'Gagal Menambah Data', null); 
+    }
+});
   });
   
   $("#tambah-barang").on("click", function() {
