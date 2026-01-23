@@ -980,7 +980,7 @@ def tambah_pengeluaran_action():
         for it in d.get('items', []):
             qty = int(it.get('jmlpermintaan') or 0)
             price = Decimal(str(it.get('harga_satuan') or 0))
-            harga_satuan = price.to_integral_value(rounding=ROUND_FLOOR) + ( Decimal(1) if price % 1 >= Decimal('0.50') else Decimal(0))
+            q
             price = Decimal(str(it.get('harga_total') or 0))
             harga_total = price.to_integral_value(rounding=ROUND_FLOOR) + ( Decimal(1) if price % 1 >= Decimal('0.50') else Decimal(0))
             cur.execute("""
@@ -1100,8 +1100,10 @@ def pengeluaran_edit(id):
         product_id  = it.get('id_barang')
         qty         = int(it.get('jmlpermintaan') or 0)
         unit_price  = parse_decimal(it.get('harga_satuan'))
+        harga_satuan = unit_price.to_integral_value(rounding=ROUND_FLOOR) + ( Decimal(1) if price % 1 >= Decimal('0.50') else Decimal(0))
         disc_pct    = parse_decimal(it.get('diskon') or 0)
         total_amount= parse_decimal(it.get('harga_total') or unit_price*qty - (unit_price*qty*disc_pct/Decimal('100')))
+        harga_total = total_amount.to_integral_value(rounding=ROUND_FLOOR) + ( Decimal(1) if price % 1 >= Decimal('0.50') else Decimal(0))
         unit_label = it.get('unit_label')
         factor     = parse_decimal(it.get('uom_factor_to_base') or (1 if not unit_label else 1))
         qty_uom    = parse_decimal(it.get('qty_uom') or (qty if not unit_label else 0))
@@ -1120,8 +1122,7 @@ def pengeluaran_edit(id):
             (sales_invoice_id, product_id, qty, unit_price, discount_percent, total_amount,
              unit_label, uom_factor_to_base, qty_uom, qty_base, batch_no, expired_date)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (id, product_id, qty, unit_price, disc_pct, total_amount,
-              unit_label, factor, qty_uom, qty_base, it.get('batch_no'), ed))
+        """, (id, product_id, qty, harga_satuan, disc_pct, harga_total,  unit_label, factor, qty_uom, qty_base, it.get('batch_no'), ed))
         g.con.execute("""
             INSERT INTO stock_moves (product_id, ref_type, ref_id, qty_out, note)
             VALUES (%s,'SALE',%s,%s,%s)
