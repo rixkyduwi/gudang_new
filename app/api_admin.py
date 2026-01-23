@@ -980,7 +980,7 @@ def tambah_pengeluaran_action():
         for it in d.get('items', []):
             qty = int(it.get('jmlpermintaan') or 0)
             price = Decimal(str(it.get('harga_satuan') or 0))
-            q
+            harga_satuan = price.to_integral_value(rounding=ROUND_FLOOR) + ( Decimal(1) if price % 1 >= Decimal('0.50') else Decimal(0))
             price = Decimal(str(it.get('harga_total') or 0))
             harga_total = price.to_integral_value(rounding=ROUND_FLOOR) + ( Decimal(1) if price % 1 >= Decimal('0.50') else Decimal(0))
             cur.execute("""
