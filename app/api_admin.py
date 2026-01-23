@@ -11,7 +11,7 @@ import time
 import traceback
 from datetime import datetime, date, timedelta
 from typing import Tuple, List, Optional
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_FLOOR
 from collections import defaultdict
 # Import library pihak ketiga
 from openpyxl import Workbook
