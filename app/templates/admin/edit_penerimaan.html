@@ -81,7 +81,7 @@
                                     {% for i in data_supplier %}
                                         <option
                                             value="{{ i.id }}"
-                                            {% if i.id == purchase['id_supplier'] %}selected{% endif %}>{{ i.name }}</option>
+                                            {% if i.id == purchase['supplier_id'] %}selected{% endif %}>{{ i.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
