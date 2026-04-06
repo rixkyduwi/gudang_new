@@ -63,9 +63,9 @@ function convertToISO(str) {
           '/admin/keuangan/edit/id',
           'PUT',
           data,
-          function(response) { handleResponse(response,"Edit","/admin/keuangan")},
+          function(response) { handleResponse(response,"Edit")},
           function(xhr, status, error) { console.error("Error:", error);
-			handleResponse(xhr.responseJSON,"Edit","/admin/keuangan");
+			handleResponse(xhr.responseJSON,"Edit");
 		  }
         );
       }

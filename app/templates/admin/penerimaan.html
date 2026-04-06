@@ -54,10 +54,10 @@ function formatToMMDDYYY(datestr){
         'DELETE',
         { id: id },
         function(data) {
-			handleResponse(data, "Hapus Data", "/admin/penerimaan");
+			handleResponse(data, "Hapus Data");
 		},
 		function(xhr, status, error) {
-			handleResponse(xhr, "Hapus", "/admin/penerimaan");
+			handleResponse(xhr, "Hapus Data");
 		}
       );
     }

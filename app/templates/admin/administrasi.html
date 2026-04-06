@@ -78,9 +78,9 @@
           '/admin/administrasi/edit/id',
           'PUT',
           data,
-          function(response) { handleResponse(response,"Edit","/admin/administrasi")},
+          function(response) { handleResponse(response,"Edit")},
           function(xhr, status, error) { console.error("Error:", error);
-			handleResponse(xhr.responseJSON,"Edit","/admin/administrasi");
+			handleResponse(xhr.responseJSON,"Edit");
 		  }
         );
       }
@@ -100,10 +100,10 @@
         'DELETE',
         { id: id },
         function(data) {
-			handleResponse(data, "Hapus", "/admin/administrasi");
+			handleResponse(data, "Hapus Data");
 		},
         function(xhr, status, error) {
-			handleResponse(xhr.responseJSON, "Hapus", "/admin/administrasi");
+			handleResponse(xhr.responseJSON, "Hapus Data");
 		}
       );
     }

@@ -201,11 +201,11 @@ function showModal(title, body, onSubmit) {
               '/admin/penyimpanan', 'PUT', payload,
               function (response) {
                 // sukses
-                handleResponse(response, "Edit", "/admin/penyimpanan");
+                handleResponse(response, "Edit");
               },
               function (errPayload) {
                 //gagal
-                handleResponse(errPayload, "Edit", "/admin/penyimpanan");
+                handleResponse(errPayload, "Edit");
               }
             );
           }
