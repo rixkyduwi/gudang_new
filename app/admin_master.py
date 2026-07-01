@@ -123,6 +123,9 @@ def list_entity(entity):
         ORDER BY {cfg['order_by']}"""
         #LIMIT %s OFFSET %s"""
     rows = fetch(list_sql, params) #+ [per_page, offset])
+    if entity == "senders":
+        for r in rows:
+            r["is_active"] = bool(r["is_active"])
 
     pager = paginate(total, page, per_page)
     return render_pjax("admin/master_list.html",

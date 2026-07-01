@@ -33,7 +33,15 @@
 			{% for r in rows %}
 			<tr class="data-utama">
 			  <td>{{ loop.index  }}</td>
-			  {% for c in columns %}<td>{{ r[c]|format_master }}</td>{% endfor %}
+			  {% for c in columns %}
+			  <td>
+				{% if c == 'is_active' %}
+				  {% if r[c] == 1 or r[c] == true or r[c] == '1' or r[c] == 'true' or r[c] == 'True' %}Aktif{% else %}Tidak Aktif{% endif %}
+				{% else %}
+				  {{ r[c]|format_master }}
+				{% endif %}
+			  </td>
+			  {% endfor %}
 			  <td>
 				<button class="btn btn-sm btn-warning" onclick="openEdit('{{ r.id }}')">Edit</button>
 				<button class="btn btn-sm btn-danger" onclick="doDelete('{{ r.id }}')">Hapus</button>
@@ -144,7 +152,7 @@ function renderForm(fields, data){
               <textarea class="form-control" id="f_${f.name}">${v??''}</textarea></div>`;
     }
     if (f.type === 'checkbox'){
-      const checked = (String(v)=='1' || v===true) ? 'checked' : '';
+      const checked = (String(v)=='1' || String(v).toLowerCase()==='true' || String(v).toLowerCase()==='aktif' || v===true) ? 'checked' : '';
       return `<div class="form-check mb-2">
         <input class="form-check-input" type="checkbox" id="f_${f.name}" ${checked}>
         <label class="form-check-label">${f.label}</label></div>`;
